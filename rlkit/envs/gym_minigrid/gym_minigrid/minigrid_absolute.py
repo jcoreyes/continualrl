@@ -84,6 +84,12 @@ DIR_TO_VEC = {
 	'east'  : np.array((1, 0))
 }
 
+FOOD_VALUES = {
+	'food': 1,
+	'tree': 2,
+
+}
+
 # TYPE_TO_CLASS dict at bottom of file
 
 class WorldObj:
@@ -116,13 +122,16 @@ class WorldObj:
 		"""Can the agent pick this up?"""
 		return False
 
-	def can_eat(self):
-		"""Can the agent pick this up?"""
+	def can_mine(self, env):
+		"""Can the agent mine this resource?"""
 		return False
 
 	def can_contain(self):
 		"""Can this contain another object?"""
 		return False
+
+	def food_value(self):
+		return FOOD_VALUES.get(str(self), 0)
 
 	def see_behind(self):
 		"""Can the agent see behind this object?"""
@@ -423,7 +432,7 @@ class Food(WorldObj):
 	def __init__(self, color='blue'):
 		super(Food, self).__init__('food', color)
 
-	def can_eat(self):
+	def can_mine(self, env):
 		return True
 
 	def can_overlap(self):
@@ -432,6 +441,31 @@ class Food(WorldObj):
 	def render(self, r):
 		self._set_color(r)
 		r.drawCircle(CELL_PIXELS * 0.5, CELL_PIXELS * 0.5, 10)
+
+	def __str__(self):
+		return 'food'
+
+
+class Tree(WorldObj):
+	def __init__(self, color='true'):
+		super(Tree, self).__init__('tree', color)
+
+	def can_overlap(self):
+		return True
+
+	def can_mine(self, env):
+		return env.can_cut()
+
+	def render(self, r):
+		self._set_color(r)
+		r.drawPolygon([
+			(0, 0.4 * CELL_PIXELS),
+			(0.4 * CELL_PIXELS, -0.4 * CELL_PIXELS),
+			(-0.4 * CELL_PIXELS, -0.4 * CELL_PIXELS)
+		])
+
+	def __str__(self):
+		return 'tree'
 
 
 class GridAbsolute:
@@ -795,6 +829,7 @@ class MiniGridAbsoluteEnv(gym.Env):
 		east = 1
 		north = 2
 		south = 3
+		mine = 4
 		# Pick up an object
 		# pickup = 4
 		# Drop an object
@@ -805,14 +840,14 @@ class MiniGridAbsoluteEnv(gym.Env):
 		#
 		# # Done completing task
 		# done = 4
-		eat = 4
 
 	def __init__(
 		self,
 		grid_size=16,
 		max_steps=100,
 		see_through_walls=False,
-		seed=1337
+		seed=1337,
+		health_cap=5
 	):
 		# Action enumeration for this environment
 		self.actions = MiniGridAbsoluteEnv.Actions
@@ -870,6 +905,8 @@ class MiniGridAbsoluteEnv(gym.Env):
 		self.seed(seed=seed)
 
 		self.prev_action = np.zeros(6)
+
+		self.health_cap = health_cap
 
 		# Initialize the state
 		self.reset()
@@ -1018,6 +1055,9 @@ class MiniGridAbsoluteEnv(gym.Env):
 		new_array[self.agent_pos[1]][self.agent_pos[0]] = AGENT_DIR_TO_IDS[0]
 
 		return "\n".join([" ".join(line) for line in new_array])
+
+	def add_health(self, num):
+		self.health = max(0, min(self.health_cap, self.health + num))
 
 	def _gen_grid(self, width, height):
 		assert False, "_gen_grid needs to be implemented by each environment"
@@ -1221,10 +1261,12 @@ class MiniGridAbsoluteEnv(gym.Env):
 	# 	cell = self.grid.get(*pos)
 	# 	return cell != None and cell.type == 'goal'
 
-	def step(self, action):
+	def step(self, action, override=False):
 		self.step_count += 1
 
 		done = False
+		# did we catch the action?
+		matched = True
 		agent_cell = self.grid.get(*self.agent_pos)
 		act_enum = self.Actions(action)
 		if act_enum.name in ['north', 'west', 'south', 'east']:
@@ -1241,11 +1283,6 @@ class MiniGridAbsoluteEnv(gym.Env):
 			# if self.done_cond(self.agent_pos):
 			# 	done = True
 
-		# Eat food
-		elif action == self.actions.eat:
-			if agent_cell and agent_cell.can_eat():
-				self.grid.set(*self.agent_pos, None)
-				self.health = min(self.health + 1, self.health_cap)
 
 		# # Pick up an object
 		# elif action == self.actions.pickup:
@@ -1280,7 +1317,9 @@ class MiniGridAbsoluteEnv(gym.Env):
 		#     pass
 
 		else:
-			assert False, "unknown action %d" % action
+			matched = False
+			if not override:
+				assert False, "unknown action %d" % action
 
 		# if self.step_count >= self.max_steps:
 		# 	done = True
@@ -1288,7 +1327,10 @@ class MiniGridAbsoluteEnv(gym.Env):
 		obs = self.gen_obs()
 		reward = self._reward()
 		# self.prev_action = np.eye(6)[action]
-		return obs, reward, done, {}
+		if override:
+			return matched
+		else:
+			return obs, reward, done, {}
 
 	def gen_obs_grid(self):
 		"""
