@@ -18,4 +18,4 @@
 # from gym_minigrid.envs.crossing import *
 # from gym_minigrid.envs.dynamicobstacles import *
 # from gym_minigrid.envs.distshift import *
-from gym_minigrid.envs.getfood import *
+from gym_minigrid.envs.getfood_easy import *

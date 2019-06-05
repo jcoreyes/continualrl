@@ -14,23 +14,26 @@ class FoodEnvBase(MiniGridAbsoluteEnv):
 
 	def __init__(self,
 				 agent_start_pos=(1, 1),
-				 agent_start_dir=0,
 				 health_cap=5,
 				 health_rate=4,
 				 food_rate=4,
 				 **kwargs
 				 ):
-		super().__init__(
-			# Set this to True for maximum speed
-			see_through_walls=True,
-			**kwargs
-		)
 		self.agent_start_pos = agent_start_pos
-		self.agent_start_dir = agent_start_dir
+		# self.agent_start_dir = agent_start_dir
 		self.health_rate = health_rate
 		self.food_rate = food_rate
 		self.health_cap = health_cap
 		self.health = health_cap
+
+		super().__init__(
+			# Set this to True for maximum speed
+			see_through_walls=True,
+			grid_size=8,
+			**kwargs
+		)
+
+		# since superclass constructor overrides actions attribute we put this last
 		self.actions = FoodEnvBase.Actions
 
 	def _reward(self):
@@ -49,7 +52,7 @@ class FoodEnvBase(MiniGridAbsoluteEnv):
 		# Place the agent
 		if self.agent_start_pos is not None:
 			self.start_pos = self.agent_start_pos
-			self.start_dir = self.agent_start_dir
+			# self.start_dir = self.agent_start_dir
 		else:
 			self.place_agent()
 
