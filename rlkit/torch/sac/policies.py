@@ -1,6 +1,7 @@
 import numpy as np
 import torch
 from torch import nn as nn
+from torch.distributions.categorical import Categorical
 
 from rlkit.policies.base import ExplorationPolicy, Policy
 from rlkit.torch.core import eval_np
@@ -124,10 +125,27 @@ class TanhGaussianPolicy(Mlp, ExplorationPolicy):
         )
 
 
+class CategoricalPolicy(Policy, nn.Module):
+    def __init__(self, prob_network):
+        super().__init__()
+        self.prob_network = prob_network
+        self.action_dim = prob_network.output_size
+
+    def forward(self, obs):
+        return Categorical(self.prob_network(obs))
+
+    # TODO suvansh remove print_action
+    def get_action(self, obs_np, deterministic=False, print_action=False):
+        dist_vec = eval_np(self.prob_network, obs_np)
+        if print_action:
+            import pdb; pdb.set_trace()
+        return Categorical(torch.from_numpy(dist_vec)).sample().item() if not deterministic else dist_vec.argmax(), {}
+
+
 class MakeDeterministic(Policy):
     def __init__(self, stochastic_policy):
         self.stochastic_policy = stochastic_policy
 
-    def get_action(self, observation):
+    def get_action(self, observation, print_action=False):
         return self.stochastic_policy.get_action(observation,
                                                  deterministic=True)
