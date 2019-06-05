@@ -32,6 +32,7 @@ class MdpPathCollector(PathCollector):
             max_path_length,
             num_steps,
             discard_incomplete_paths,
+            render=False
     ):
         paths = []
         num_steps_collected = 0
@@ -44,14 +45,16 @@ class MdpPathCollector(PathCollector):
                 self._env,
                 self._policy,
                 max_path_length=max_path_length_this_loop,
+                render=render and len(paths) == 0
             )
             path_len = len(path['actions'])
-            if (
-                    path_len != max_path_length
-                    and not path['terminals'][-1]
-                    and discard_incomplete_paths
-            ):
-                break
+            # suvansh: we don't want to skip incomplete paths, and in fact don't have a meaningful max path length
+            # if (
+            #         path_len != max_path_length
+            #         and not path['terminals'][-1]
+            #         and discard_incomplete_paths
+            # ):
+            #     break
             num_steps_collected += path_len
             paths.append(path)
         self._num_paths_total += len(paths)

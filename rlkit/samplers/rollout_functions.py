@@ -1,3 +1,5 @@
+import time
+
 import numpy as np
 
 
@@ -108,6 +110,7 @@ def rollout(
     path_length = 0
     if render:
         env.render(**render_kwargs)
+        time.sleep(0.5)
     while path_length < max_path_length:
         a, agent_info = agent.get_action(o)
         next_o, r, d, env_info = env.step(a)
@@ -123,6 +126,7 @@ def rollout(
         o = next_o
         if render:
             env.render(**render_kwargs)
+            time.sleep(0.1)
 
     actions = np.array(actions)
     if len(actions.shape) == 1:
