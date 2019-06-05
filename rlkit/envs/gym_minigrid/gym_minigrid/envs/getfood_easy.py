@@ -8,6 +8,9 @@ class FoodEnv(FoodEnvBase):
 	"""
 	Empty grid environment, no obstacles, sparse reward
 	"""
+	def __init__(self, **kwargs):
+		super().__init__(**kwargs)
+
 	def extra_step(self, action):
 		agent_cell = self.grid.get(*self.agent_pos)
 		matched = True

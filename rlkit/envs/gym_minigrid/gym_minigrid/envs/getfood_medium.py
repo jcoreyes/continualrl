@@ -2,11 +2,12 @@ from enum import IntEnum
 
 from gym_minigrid.minigrid_absolute import *
 from gym_minigrid.register import register
+from rlkit.envs.gym_minigrid.gym_minigrid.envs.getfood_base import FoodEnvBase
 from rlkit.envs.gym_minigrid.gym_minigrid.minigrid_absolute import CELL_PIXELS, MiniGridAbsoluteEnv, DIR_TO_VEC, \
 	GridAbsolute
 
 
-class FoodEnv(FoodEnvBase):
+class FoodEnvMedium(FoodEnvBase):
 	"""
 	Empty grid environment, no obstacles, sparse reward
 	"""
@@ -66,6 +67,8 @@ class FoodEnv(FoodEnvBase):
 				eaten = self.pantry.pop(0)
 				self.add_health(eaten.food_value())
 				self.pantry_str.remove(str(eaten))
+
+		#
 
 		else:
 			matched = False
