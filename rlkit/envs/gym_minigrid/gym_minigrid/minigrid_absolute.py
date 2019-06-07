@@ -922,7 +922,6 @@ class MiniGridAbsoluteEnv(gym.Env):
 		max_steps=100,
 		see_through_walls=False,
 		seed=1337,
-		health_cap=5
 	):
 		# Action enumeration for this environment
 		self.actions = MiniGridAbsoluteEnv.Actions
@@ -980,8 +979,6 @@ class MiniGridAbsoluteEnv(gym.Env):
 		self.seed(seed=seed)
 
 		self.prev_action = np.zeros(6)
-
-		self.health_cap = health_cap
 
 		# Initialize the state
 		self.reset()
