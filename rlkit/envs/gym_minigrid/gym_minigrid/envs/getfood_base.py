@@ -17,6 +17,7 @@ class FoodEnvBase(MiniGridAbsoluteEnv):
 				 health_cap=5,
 				 health_rate=4,
 				 food_rate=4,
+	             grid_size=8,
 				 **kwargs
 				 ):
 		self.agent_start_pos = agent_start_pos
@@ -29,7 +30,7 @@ class FoodEnvBase(MiniGridAbsoluteEnv):
 		super().__init__(
 			# Set this to True for maximum speed
 			see_through_walls=True,
-			grid_size=8,
+			grid_size=grid_size,
 			**kwargs
 		)
 
@@ -89,3 +90,11 @@ class FoodEnvBase(MiniGridAbsoluteEnv):
 
 	def decay_health(self):
 		pass
+
+	def __getstate__(self):
+		d = self.__dict__.copy()
+		del d['grid_render']
+		return d
+
+	def __setstate__(self, d):
+		self.__dict__.update(d)
