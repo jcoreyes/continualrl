@@ -19,3 +19,4 @@
 # from gym_minigrid.envs.dynamicobstacles import *
 # from gym_minigrid.envs.distshift import *
 from gym_minigrid.envs.getfood_easy import *
+from gym_minigrid.envs.getfood_medium import *

@@ -17,8 +17,8 @@ from rlkit.envs.gym_minigrid.gym_minigrid import *
 
 
 def experiment(variant):
-	expl_env = gym.make('MiniGrid-Food-8x8-6and4-v1')
-	eval_env = gym.make('MiniGrid-Food-8x8-6and4-v1')
+	expl_env = gym.make('MiniGrid-Food-8x8-Medium-10and4-v1')
+	eval_env = gym.make('MiniGrid-Food-8x8-Medium-10and4-v1')
 	obs_dim = expl_env.observation_space.low.size
 	action_dim = eval_env.action_space.n
 
@@ -51,7 +51,7 @@ def experiment(variant):
 			output_activation=F.softmax)
 	)
 	# TODO suvansh implement get_action on categorical policy
-	eval_policy = policy
+	eval_policy = MakeDeterministic(policy)
 
 	eval_path_collector = MdpPathCollector(
 		eval_env,
@@ -104,7 +104,7 @@ if __name__ == "__main__":
 			num_trains_per_train_loop=1000,
 			num_expl_steps_per_train_loop=1000,
 			min_num_steps_before_training=1000,
-			max_path_length=1000,
+			max_path_length=3000,
 			batch_size=256,
 		),
 		trainer_kwargs=dict(
