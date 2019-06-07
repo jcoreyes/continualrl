@@ -112,11 +112,7 @@ def rollout(
         env.render(**render_kwargs)
         time.sleep(0.5)
     while path_length < max_path_length:
-        if render:
-            import pdb; pdb.set_trace()
         a, agent_info = agent.get_action(o)
-        if render:
-            print(a)
         next_o, r, d, env_info = env.step(a)
         observations.append(o)
         rewards.append(r)

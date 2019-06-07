@@ -54,10 +54,19 @@ def main():
 			action = env.actions.south
 
 		elif keyName == 'SPACE':
-			try:
-				action = env.actions.eat
-			except:
-				print(type(env))
+			action = env.actions.mine
+		elif keyName == 'PAGE_UP':
+			action = env.actions.eat
+		elif keyName == '0':
+			action = env.actions.place0
+		elif keyName == '1':
+			action = env.actions.place1
+		elif keyName == '2':
+			action = env.actions.place2
+		elif keyName == '3':
+			action = env.actions.place3
+		elif keyName == '4':
+			action = env.actions.place4
 		elif keyName == 'RETURN':
 			action = env.actions.done
 

@@ -4,7 +4,7 @@ from enum import IntEnum
 import numpy as np
 from gym import error, spaces, utils
 from gym.utils import seeding
-from irl.envs.gym_minigrid.rendering import *
+from gym_minigrid.rendering import *
 
 # Size in pixels of a cell in the full-scale human view
 CELL_PIXELS = 32
@@ -23,7 +23,8 @@ COLORS = {
 	'blue'  : np.array([0, 0, 255]),
 	'purple': np.array([112, 39, 195]),
 	'yellow': np.array([255, 255, 0]),
-	'grey'  : np.array([100, 100, 100])
+	'grey'  : np.array([100, 100, 100]),
+	'brown': np.array([210, 105, 30])
 }
 COLORS4 = {
 	'red'   : np.array([255, 0, 0]),
@@ -42,7 +43,8 @@ COLOR_TO_IDX = {
 	'blue'  : 2,
 	'purple': 3,
 	'yellow': 4,
-	'grey'  : 5
+	'grey'  : 5,
+	'brown' : 6
 }
 COLOR_TO_IDX4 = {
 	'red'   : 0,
@@ -67,7 +69,12 @@ OBJECT_TO_IDX = {
 	'goal'          : 8,
 	'triangle'      : 9,
 	'square'        : 10,
-	'food'          : 11
+	'food'          : 11,
+	'tree'          : 12,
+	'metal'         : 13,
+	'energy'        : 14,
+	'axe'           : 15,
+	'wood'          : 16
 }
 
 IDX_TO_OBJECT = dict(zip(OBJECT_TO_IDX.values(), OBJECT_TO_IDX.keys()))
@@ -86,8 +93,7 @@ DIR_TO_VEC = {
 
 FOOD_VALUES = {
 	'food': 1,
-	'tree': 2,
-
+	'wood': 5
 }
 
 # TYPE_TO_CLASS dict at bottom of file
@@ -131,7 +137,7 @@ class WorldObj:
 		return False
 
 	def food_value(self):
-		return FOOD_VALUES.get(str(self), 0)
+		return FOOD_VALUES.get(self.type, 0)
 
 	def see_behind(self):
 		"""Can the agent see behind this object?"""
@@ -430,7 +436,7 @@ class Box(WorldObj):
 
 class Food(WorldObj):
 	def __init__(self, color='blue'):
-		super(Food, self).__init__('food', color)
+		super().__init__('food', color)
 
 	def can_mine(self, env):
 		return True
@@ -442,30 +448,99 @@ class Food(WorldObj):
 		self._set_color(r)
 		r.drawCircle(CELL_PIXELS * 0.5, CELL_PIXELS * 0.5, 10)
 
-	def __str__(self):
-		return 'food'
-
 
 class Tree(WorldObj):
-	def __init__(self, color='true'):
-		super(Tree, self).__init__('tree', color)
+	def __init__(self):
+		super().__init__('tree', 'green')
 
 	def can_overlap(self):
 		return True
 
 	def can_mine(self, env):
-		return env.can_cut()
+		return False
 
 	def render(self, r):
 		self._set_color(r)
 		r.drawPolygon([
-			(0, 0.4 * CELL_PIXELS),
-			(0.4 * CELL_PIXELS, -0.4 * CELL_PIXELS),
-			(-0.4 * CELL_PIXELS, -0.4 * CELL_PIXELS)
+			(0.5 * CELL_PIXELS, 0.2 * CELL_PIXELS),
+			(0.8 * CELL_PIXELS, 0.8 * CELL_PIXELS),
+			(0.2 * CELL_PIXELS, 0.8 * CELL_PIXELS)
 		])
 
-	def __str__(self):
-		return 'tree'
+
+class Metal(WorldObj):
+	def __init__(self):
+		super().__init__('metal', 'grey')
+
+	def can_overlap(self):
+		return True
+
+	def can_mine(self, env):
+		return True
+
+	def render(self, r):
+		self._set_color(r)
+		r.drawPolygon([
+			(CELL_PIXELS * 0.2, CELL_PIXELS * 0.2),
+			(CELL_PIXELS * 0.2, CELL_PIXELS * 0.8),
+			(CELL_PIXELS * 0.8, CELL_PIXELS * 0.8),
+			(CELL_PIXELS * 0.8, CELL_PIXELS * 0.2)
+		])
+
+
+class Energy(WorldObj):
+	def __init__(self):
+		super().__init__('energy', 'red')
+
+	def can_overlap(self):
+		return True
+
+	def can_mine(self, env):
+		return True
+
+	def render(self, r):
+		self._set_color(r)
+		r.drawCircle(CELL_PIXELS * 0.5, CELL_PIXELS * 0.5, 10)
+
+
+class Axe(WorldObj):
+	def __init__(self):
+		super().__init__('axe', 'yellow')
+
+	def can_overlap(self):
+		return True
+
+	def can_mine(self, env):
+		return True
+
+	def render(self, r):
+		self._set_color(r)
+		r.drawPolygon([
+			(CELL_PIXELS * 0.2, CELL_PIXELS * 0.2),
+			(CELL_PIXELS * 0.2, CELL_PIXELS * 0.8),
+			(CELL_PIXELS * 0.4, CELL_PIXELS * 0.8),
+			(CELL_PIXELS * 0.4, CELL_PIXELS * 0.5),
+			(CELL_PIXELS * 0.8, CELL_PIXELS * 0.2)
+		])
+
+
+class Wood(WorldObj):
+	def __init__(self):
+		super().__init__('wood', 'brown')
+
+	def can_overlap(self):
+		return True
+
+	def can_mine(self, env):
+		return True
+
+	def render(self, r):
+		r.drawPolygon([
+			(CELL_PIXELS * 0.2, CELL_PIXELS * 0.3),
+			(CELL_PIXELS * 0.2, CELL_PIXELS * 0.7),
+			(CELL_PIXELS * 0.8, CELL_PIXELS * 0.7),
+			(CELL_PIXELS * 0.8, CELL_PIXELS * 0.3)
+		])
 
 
 class GridAbsolute:

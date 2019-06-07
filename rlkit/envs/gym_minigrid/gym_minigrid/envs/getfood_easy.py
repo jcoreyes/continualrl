@@ -19,7 +19,7 @@ class FoodEnv(FoodEnvBase):
 		if action == self.actions.mine:
 			if agent_cell and agent_cell.can_mine(self):
 				self.grid.set(*self.agent_pos, None)
-				self.add_health(1)
+				self.add_health(agent_cell.food_value())
 		else:
 			matched = False
 

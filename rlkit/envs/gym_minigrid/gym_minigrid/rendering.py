@@ -90,6 +90,26 @@ class Window(QMainWindow):
             keyName = 'BACKSPACE'
         elif e.key() == Qt.Key_Escape:
             keyName = 'ESCAPE'
+        elif e.key() == Qt.Key_0:
+            keyName = '0'
+        elif e.key() == Qt.Key_1:
+            keyName = '1'
+        elif e.key() == Qt.Key_2:
+            keyName = '2'
+        elif e.key() == Qt.Key_3:
+            keyName = '3'
+        elif e.key() == Qt.Key_4:
+            keyName = '4'
+        elif e.key() == Qt.Key_5:
+            keyName = '5'
+        elif e.key() == Qt.Key_6:
+            keyName = '6'
+        elif e.key() == Qt.Key_7:
+            keyName = '7'
+        elif e.key() == Qt.Key_8:
+            keyName = '8'
+        elif e.key() == Qt.Key_9:
+            keyName = '9'
 
         if keyName == None:
             return
