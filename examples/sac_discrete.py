@@ -1,6 +1,8 @@
 from gym.envs.mujoco import HalfCheetahEnv
 
 import gym
+from rlkit.policies.network_food import FoodNetworkMedium
+from rlkit.torch.conv_networks import CNN
 from rlkit.torch.sac.sac_discrete import SACDiscreteTrainer
 from torch.nn import functional as F
 
@@ -15,43 +17,66 @@ from rlkit.torch.networks import FlattenMlp, Mlp
 from rlkit.torch.torch_rl_algorithm import TorchBatchRLAlgorithm
 from rlkit.envs.gym_minigrid.gym_minigrid import *
 
+# TODO NOTE: this is where you pick the variant
+from variants.sac.sac_easy_vision_variant import variant
+
 
 def experiment(variant):
-	expl_env = gym.make('MiniGrid-Food-8x8-Medium-10and4-v1')
-	eval_env = gym.make('MiniGrid-Food-8x8-Medium-10and4-v1')
+	gen_network = import_gen_network(variant['env_name'], variant['algorithm'])
+	assert gen_network is not None, "unable to import gen_network function, check env variant."
+
+	expl_env = gym.make(variant['env_name'])
+	eval_env = gym.make(variant['env_name'])
 	obs_dim = expl_env.observation_space.low.size
 	action_dim = eval_env.action_space.n
 
-	M = variant['layer_size']
-	# TODO check activation
-	qf1 = FlattenMlp(
-		input_size=obs_dim,
-		output_size=action_dim,
-		hidden_sizes=[M, M],
-	)
-	qf2 = FlattenMlp(
-		input_size=obs_dim,
-		output_size=action_dim,
-		hidden_sizes=[M, M],
-	)
-	target_qf1 = FlattenMlp(
-		input_size=obs_dim,
-		output_size=action_dim,
-		hidden_sizes=[M, M],
-	)
-	target_qf2 = FlattenMlp(
-		input_size=obs_dim,
-		output_size=action_dim,
-		hidden_sizes=[M, M],
-	)
-	policy = CategoricalPolicy(
-		Mlp(hidden_sizes=[M, M],
-			output_size=action_dim,
-			input_size=obs_dim,
-			output_activation=F.softmax)
-	)
-	# TODO suvansh implement get_action on categorical policy
-	eval_policy = MakeDeterministic(policy)
+	layer_size = variant['layer_size']
+	# qf1 = FlattenMlp(
+	# 	input_size=obs_dim,
+	# 	output_size=action_dim,
+	# 	hidden_sizes=[M, M],
+	# 	output_activation=F.softmax
+	# )
+	qf1 = gen_network(variant, action_dim, layer_size)
+	# qf2 = FlattenMlp(
+	# 	input_size=obs_dim,
+	# 	output_size=action_dim,
+	# 	hidden_sizes=[M, M],
+	# 	output_activation=F.softmax
+	# )
+	qf2 = gen_network(variant, action_dim, layer_size)
+	# target_qf1 = FlattenMlp(
+	# 	input_size=obs_dim,
+	# 	output_size=action_dim,
+	# 	hidden_sizes=[M, M],
+	# 	output_activation=F.softmax
+	# )
+	target_qf1 = gen_network(variant, action_dim, layer_size)
+	# target_qf2 = FlattenMlp(
+	# 	input_size=obs_dim,
+	# 	output_size=action_dim,
+	# 	hidden_sizes=[M, M],
+	# 	output_activation=F.softmax
+	# )
+	target_qf2 = gen_network(variant, action_dim, layer_size)
+	# policy = CategoricalPolicy(
+	# 	Mlp(hidden_sizes=[M, M],
+	# 		output_size=action_dim,
+	# 		input_size=obs_dim,
+	# 		output_activation=F.softmax)
+	# )
+	policy = gen_network(variant, action_dim, layer_size)
+
+	# Use GPU
+	if ptu.gpu_enabled():
+		qf1 = qf1.cuda()
+		qf2 = qf2.cuda()
+		target_qf1 = target_qf1.cuda()
+		target_qf2 = target_qf2.cuda()
+		policy = policy.cuda()
+
+	# eval_policy = MakeDeterministic(policy)
+	eval_policy = policy
 
 	eval_path_collector = MdpPathCollector(
 		eval_env,
@@ -65,6 +90,7 @@ def experiment(variant):
 		variant['replay_buffer_size'],
 		expl_env,
 	)
+
 	trainer = SACDiscreteTrainer(
 		env=eval_env,
 		policy=policy,
@@ -74,9 +100,7 @@ def experiment(variant):
 		target_qf2=target_qf2,
 		**variant['trainer_kwargs']
 	)
-	if ptu.gpu_enabled():
-		for net in trainer.networks:
-			net.cuda()
+
 
 	algorithm = TorchBatchRLAlgorithm(
 		trainer=trainer,
@@ -91,32 +115,22 @@ def experiment(variant):
 	algorithm.train()
 
 
+def import_gen_network(env_name, algorithm):
+	gen_network = None
+	if algorithm == 'SAC Discrete':
+		if 'Easy' in env_name:
+			if 'Vision' in env_name:
+				from variants.sac.sac_easy_vision_variant import gen_network
+		elif 'Medium' in env_name:
+			if 'Vision' in env_name:
+				from variants.sac.sac_medium_vision_variant import gen_network
+
+	return gen_network
+
+
+
 if __name__ == "__main__":
 	# noinspection PyTypeChecker
-	variant = dict(
-		algorithm="SAC Discrete",
-		version="normal",
-		layer_size=256,
-		replay_buffer_size=int(1E6),
-		algorithm_kwargs=dict(
-			num_epochs=3000,
-			num_eval_steps_per_epoch=5000,
-			num_trains_per_train_loop=1000,
-			num_expl_steps_per_train_loop=1000,
-			min_num_steps_before_training=1000,
-			max_path_length=3000,
-			batch_size=256,
-		),
-		trainer_kwargs=dict(
-			discount=0.99,
-			soft_target_tau=5e-3,
-			target_update_period=1,
-			policy_lr=3E-4,
-			qf_lr=3E-4,
-			reward_scale=1,
-			use_automatic_entropy_tuning=True,
-		),
-	)
 	setup_logger('sac-discrete', variant=variant)
 	ptu.set_gpu_mode(True)  # optionally set the GPU (default=False)
 	experiment(variant)
