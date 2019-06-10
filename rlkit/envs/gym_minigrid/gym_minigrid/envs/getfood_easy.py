@@ -4,14 +4,27 @@ from rlkit.envs.gym_minigrid.gym_minigrid.envs.getfood_base import FoodEnvBase
 from rlkit.envs.gym_minigrid.gym_minigrid.minigrid_absolute import CELL_PIXELS, Food
 
 
-class FoodEnv(FoodEnvBase):
+class FoodEnvEasy(FoodEnvBase):
 	"""
-	Empty grid environment, no obstacles, sparse reward
+	Pick up food to gain 1 health point,
+	Lose 1 health point every `health_rate` timesteps,
+	Get 1 reward per timestep
 	"""
 	def __init__(self, **kwargs):
 		super().__init__(**kwargs)
 
-	def extra_step(self, action):
+		if self.obs_vision:
+			self.observation_space = spaces.Box(
+				low=0,
+				high=255,
+				shape=(10177,),
+				dtype='uint8'
+			)
+
+	def extra_step(self, action, matched):
+		if matched:
+			return matched
+
 		agent_cell = self.grid.get(*self.agent_pos)
 		matched = True
 
@@ -25,36 +38,52 @@ class FoodEnv(FoodEnvBase):
 
 		return matched
 
-	def place_food(self):
+	def place_items(self):
 		if self.step_count % self.food_rate == 0:
 			self.place_obj(Food())
 
-	def decay_health(self):
-		if self.step_count and self.step_count % self.health_rate == 0:
-			self.add_health(-1)
 
-
-class FoodEnv6and4(FoodEnv):
+class FoodEnvEasy6and4(FoodEnvEasy):
 	def __init__(self):
 		super().__init__(health_rate=6)
 
 
-class FoodEnv10and4(FoodEnv):
+class FoodEnvEasy6and4Vision(FoodEnvEasy):
+	def __init__(self):
+		super().__init__(health_rate=6, obs_vision=True)
+
+
+class FoodEnvEasy10and4(FoodEnvEasy):
 	def __init__(self):
 		super().__init__(health_rate=10)
 
 
+class FoodEnvEasy10and4Vision(FoodEnvEasy):
+	def __init__(self):
+		super().__init__(health_rate=10, obs_vision=True)
+
+
 register(
-	id='MiniGrid-Food-8x8-4and4-v1',
-	entry_point='gym_minigrid.envs:FoodEnv'
+	id='MiniGrid-Food-8x8-Easy-4and4-v1',
+	entry_point='gym_minigrid.envs:FoodEnvEasy'
 )
 
 register(
-	id='MiniGrid-Food-8x8-6and4-v1',
-	entry_point='gym_minigrid.envs:FoodEnv6and4'
+	id='MiniGrid-Food-8x8-Easy-6and4-v1',
+	entry_point='gym_minigrid.envs:FoodEnvEasy6and4'
 )
 
 register(
-	id='MiniGrid-Food-8x8-10and4-v1',
-	entry_point='gym_minigrid.envs:FoodEnv10and4'
+	id='MiniGrid-Food-8x8-Easy-6and4-Vision-v1',
+	entry_point='gym_minigrid.envs:FoodEnvEasy6and4Vision'
+)
+
+register(
+	id='MiniGrid-Food-8x8-Easy-10and4-v1',
+	entry_point='gym_minigrid.envs:FoodEnvEasy10and4'
+)
+
+register(
+	id='MiniGrid-Food-8x8-Easy-10and4-Vision-v1',
+	entry_point='gym_minigrid.envs:FoodEnvEasy10and4Vision'
 )

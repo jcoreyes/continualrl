@@ -134,11 +134,8 @@ class CategoricalPolicy(Policy, nn.Module):
     def forward(self, obs):
         return Categorical(self.prob_network(obs))
 
-    # TODO suvansh remove print_action
     def get_action(self, obs_np, deterministic=False, print_action=False):
         dist_vec = eval_np(self.prob_network, obs_np)
-        if print_action:
-            import pdb; pdb.set_trace()
         return Categorical(torch.from_numpy(dist_vec)).sample().item() if not deterministic else dist_vec.argmax(), {}
 
 

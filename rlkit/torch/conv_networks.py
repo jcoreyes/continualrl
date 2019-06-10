@@ -93,7 +93,6 @@ class CNN(nn.Module):
 
     def forward(self, input):
         fc_input = (self.added_fc_input_size != 0)
-
         conv_input = input.narrow(start=0,
                                   length=self.conv_input_length,
                                   dim=1).contiguous()

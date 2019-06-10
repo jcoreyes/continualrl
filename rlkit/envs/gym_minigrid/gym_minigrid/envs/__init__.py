@@ -20,3 +20,4 @@
 # from gym_minigrid.envs.distshift import *
 from gym_minigrid.envs.getfood_easy import *
 from gym_minigrid.envs.getfood_medium import *
+from gym_minigrid.envs.getfood_hard import *

@@ -7,7 +7,7 @@ from rlkit.envs.gym_minigrid.gym_minigrid.minigrid_absolute import CELL_PIXELS, 
 	GridAbsolute
 
 
-class FoodEnvMedium(FoodEnvBase):
+class FoodEnvHard(FoodEnvBase):
 	"""
 	Empty grid environment, no obstacles, sparse reward
 	"""
@@ -46,10 +46,11 @@ class FoodEnvMedium(FoodEnvBase):
 		self.shelf_type = [''] * 5
 		self.interactions = {
 			('energy', 'metal'): Axe,
-			# edible wood, used for health points
-			('axe', 'tree'): WoodFood
+			('energy', 'energy'): BigFood,
+			# inedible wood, to be used for shelter
+			('axe', 'tree'): Wood
 		}
-		self.actions = FoodEnvMedium.Actions
+		self.monsters = []
 		self.object_to_idx = {
 			'empty': 0,
 			'wall': 1,
@@ -58,8 +59,11 @@ class FoodEnvMedium(FoodEnvBase):
 			'metal': 4,
 			'energy': 5,
 			'axe': 6,
-			'woodfood': 7
+			'wood': 7,
+			'bigfood': 8,
+			'monster': 9
 		}
+		self.actions = FoodEnvHard.Actions
 		super().__init__(
 			grid_size=32,
 			health_cap=health_cap,
@@ -84,14 +88,29 @@ class FoodEnvMedium(FoodEnvBase):
 			self.place_obj(Energy())
 		if self.step_count % (3 * self.food_rate) == 0:
 			self.place_obj(Tree())
+		if self.step_count % (8 * self.food_rate) == 0:
+			# could have parameter for a monster that gets more efficient over time
+			# pick random position that isn't in gray border
+			monster = Monster(np.array(self._rand_pos(1, self.grid_size-2, 1, self.grid_size-2)),
+			                  self,
+							  12 * self.food_rate,
+							  0.3)
+			self.monsters.append(monster)
 
 	def extra_step(self, action, matched):
+		# Let monsters act and die
+		dead_monsters = []
+		for monster in self.monsters:
+			if not monster.act(self.last_agent_pos):
+				dead_monsters.append(monster)
+		for monster in dead_monsters:
+			self.monsters.remove(monster)
+
 		if matched:
 			return matched
 
 		agent_cell = self.grid.get(*self.agent_pos)
 		matched = True
-
 		# Collect resources. Add to shelf.
 		if action == self.actions.mine:
 			if agent_cell and agent_cell.can_mine(self):
@@ -183,6 +202,9 @@ class FoodEnvMedium(FoodEnvBase):
 		shelf_obs = shelf_obs[:, :-1]
 		return shelf_obs
 
+	def dead(self):
+		return super().dead() or any([np.allclose(monster.cur_pos, self.agent_pos) for monster in self.monsters])
+
 	def step(self, action):
 		obs, reward, done, info = super().step(action, include_full_img=True)
 		obs = np.concatenate((obs, self.gen_pantry_obs().flatten(), self.gen_shelf_obs().flatten()))
@@ -194,40 +216,51 @@ class FoodEnvMedium(FoodEnvBase):
 		self.pantry = []
 		self.shelf = [None] * 5
 		self.shelf_type = [''] * 5
+		self.monsters = []
 		return obs
 
 
-class FoodEnvMedium6and4(FoodEnvMedium):
+class FoodEnvHard6and4(FoodEnvHard):
 	def __init__(self):
 		super().__init__(health_rate=6)
 
 
-class FoodEnvMedium10and4(FoodEnvMedium):
+class FoodEnvHard10and4(FoodEnvHard):
 	def __init__(self):
 		super().__init__(health_rate=10)
 
 
-class FoodEnvMedium10and4Vision(FoodEnvMedium):
+class FoodEnvHard10and4Vision(FoodEnvHard):
 	def __init__(self):
 		super().__init__(health_rate=10, obs_vision=True)
 
 
+class FoodEnvHard15and4Vision(FoodEnvHard):
+	def __init__(self):
+		super().__init__(health_rate=15, obs_vision=True)
+
+
 register(
-	id='MiniGrid-Food-32x32-Medium-4and4-v1',
-	entry_point='gym_minigrid.envs:FoodEnvMedium'
+	id='MiniGrid-Food-32x32-Hard-4and4-v1',
+	entry_point='gym_minigrid.envs:FoodEnvHard'
 )
 
 register(
-	id='MiniGrid-Food-32x32-Medium-6and4-v1',
-	entry_point='gym_minigrid.envs:FoodEnvMedium6and4'
+	id='MiniGrid-Food-32x32-Hard-6and4-v1',
+	entry_point='gym_minigrid.envs:FoodEnvHard6and4'
 )
 
 register(
-	id='MiniGrid-Food-32x32-Medium-10and4-v1',
-	entry_point='gym_minigrid.envs:FoodEnvMedium10and4'
+	id='MiniGrid-Food-32x32-Hard-10and4-v1',
+	entry_point='gym_minigrid.envs:FoodEnvHard10and4'
 )
 
 register(
-	id='MiniGrid-Food-32x32-Medium-10and4-Vision-v1',
-	entry_point='gym_minigrid.envs:FoodEnvMedium10and4Vision'
+	id='MiniGrid-Food-32x32-Hard-10and4-Vision-v1',
+	entry_point='gym_minigrid.envs:FoodEnvHard10and4Vision'
+)
+
+register(
+	id='MiniGrid-Food-32x32-Hard-15and4-Vision-v1',
+	entry_point='gym_minigrid.envs:FoodEnvHard15and4Vision'
 )
