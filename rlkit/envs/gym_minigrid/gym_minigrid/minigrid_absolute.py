@@ -1,4 +1,6 @@
 import math
+import random
+
 import gym
 from enum import IntEnum
 import numpy as np
@@ -60,21 +62,24 @@ IDX_TO_COLOR4 = dict(zip(COLOR_TO_IDX4.values(), COLOR_TO_IDX4.keys()))
 OBJECT_TO_IDX = {
 	'empty'         : 0,
 	'wall'          : 1,
-	'floor'         : 2,
-	'door'          : 3,
-	'locked_door'   : 4,
-	'key'           : 5,
-	'ball'          : 6,
-	'box'           : 7,
-	'goal'          : 8,
-	'triangle'      : 9,
-	'square'        : 10,
-	'food'          : 11,
-	'tree'          : 12,
-	'metal'         : 13,
-	'energy'        : 14,
-	'axe'           : 15,
-	'wood'          : 16
+	# 'floor'         : 2,
+	# 'door'          : 3,
+	# 'locked_door'   : 4,
+	# 'key'           : 5,
+	# 'ball'          : 6,
+	# 'box'           : 7,
+	# 'goal'          : 8,
+	# 'triangle'      : 9,
+	# 'square'        : 10,
+	'food'          : 2,
+	'tree'          : 3,
+	'metal'         : 4,
+	'energy'        : 5,
+	'axe'           : 6,
+	'woodfood'      : 7,
+	'wood'          : 8,
+	'bigfood'       : 9,
+	'monster'       : 10
 }
 
 IDX_TO_OBJECT = dict(zip(OBJECT_TO_IDX.values(), OBJECT_TO_IDX.keys()))
@@ -93,7 +98,8 @@ DIR_TO_VEC = {
 
 FOOD_VALUES = {
 	'food': 1,
-	'wood': 5
+	'woodfood': 5,
+	'bigfood': 3
 }
 
 # TYPE_TO_CLASS dict at bottom of file
@@ -138,6 +144,10 @@ class WorldObj:
 
 	def food_value(self):
 		return FOOD_VALUES.get(self.type, 0)
+
+	def block_monster(self):
+		"""Does this object prevent monsters from being on it?"""
+		return False
 
 	def see_behind(self):
 		"""Can the agent see behind this object?"""
@@ -450,8 +460,8 @@ class Food(WorldObj):
 
 
 class Tree(WorldObj):
-	def __init__(self):
-		super().__init__('tree', 'green')
+	def __init__(self, color='green'):
+		super().__init__('tree', color)
 
 	def can_overlap(self):
 		return True
@@ -469,8 +479,8 @@ class Tree(WorldObj):
 
 
 class Metal(WorldObj):
-	def __init__(self):
-		super().__init__('metal', 'grey')
+	def __init__(self, color='grey'):
+		super().__init__('metal', color)
 
 	def can_overlap(self):
 		return True
@@ -489,8 +499,8 @@ class Metal(WorldObj):
 
 
 class Energy(WorldObj):
-	def __init__(self):
-		super().__init__('energy', 'red')
+	def __init__(self, color='red'):
+		super().__init__('energy', color)
 
 	def can_overlap(self):
 		return True
@@ -504,8 +514,8 @@ class Energy(WorldObj):
 
 
 class Axe(WorldObj):
-	def __init__(self):
-		super().__init__('axe', 'yellow')
+	def __init__(self, color='yellow'):
+		super().__init__('axe', color)
 
 	def can_overlap(self):
 		return True
@@ -524,9 +534,9 @@ class Axe(WorldObj):
 		])
 
 
-class Wood(WorldObj):
-	def __init__(self):
-		super().__init__('wood', 'brown')
+class WoodFood(WorldObj):
+	def __init__(self, color='brown'):
+		super().__init__('woodfood', color)
 
 	def can_overlap(self):
 		return True
@@ -535,12 +545,102 @@ class Wood(WorldObj):
 		return True
 
 	def render(self, r):
+		self._set_color(r)
 		r.drawPolygon([
 			(CELL_PIXELS * 0.2, CELL_PIXELS * 0.3),
 			(CELL_PIXELS * 0.2, CELL_PIXELS * 0.7),
 			(CELL_PIXELS * 0.8, CELL_PIXELS * 0.7),
 			(CELL_PIXELS * 0.8, CELL_PIXELS * 0.3)
 		])
+
+
+class Wood(WorldObj):
+	def __init__(self, color='brown'):
+		super().__init__('wood', color)
+
+	def can_overlap(self):
+		return True
+
+	def can_mine(self, env):
+		return True
+
+	def block_monster(self):
+		return True
+
+	def render(self, r):
+		self._set_color(r)
+		r.drawPolygon([
+			(CELL_PIXELS * 0.2, CELL_PIXELS * 0.3),
+			(CELL_PIXELS * 0.2, CELL_PIXELS * 0.7),
+			(CELL_PIXELS * 0.8, CELL_PIXELS * 0.7),
+			(CELL_PIXELS * 0.8, CELL_PIXELS * 0.3)
+		])
+
+
+class BigFood(WorldObj):
+	def __init__(self, color='purple'):
+		super().__init__('bigfood', color)
+
+	def can_overlap(self):
+		return True
+
+	def can_mine(self, env):
+		return True
+
+	def render(self, r):
+		self._set_color(r)
+		r.drawCircle(CELL_PIXELS * 0.5, CELL_PIXELS * 0.5, 10)
+
+
+class Monster(WorldObj):
+	def __init__(self, pos, env, lifetime=32, eps=0.2, color=None):
+		"""
+		:param pos: the starting position
+		:param env: the containing environment
+		:param lifetime: how many timesteps to live
+		:param eps: probability of random action
+		"""
+		if color is None:
+			color = random.choice(COLOR_NAMES)
+		super().__init__('monster', color)
+		self.cur_pos = pos
+		self.env = env
+		self.lifetime = lifetime
+		self.eps = eps
+		self.life = 0
+
+	def can_overlap(self):
+		return True
+
+	def can_mine(self, env):
+		return False
+
+	def render(self, r):
+		self._set_color(r)
+		r.drawCircle(CELL_PIXELS * 0.5, CELL_PIXELS * 0.25, CELL_PIXELS * 0.125)
+		r.drawCircle(CELL_PIXELS * 0.5, CELL_PIXELS * 0.625, CELL_PIXELS * 0.25)
+		r.drawPolygon([
+			(CELL_PIXELS * 0.2, CELL_PIXELS * 0.375),
+			(CELL_PIXELS * 0.8, CELL_PIXELS * 0.375),
+			(CELL_PIXELS * 0.8, CELL_PIXELS * 0.5),
+			(CELL_PIXELS * 0.2, CELL_PIXELS * 0.5)
+		])
+
+	def act(self, goal_pos):
+		""" return False if dead after this action. """
+		new_pos = np.clip(self.cur_pos + self.get_action(goal_pos), 1, self.env.grid_size - 1)
+		new_cell = self.env.grid.get(*new_pos)
+		if not (new_cell and new_cell.block_monster()):
+			self.cur_pos = new_pos
+		self.life += 1
+		return self.life < self.lifetime
+
+	def get_action(self, goal_pos):
+		if random.random() < self.eps:
+			dir = random.choice(list(DIR_TO_VEC.values()))
+		else:
+			_, dir = min(DIR_TO_VEC.items(), key=lambda item: np.linalg.norm(item[1] + self.cur_pos - goal_pos))
+		return dir
 
 
 class GridAbsolute:
@@ -652,7 +752,6 @@ class GridAbsolute:
 		:param r: target renderer object
 		:param tile_size: tile size in pixels
 		"""
-
 		assert r.width == self.width * tile_size
 		assert r.height == self.height * tile_size
 
@@ -817,10 +916,8 @@ class GridAbsolute:
 				elif 'door' in obj_type:
 					v = TYPE_TO_CLASS_ABS[obj_type](color, is_open)
 				else:
-					v = TYPE_TO_CLASS_ABS
+					v = TYPE_TO_CLASS_ABS[obj_type](color=color)
 				grid.set(i, j, v)
-
-
 
 		return grid
 
@@ -921,10 +1018,11 @@ class MiniGridAbsoluteEnv(gym.Env):
 		grid_size=16,
 		max_steps=100,
 		see_through_walls=False,
-		seed=1337,
+		seed=1337
 	):
 		# Action enumeration for this environment
-		self.actions = MiniGridAbsoluteEnv.Actions
+		if not hasattr(self, 'actions'):
+			self.actions = MiniGridAbsoluteEnv.Actions
 
 		# Actions are discrete integer values
 		self.action_space = spaces.Discrete(len(self.actions))
@@ -937,23 +1035,12 @@ class MiniGridAbsoluteEnv(gym.Env):
 		)
 		self.obs_len = int(np.prod(self.multid_observation_space.shape))
 
-		# self.observation_space = spaces.Box(
-		#     low=0,
-		#     high=255,
-		#     shape=OBS_ARRAY_SIZE,
-		#     dtype='uint8'
-		# )
-		#
 		self.observation_space = spaces.Box(
 			low=0,
-			high=245,
+			high=255,
 			shape=OBS_ARRAY_SIZE,
 			dtype='uint8'
 		)
-
-		# self.observation_space = spaces.Dict({
-		#     'image': self.observation_space
-		# })
 
 		# Range of possible rewards
 		self.reward_range = (0, 1)
@@ -963,6 +1050,9 @@ class MiniGridAbsoluteEnv(gym.Env):
 
 		# Renderer used to render observations (small-scale agent view)
 		self.obs_render = None
+
+		# Renderer used to render downsampled full observations (full grid view)
+		self.full_obs_render = None
 
 		# Environment configuration
 		self.grid_size = grid_size
@@ -998,6 +1088,7 @@ class MiniGridAbsoluteEnv(gym.Env):
 
 		# Place the agent in the starting position and direction
 		self.agent_pos = self.start_pos
+		self.last_agent_pos = self.agent_pos
 
 		# Item picked up, being carried, initially nothing
 		self.carrying = None
@@ -1335,7 +1426,6 @@ class MiniGridAbsoluteEnv(gym.Env):
 
 	def step(self, action, override=False):
 		self.step_count += 1
-
 		done = False
 		# did we catch the action?
 		matched = True
@@ -1345,6 +1435,7 @@ class MiniGridAbsoluteEnv(gym.Env):
 			next_pos = self.agent_pos + DIR_TO_VEC[act_enum.name]
 			next_cell = self.grid.get(*next_pos)
 			if next_cell == None or next_cell.can_overlap():
+				self.last_agent_pos = self.agent_pos
 				self.agent_pos = next_pos
 				if self.carry_flag:
 					self.carrying.held_pos = self.agent_pos
@@ -1415,10 +1506,6 @@ class MiniGridAbsoluteEnv(gym.Env):
 
 		grid = self.grid.slice(topX, topY, AGENT_VIEW_SIZE, AGENT_VIEW_SIZE)
 
-		# obsolete with removal of directions
-		# for i in range(self.agent_dir + 1):
-		#     grid = grid.rotate_left()
-
 		# Process occluders and visibility
 		# Note that this incurs some performance cost
 		if not self.see_through_walls:
@@ -1433,7 +1520,7 @@ class MiniGridAbsoluteEnv(gym.Env):
 		Generate the agent's view (partially observable, low-resolution encoding)
 		"""
 
-		grid, vis_mask = self.gen_obs_grid()
+		grid, _ = self.gen_obs_grid()
 
 		# Encode the partially observable view into a numpy array
 		image = grid.encode(self)
@@ -1449,14 +1536,14 @@ class MiniGridAbsoluteEnv(gym.Env):
 		#     'mission': self.mission
 		# }
 
-		return image.flatten()
+		return image
 
 	def get_obs_render(self, obs, tile_pixels=CELL_PIXELS//2):
 		"""
-		Render an agent observation for visualization. DOES NOT WORK PROPERLY
+		Render an agent observation for visualization.
 		"""
 
-		if self.obs_render == None:
+		if self.obs_render is None:
 			self.obs_render = Renderer(
 				AGENT_VIEW_SIZE * tile_pixels,
 				AGENT_VIEW_SIZE * tile_pixels
@@ -1465,7 +1552,6 @@ class MiniGridAbsoluteEnv(gym.Env):
 		r = self.obs_render
 
 		r.beginFrame()
-
 		grid = GridAbsolute.decode(obs)
 
 		# Render the whole grid
@@ -1477,7 +1563,7 @@ class MiniGridAbsoluteEnv(gym.Env):
 		r.scale(ratio, ratio)
 		r.translate(
 			CELL_PIXELS * (0.5 + AGENT_VIEW_SIZE // 2),
-			CELL_PIXELS * (AGENT_VIEW_SIZE - 0.5)
+			CELL_PIXELS * (0.5 + AGENT_VIEW_SIZE // 2)
 		)
 		r.rotate(3 * 90)
 		r.setLineColor(255, 0, 0)
@@ -1489,9 +1575,68 @@ class MiniGridAbsoluteEnv(gym.Env):
 		])
 		r.pop()
 
-		r.endFrame()
+		# Draw the monsters, if applicable
+		if hasattr(self, 'monsters'):
+			for monster in self.monsters:
+				r.push()
+				r.translate(
+					CELL_PIXELS * (monster.cur_pos[0] + 0.5),
+					CELL_PIXELS * (monster.cur_pos[1] + 0.5)
+				)
+				monster.render(r)
+				r.pop()
 
-		return r.getPixmap()
+		r.endFrame()
+		# return r.getPixmap()
+		# TODO suvansh changed from getPixmap to getArray
+		return r.getArray()
+
+	def get_full_obs_render(self, scale=1/16):
+		"""
+		Render the whole-grid rgb array view
+		"""
+		if self.full_obs_render is None:
+			self.full_obs_render = Renderer(
+				int(self.grid_size * CELL_PIXELS * scale),
+				int(self.grid_size * CELL_PIXELS * scale),
+				False
+			)
+
+		r = self.full_obs_render
+
+		r.beginFrame()
+
+		# Render the whole grid
+		self.grid.render(r, int(CELL_PIXELS * scale))
+
+		# Draw the agent
+		r.push()
+		r.translate(
+			CELL_PIXELS * scale * (self.agent_pos[0] + 0.5),
+			CELL_PIXELS * scale * (self.agent_pos[1] + 0.5)
+		)
+		r.setLineColor(255, 0, 0)
+		r.setColor(255, 0, 0)
+		r.drawPolygon([
+			(-12, 10),
+			(12, 0),
+			(-12, -10)
+		])
+		r.pop()
+
+		# Draw the monsters, if applicable
+		if hasattr(self, 'monsters'):
+			for monster in self.monsters:
+				r.push()
+				r.translate(
+					CELL_PIXELS * scale * (monster.cur_pos[0] + 0.5),
+					CELL_PIXELS * scale * (monster.cur_pos[1] + 0.5)
+				)
+				monster.render(r)
+				r.pop()
+
+		r.endFrame()
+		return r.getArray()
 
 	def render(self, mode='human', close=False, save=None):
 		"""
@@ -1502,7 +1647,6 @@ class MiniGridAbsoluteEnv(gym.Env):
 			if self.grid_render:
 				self.grid_render.close()
 			return
-
 		if self.grid_render is None:
 			self.grid_render = Renderer(
 				self.grid_size * CELL_PIXELS,
@@ -1513,7 +1657,6 @@ class MiniGridAbsoluteEnv(gym.Env):
 		r = self.grid_render
 
 		r.beginFrame()
-
 		# Render the whole grid
 		self.grid.render(r, CELL_PIXELS)
 
@@ -1531,6 +1674,17 @@ class MiniGridAbsoluteEnv(gym.Env):
 			(-12, -10)
 		])
 		r.pop()
+
+		# Draw the monsters, if applicable
+		if hasattr(self, 'monsters'):
+			for monster in self.monsters:
+				r.push()
+				r.translate(
+					CELL_PIXELS * monster.cur_pos[0],
+					CELL_PIXELS * monster.cur_pos[1]
+				)
+				monster.render(r)
+				r.pop()
 
 		# Compute which cells are visible to the agent
 		_, vis_mask = self.gen_obs_grid()
@@ -1582,5 +1736,14 @@ TYPE_TO_CLASS_ABS = {
 	'box'           : Box,
 	'goal'          : Goal,
 	'triangle'      : TriangleOverlap,
-	'square'        : SquareOverlap
+	'square'        : SquareOverlap,
+	'food'          : Food,
+	'tree'          : Tree,
+	'metal'         : Metal,
+	'energy'        : Energy,
+	'axe'           : Axe,
+	'woodfood'      : WoodFood,
+	'wood'          : Wood,
+	'bigfood'       : BigFood,
+	'monster'       : Monster
 }
