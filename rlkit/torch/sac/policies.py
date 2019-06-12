@@ -132,7 +132,7 @@ class CategoricalPolicy(Policy, nn.Module):
         self.action_dim = prob_network.output_size
 
     def forward(self, obs):
-        return Categorical(self.prob_network(obs))
+        return self.prob_network(obs)
 
     def get_action(self, obs_np, deterministic=False, print_action=False):
         dist_vec = eval_np(self.prob_network, obs_np)

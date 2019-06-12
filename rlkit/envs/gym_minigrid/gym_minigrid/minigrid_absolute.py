@@ -1,3 +1,4 @@
+import cv2
 import math
 import random
 
@@ -860,7 +861,7 @@ class GridAbsolute:
 		Produce a numpy encoding of the grid
 		env is for extra info to encode held objects
 		"""
-		array = np.zeros(shape=(self.width, self.height, 5), dtype='uint8')
+		array = np.zeros(shape=(self.width, self.height, 2), dtype='uint8')
 
 		for j in range(0, self.height):
 			for i in range(0, self.width):
@@ -873,16 +874,14 @@ class GridAbsolute:
 				array[i, j, 0] = OBJECT_TO_IDX[v.type]
 				array[i, j, 1] = COLOR_TO_IDX[v.color]
 
-				if hasattr(v, 'is_open') and v.is_open:
-					array[i, j, 2] = 1
-		if env and env.carry_flag:
-			obj = env.carrying
-			agent_x = self.width // 2
-			agent_y = self.height // 2
-			array[agent_x, agent_y, 3] = OBJECT_TO_IDX[obj.type]
-			array[agent_x, agent_y, 4] = COLOR_TO_IDX[obj.color]
-
-
+		# 		if hasattr(v, 'is_open') and v.is_open:
+		# 			array[i, j, 2] = 1
+		# if env and env.carry_flag:
+		# 	obj = env.carrying
+		# 	agent_x = self.width // 2
+		# 	agent_y = self.height // 2
+		# 	array[agent_x, agent_y, 3] = OBJECT_TO_IDX[obj.type]
+		# 	array[agent_x, agent_y, 4] = COLOR_TO_IDX[obj.color]
 
 		return array
 
@@ -893,7 +892,7 @@ class GridAbsolute:
 		"""
 
 		width, height, num_channels = array.shape
-		assert num_channels == 5
+		assert num_channels == 2
 
 		grid = GridAbsolute(width, height)
 
@@ -902,19 +901,19 @@ class GridAbsolute:
 
 				type_idx = array[i, j, 0]
 				color_idx = array[i, j, 1]
-				open_idx = array[i, j, 2]
+				# open_idx = array[i, j, 2]
 
 				if type_idx == 0:
 					continue
 
 				obj_type = IDX_TO_OBJECT[type_idx]
 				color = IDX_TO_COLOR[color_idx]
-				is_open = bool(open_idx)
+				# is_open = bool(open_idx)
 
 				if obj_type not in TYPE_TO_CLASS_ABS:
 					assert False, "unknown obj type in decode' %s'" % obj_type
-				elif 'door' in obj_type:
-					v = TYPE_TO_CLASS_ABS[obj_type](color, is_open)
+				# elif 'door' in obj_type:
+				# 	v = TYPE_TO_CLASS_ABS[obj_type](color, is_open)
 				else:
 					v = TYPE_TO_CLASS_ABS[obj_type](color=color)
 				grid.set(i, j, v)
@@ -1587,8 +1586,6 @@ class MiniGridAbsoluteEnv(gym.Env):
 				r.pop()
 
 		r.endFrame()
-		# return r.getPixmap()
-		# TODO suvansh changed from getPixmap to getArray
 		return r.getArray()
 
 	def get_full_obs_render(self, scale=1/16):
@@ -1597,8 +1594,8 @@ class MiniGridAbsoluteEnv(gym.Env):
 		"""
 		if self.full_obs_render is None:
 			self.full_obs_render = Renderer(
-				int(self.grid_size * CELL_PIXELS * scale),
-				int(self.grid_size * CELL_PIXELS * scale),
+				int(self.grid_size * CELL_PIXELS),
+				int(self.grid_size * CELL_PIXELS),
 				False
 			)
 
@@ -1607,13 +1604,13 @@ class MiniGridAbsoluteEnv(gym.Env):
 		r.beginFrame()
 
 		# Render the whole grid
-		self.grid.render(r, int(CELL_PIXELS * scale))
+		self.grid.render(r, int(CELL_PIXELS))
 
 		# Draw the agent
 		r.push()
 		r.translate(
-			CELL_PIXELS * scale * (self.agent_pos[0] + 0.5),
-			CELL_PIXELS * scale * (self.agent_pos[1] + 0.5)
+			CELL_PIXELS * (self.agent_pos[0] + 0.5),
+			CELL_PIXELS * (self.agent_pos[1] + 0.5)
 		)
 		r.setLineColor(255, 0, 0)
 		r.setColor(255, 0, 0)
@@ -1629,14 +1626,15 @@ class MiniGridAbsoluteEnv(gym.Env):
 			for monster in self.monsters:
 				r.push()
 				r.translate(
-					CELL_PIXELS * scale * (monster.cur_pos[0] + 0.5),
-					CELL_PIXELS * scale * (monster.cur_pos[1] + 0.5)
+					CELL_PIXELS * (monster.cur_pos[0] + 0.5),
+					CELL_PIXELS * (monster.cur_pos[1] + 0.5)
 				)
 				monster.render(r)
 				r.pop()
 
 		r.endFrame()
-		return r.getArray()
+		img = r.getArray()
+		return cv2.resize(img, (0, 0), fx=scale, fy=scale, interpolation=cv2.INTER_AREA)
 
 	def render(self, mode='human', close=False, save=None):
 		"""
