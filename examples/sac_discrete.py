@@ -18,7 +18,7 @@ from rlkit.torch.torch_rl_algorithm import TorchBatchRLAlgorithm
 from rlkit.envs.gym_minigrid.gym_minigrid import *
 
 # TODO NOTE: this is where you pick the variant
-from variants.sac.sac_easy_vision_variant import variant
+from variants.sac.sac_easy_grid_conv_variant import variant
 
 
 def experiment(variant):
@@ -89,6 +89,7 @@ def experiment(variant):
 	replay_buffer = EnvReplayBuffer(
 		variant['replay_buffer_size'],
 		expl_env,
+		dtype='uint8'
 	)
 
 	trainer = SACDiscreteTrainer(
@@ -121,6 +122,8 @@ def import_gen_network(env_name, algorithm):
 		if 'Easy' in env_name:
 			if 'Vision' in env_name:
 				from variants.sac.sac_easy_vision_variant import gen_network
+			else:
+				from variants.sac.sac_easy_grid_conv_variant import gen_network
 		elif 'Medium' in env_name:
 			if 'Vision' in env_name:
 				from variants.sac.sac_medium_vision_variant import gen_network

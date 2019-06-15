@@ -5,11 +5,11 @@ from torch.nn import functional as F
 
 
 variant = dict(
-		env_name="MiniGrid-Food-8x8-Easy-6and4-Vision-v1",
+		env_name="MiniGrid-Food-8x8-Easy-6and4-v1",
 		algorithm="SAC Discrete",
 		version="normal",
 		layer_size=256,
-		replay_buffer_size=int(1E4),
+		replay_buffer_size=int(1E5),
 		algorithm_kwargs=dict(
 			num_epochs=3000,
 			num_eval_steps_per_epoch=5000,
