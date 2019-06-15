@@ -88,7 +88,6 @@ class FoodEnvBase(MiniGridAbsoluteEnv):
 		if self.dead():
 			done = True
 			rwd = 0
-
 		return np.concatenate((img.flatten(), full_img.flatten(), np.array([self.health]))), rwd, done, {}
 
 	def reset(self):
@@ -117,6 +116,9 @@ class FoodEnvBase(MiniGridAbsoluteEnv):
 	def decay_health(self):
 		if self.step_count and self.step_count % self.health_rate == 0:
 			self.add_health(-1)
+
+	def add_health(self, num):
+		self.health = max(0, min(self.health_cap, self.health + num))
 
 	def dead(self):
 		return self.health <= 0

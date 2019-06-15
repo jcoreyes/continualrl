@@ -1218,9 +1218,6 @@ class MiniGridAbsoluteEnv(gym.Env):
 
 		return "\n".join([" ".join(line) for line in new_array])
 
-	def add_health(self, num):
-		self.health = max(0, min(self.health_cap, self.health + num))
-
 	def _gen_grid(self, width, height):
 		assert False, "_gen_grid needs to be implemented by each environment"
 
