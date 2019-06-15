@@ -12,14 +12,12 @@ class FoodEnvEasy(FoodEnvBase):
 	"""
 	def __init__(self, **kwargs):
 		super().__init__(**kwargs)
-
-		if self.obs_vision:
-			self.observation_space = spaces.Box(
-				low=0,
-				high=255,
-				shape=(10177,),
-				dtype='uint8'
-			)
+		self.observation_space = spaces.Box(
+			low=0,
+			high=255,
+			shape=(10177,) if self.obs_vision else (227,),
+			dtype='uint8'
+		)
 
 	def extra_step(self, action, matched):
 		if matched:
