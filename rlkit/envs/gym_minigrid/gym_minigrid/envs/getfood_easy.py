@@ -15,7 +15,7 @@ class FoodEnvEasy(FoodEnvBase):
 		self.observation_space = spaces.Box(
 			low=0,
 			high=255,
-			shape=(10177,) if self.obs_vision else (227,),
+			shape=(12481,) if self.obs_vision else (227,),
 			dtype='uint8'
 		)
 

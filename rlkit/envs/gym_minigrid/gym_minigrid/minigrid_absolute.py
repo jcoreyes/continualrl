@@ -594,15 +594,13 @@ class BigFood(WorldObj):
 
 
 class Monster(WorldObj):
-	def __init__(self, pos, env, lifetime=32, eps=0.2, color=None):
+	def __init__(self, pos, env, lifetime=32, eps=0.2, color='purple'):
 		"""
 		:param pos: the starting position
 		:param env: the containing environment
 		:param lifetime: how many timesteps to live
 		:param eps: probability of random action
 		"""
-		if color is None:
-			color = random.choice(COLOR_NAMES)
 		super().__init__('monster', color)
 		self.cur_pos = pos
 		self.env = env
