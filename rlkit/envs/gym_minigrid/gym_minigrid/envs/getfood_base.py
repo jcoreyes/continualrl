@@ -23,6 +23,7 @@ class FoodEnvBase(MiniGridAbsoluteEnv):
 				 food_rate=4,
 				 grid_size=8,
 				 obs_vision=False,
+				 reward_type='delta',
 				 **kwargs
 				 ):
 		self.agent_start_pos = agent_start_pos
@@ -31,7 +32,9 @@ class FoodEnvBase(MiniGridAbsoluteEnv):
 		self.food_rate = food_rate
 		self.health_cap = health_cap
 		self.health = health_cap
+		self.last_health = self.health
 		self.obs_vision = obs_vision
+		self.reward_type = reward_type
 		if not hasattr(self, 'actions'):
 			self.actions = FoodEnvBase.Actions
 		super().__init__(
@@ -42,7 +45,14 @@ class FoodEnvBase(MiniGridAbsoluteEnv):
 		)
 
 	def _reward(self):
-		return 1
+		if self.reward_type == 'survival':
+			rwd = 1
+		elif self.reward_type == 'delta':
+			rwd = self.health - self.last_health
+		else:
+			assert False, "Reward type not matched"
+		self.last_health = self.health
+		return rwd
 
 	def _gen_grid(self, width, height):
 		# Create an empty grid
@@ -74,20 +84,20 @@ class FoodEnvBase(MiniGridAbsoluteEnv):
 		self.decay_health()
 		# generate new food
 		self.place_items()
-
 		# generate obs after action is caught and food is placed. generate reward before death check
 		img = self.gen_obs()
 		full_img = self.grid.encode(self)
 		if self.obs_vision:
 			img = self.get_img_vision(img)
 			full_img = self.get_full_img_vision()
+		img = img.transpose(2, 0, 1)
+		full_img = full_img.transpose(2, 0, 1)
 
 		rwd = self._reward()
 
 		# dead.
 		if self.dead():
 			done = True
-			rwd = 0
 		return np.concatenate((img.flatten(), full_img.flatten(), np.array([self.health]))), rwd, done, {}
 
 	def reset(self):
@@ -100,7 +110,7 @@ class FoodEnvBase(MiniGridAbsoluteEnv):
 		return np.concatenate((img.flatten(), full_img.flatten(), np.array([self.health])))
 
 	def get_full_img_vision(self):
-		full_img = self.get_full_obs_render()
+		full_img = self.get_full_obs_render(scale=1/8)
 		# return cv2.resize(full_img, (0, 0), fx=0.125, fy=0.125, interpolation=cv2.INTER_AREA)
 		return full_img
 

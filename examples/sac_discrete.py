@@ -18,7 +18,7 @@ from rlkit.torch.torch_rl_algorithm import TorchBatchRLAlgorithm
 from rlkit.envs.gym_minigrid.gym_minigrid import *
 
 # TODO NOTE: this is where you pick the variant
-from variants.sac.sac_easy_grid_conv_variant import variant
+from variants.sac.sac_easy_vision_variant import variant
 
 
 def experiment(variant):
@@ -65,7 +65,7 @@ def experiment(variant):
 	# 		input_size=obs_dim,
 	# 		output_activation=F.softmax)
 	# )
-	policy = gen_network(variant, action_dim, layer_size)
+	policy = gen_network(variant, action_dim, layer_size, policy=True)
 
 	# Use GPU
 	if ptu.gpu_enabled():
@@ -77,7 +77,6 @@ def experiment(variant):
 
 	# eval_policy = MakeDeterministic(policy)
 	eval_policy = policy
-
 	eval_path_collector = MdpPathCollector(
 		eval_env,
 		eval_policy,

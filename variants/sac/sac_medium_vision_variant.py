@@ -34,12 +34,12 @@ variant = dict(
 			input_height=56,
 			# 3 rgb channels
 			input_channels=3,
-			output_size=128,
-			kernel_sizes=[5, 3, 3],
+			output_size=64,
+			kernel_sizes=[8, 5, 2],
 			n_channels=[16, 32, 32],
-			strides=[3, 2, 2],
+			strides=[4, 2, 1],
 			paddings=[0, 0, 0],
-			hidden_sizes=[512, 512],
+			hidden_sizes=[256, 128],
 		),
 		full_img_conv_kwargs=dict(
 			# 32 grid * 2 pixel/grid
@@ -49,9 +49,9 @@ variant = dict(
 			# 3 rgb channels
 			input_channels=3,
 			output_size=128,
-			kernel_sizes=[5, 3, 3],
+			kernel_sizes=[3, 3, 2],
 			n_channels=[16, 32, 32],
-			strides=[3, 2, 2],
+			strides=[2, 2, 1],
 			paddings=[0, 0, 0],
 			hidden_sizes=[512, 512],
 		),
@@ -64,19 +64,22 @@ variant = dict(
 	)
 
 
-def gen_network(variant, action_dim, layer_size):
+def gen_network(variant, action_dim, layer_size, policy=False):
+	final_network_kwargs = dict(
+		# +1 for health
+		input_size=variant['img_conv_kwargs']['output_size']
+		           + variant['full_img_conv_kwargs']['output_size']
+		           + variant['inventory_network_kwargs']['output_size'],
+		output_size=action_dim,
+		hidden_sizes=[layer_size, layer_size]
+	)
+	if policy:
+		final_network_kwargs.update(output_activation=F.softmax)
 	return FoodNetworkMedium(
 		img_network=CNN(**variant['img_conv_kwargs']),
 		full_img_network=CNN(**variant['full_img_conv_kwargs']),
 		inventory_network=FlattenMlp(**variant['inventory_network_kwargs']),
-		final_network=FlattenMlp(
-			input_size=variant['img_conv_kwargs']['output_size']
-					   + variant['full_img_conv_kwargs']['output_size']
-					   + variant['inventory_network_kwargs']['output_size'],
-			output_size=action_dim,
-			hidden_sizes=[layer_size, layer_size],
-			output_activation=F.softmax
-		),
+		final_network=FlattenMlp(**final_network_kwargs),
 		sizes=[
 			variant['img_conv_kwargs']['input_width'] * variant['img_conv_kwargs']['input_height'] * variant['img_conv_kwargs']['input_channels'],
 			variant['full_img_conv_kwargs']['input_width'] * variant['full_img_conv_kwargs']['input_height'] * variant['full_img_conv_kwargs']['input_channels'],

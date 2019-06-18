@@ -57,17 +57,19 @@ variant = dict(
 	)
 
 
-def gen_network(variant, action_dim, layer_size):
+def gen_network(variant, action_dim, layer_size, policy=False):
+	final_network_kwargs = dict(
+		# +1 for health
+		input_size=variant['img_conv_kwargs']['output_size'] + variant['full_img_conv_kwargs']['output_size'] + 1,
+		output_size=action_dim,
+		hidden_sizes=[layer_size, layer_size],
+	)
+	if policy:
+		final_network_kwargs.update(output_activation=F.softmax)
 	return FoodNetworkEasy(
 		img_network=CNN(**variant['img_conv_kwargs']),
 		full_img_network=CNN(**variant['full_img_conv_kwargs']),
-		final_network=FlattenMlp(
-			# +1 for health
-			input_size=variant['img_conv_kwargs']['output_size'] + variant['full_img_conv_kwargs']['output_size'] + 1,
-			output_size=action_dim,
-			hidden_sizes=[layer_size, layer_size],
-			output_activation=F.softmax
-		),
+		final_network=FlattenMlp(**final_network_kwargs),
 		sizes=[
 			variant['img_conv_kwargs']['input_width'] * variant['img_conv_kwargs']['input_height'] * variant['img_conv_kwargs']['input_channels'],
 			variant['full_img_conv_kwargs']['input_width'] * variant['full_img_conv_kwargs']['input_height'] * variant['full_img_conv_kwargs']['input_channels'],
