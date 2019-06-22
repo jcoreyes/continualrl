@@ -41,13 +41,14 @@ COLOR_NAMES4 = sorted(list(COLORS4.keys()))
 
 # Used to map colors to integers
 COLOR_TO_IDX = {
-	'red'   : 0,
-	'green' : 1,
-	'blue'  : 2,
-	'purple': 3,
-	'yellow': 4,
-	'grey'  : 5,
-	'brown' : 6
+	# shifted from 0-index because 0 is used for None objects' "color"
+	'red'   : 1,
+	'green' : 2,
+	'blue'  : 3,
+	'purple': 4,
+	'yellow': 5,
+	'grey'  : 6,
+	'brown' : 7
 }
 COLOR_TO_IDX4 = {
 	'red'   : 0,
@@ -110,7 +111,7 @@ class WorldObj:
 	Base class for grid world objects
 	"""
 
-	def __init__(self, type, color):
+	def __init__(self, type, color, lifespan=0):
 		assert type in OBJECT_TO_IDX, type
 		assert color in COLOR_TO_IDX, color
 		self.type = type
@@ -126,6 +127,15 @@ class WorldObj:
 		# If object is currently behind held by agent
 		self.is_held = False
 		self.held_pos = None
+
+		# To determine decay of objects
+		self.age = 0
+		self.lifespan = lifespan
+
+	def step(self):
+		self.age += 1
+		# Return False if time to die. By default, lifespan is 0 so age will never be lifespan, and the obj is permanent
+		return self.age != self.lifespan
 
 	def can_overlap(self):
 		"""Can the agent overlap with this?"""
@@ -446,8 +456,8 @@ class Box(WorldObj):
 
 
 class Food(WorldObj):
-	def __init__(self, color='blue'):
-		super().__init__('food', color)
+	def __init__(self, color='blue', lifespan=0):
+		super().__init__('food', color, lifespan=lifespan)
 
 	def can_mine(self, env):
 		return True
@@ -880,7 +890,6 @@ class GridAbsolute:
 		# 	agent_y = self.height // 2
 		# 	array[agent_x, agent_y, 3] = OBJECT_TO_IDX[obj.type]
 		# 	array[agent_x, agent_y, 4] = COLOR_TO_IDX[obj.color]
-
 		return array
 
 	@staticmethod
@@ -1302,8 +1311,13 @@ class MiniGridAbsoluteEnv(gym.Env):
 
 		if size is None:
 			size = (self.grid.width, self.grid.height)
-
+		num_tries = 0
 		while True:
+			num_tries += 1
+			# 5 is rough approximation to make sure that we really are out of space if we don't find an empty spot
+			if num_tries > 5 * self.grid_size * self.grid_size:
+				# couldn't place it! :(
+				return (-1, -1)
 			pos = np.array((
 				self._rand_int(top[0], top[0] + size[0]),
 				self._rand_int(top[1], top[1] + size[1])

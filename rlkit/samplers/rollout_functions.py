@@ -81,6 +81,9 @@ def rollout(
         max_path_length=np.inf,
         render=False,
         render_kwargs=None,
+        return_env_obs=False,
+        continuing=False,
+        obs=None
 ):
     """
     The following value for the following keys will be a 2D array, with the
@@ -95,7 +98,12 @@ def rollout(
     the list being the index into the time
      - agent_infos
      - env_infos
+
+    If `return_env_obs` is True, then return the env and last obs as well.
+    If `continuing` is True, then roll out without resetting env. `obs` must then be the most recent obs from the env
     """
+    assert not (continuing and obs is None), 'if continuing, then must provide the most recent obs from the env'
+
     if render_kwargs is None:
         render_kwargs = {}
     observations = []
@@ -104,7 +112,7 @@ def rollout(
     terminals = []
     agent_infos = []
     env_infos = []
-    o = env.reset()
+    o = env.reset() if not continuing else obs
     agent.reset()
     next_o = None
     path_length = 0
@@ -141,7 +149,7 @@ def rollout(
             np.expand_dims(next_o, 0)
         )
     )
-    return dict(
+    ret = dict(
         observations=observations,
         actions=actions,
         rewards=np.array(rewards).reshape(-1, 1),
@@ -150,3 +158,4 @@ def rollout(
         agent_infos=agent_infos,
         env_infos=env_infos,
     )
+    return (ret, env, next_o) if return_env_obs else ret

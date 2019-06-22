@@ -10,8 +10,17 @@ class FoodEnvEasy(FoodEnvBase):
 	Lose 1 health point every `health_rate` timesteps,
 	Get 1 reward per timestep
 	"""
-	def __init__(self, **kwargs):
+	def __init__(self,
+				 init_resources=None,
+				 food_rate_decay=0.0,
+				 lifespan=0,
+				 **kwargs):
+		self.init_resources = init_resources or {}
+		self.food_rate_decay = food_rate_decay
+		self.lifespan = lifespan
+
 		super().__init__(**kwargs)
+
 		self.observation_space = spaces.Box(
 			low=0,
 			high=255,
@@ -20,6 +29,8 @@ class FoodEnvEasy(FoodEnvBase):
 		)
 
 	def extra_step(self, action, matched):
+		self.food_rate += self.food_rate_decay
+
 		if matched:
 			return matched
 
@@ -36,9 +47,13 @@ class FoodEnvEasy(FoodEnvBase):
 
 		return matched
 
+	def extra_gen_grid(self):
+		for type, count in self.init_resources.items():
+			for _ in range(count):
+				self.place_obj(TYPE_TO_CLASS_ABS[type]())
+
 	def place_items(self):
-		if self.step_count % self.food_rate == 0:
-			self.place_obj(Food())
+		self.place_prob(Food(lifespan=self.lifespan), 1 / self.food_rate)
 
 
 class FoodEnvEasy6and4(FoodEnvEasy):
@@ -59,6 +74,31 @@ class FoodEnvEasy10and4(FoodEnvEasy):
 class FoodEnvEasy10and4Vision(FoodEnvEasy):
 	def __init__(self):
 		super().__init__(health_rate=10, obs_vision=True)
+
+
+class FoodEnvEasy10and4Cap50Decay(FoodEnvEasy):
+	def __init__(self):
+		super().__init__(health_rate=10, health_cap=50, food_rate_decay=0.005)
+
+
+class FoodEnvEasy10and4Cap50Init10Decay(FoodEnvEasy):
+	def __init__(self):
+		super().__init__(health_rate=10, health_cap=50, init_resources={'food': 10}, food_rate_decay=0.005)
+
+
+class FoodEnvEasy10and4Cap50Init10DecayVision(FoodEnvEasy):
+	def __init__(self):
+		super().__init__(health_rate=10, health_cap=50, init_resources={'food': 10}, food_rate_decay=0.005, obs_vision=True)
+
+
+class FoodEnvEasy10and6Cap50Decay(FoodEnvEasy):
+	def __init__(self):
+		super().__init__(health_rate=10, food_rate=6, health_cap=50, food_rate_decay=0.005)
+
+
+class FoodEnvEasy10and6Cap50DecayLifespan30(FoodEnvEasy):
+	def __init__(self):
+		super().__init__(health_rate=10, food_rate=6, health_cap=50, food_rate_decay=0.005, lifespan=30)
 
 
 register(
@@ -85,3 +125,30 @@ register(
 	id='MiniGrid-Food-8x8-Easy-10and4-Vision-v1',
 	entry_point='gym_minigrid.envs:FoodEnvEasy10and4Vision'
 )
+
+register(
+	id='MiniGrid-Food-8x8-Easy-10and4-Cap50-Decay-v1',
+	entry_point='gym_minigrid.envs:FoodEnvEasy10and4Cap50Decay'
+)
+
+register(
+	id='MiniGrid-Food-8x8-Easy-10and4-Cap50-Init10-Decay-v1',
+	entry_point='gym_minigrid.envs:FoodEnvEasy10and4Cap50Init10Decay'
+)
+
+register(
+	id='MiniGrid-Food-8x8-Easy-10and4-Cap50-Init10-Decay-Vision-v1',
+	entry_point='gym_minigrid.envs:FoodEnvEasy10and4Cap50Init10DecayVision'
+)
+
+register(
+	id='MiniGrid-Food-8x8-Easy-10and6-Cap50-Decay-v1',
+	entry_point='gym_minigrid.envs:FoodEnvEasy10and6Cap50Decay'
+)
+
+register(
+	id='MiniGrid-Food-8x8-Easy-10and6-Cap50-Decay-Lifespan30-v1',
+	entry_point='gym_minigrid.envs:FoodEnvEasy10and6Cap50DecayLifespan30'
+)
+
+

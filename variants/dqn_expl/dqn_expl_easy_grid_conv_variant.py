@@ -6,7 +6,7 @@ from torch.nn import functional as F
 
 variant = dict(
 		env_name="MiniGrid-Food-8x8-Easy-6and4-v1",
-		algorithm="SAC Discrete",
+		algorithm="DQN-Exploration",
 		version="normal",
 		layer_size=256,
 		replay_buffer_size=int(1E5),
@@ -21,12 +21,7 @@ variant = dict(
 		),
 		trainer_kwargs=dict(
 			discount=0.99,
-			soft_target_tau=5e-3,
-			target_update_period=1,
-			policy_lr=3E-4,
-			qf_lr=3E-4,
-			reward_scale=1,
-			use_automatic_entropy_tuning=True,
+			learning_rate=3E-4,
 		),
 		img_conv_kwargs=dict(
 			# 7 grid
@@ -41,7 +36,7 @@ variant = dict(
 			# n_channels=[16, 16, 16],
 			strides=[1, 1],
 			# strides=[1, 1, 1],
-			# TODO: padding is to ensure same shape after conv layers
+			# Note: padding is to ensure same shape after conv layers
 			paddings=[1, 0],
 			# paddings=[0, 0, 0],
 			hidden_sizes=[32],

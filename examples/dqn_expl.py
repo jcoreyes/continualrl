@@ -3,6 +3,8 @@ from gym.envs.mujoco import HalfCheetahEnv
 import gym
 from rlkit.policies.network_food import FoodNetworkMedium
 from rlkit.torch.conv_networks import CNN
+from rlkit.torch.dqn.double_dqn import DoubleDQNTrainer
+from rlkit.torch.dqn.dqn import DQNTrainer
 from rlkit.torch.sac.sac_discrete import SACDiscreteTrainer
 from torch.nn import functional as F
 
@@ -11,14 +13,16 @@ from rlkit.data_management.env_replay_buffer import EnvReplayBuffer
 from rlkit.envs.wrappers import NormalizedBoxEnv
 from rlkit.launchers.launcher_util import setup_logger
 from rlkit.samplers.data_collector import MdpPathCollector
-from rlkit.torch.sac.policies import TanhGaussianPolicy, MakeDeterministic, CategoricalPolicy, RandomPolicy
+from rlkit.torch.sac.policies import TanhGaussianPolicy, MakeDeterministic, CategoricalPolicy, RandomPolicy, \
+	SoftmaxQPolicy
 from rlkit.torch.sac.sac import SACTrainer
 from rlkit.torch.networks import FlattenMlp, Mlp
 from rlkit.torch.torch_rl_algorithm import TorchBatchRLAlgorithm
 from rlkit.envs.gym_minigrid.gym_minigrid import *
+import torch.nn as nn
 
 # TODO NOTE: this is where you pick the variant
-from variants.sac.sac_easy_mlp_variant import variant, gen_network
+from variants.dqn_expl.dqn_expl_easy_grid_conv_variant import variant, gen_network
 
 
 def experiment(variant):
@@ -30,19 +34,15 @@ def experiment(variant):
 	action_dim = eval_env.action_space.n
 
 	layer_size = variant['layer_size']
-	qf1 = gen_network(variant, action_dim, layer_size)
-	qf2 = gen_network(variant, action_dim, layer_size)
-	target_qf1 = gen_network(variant, action_dim, layer_size)
-	target_qf2 = gen_network(variant, action_dim, layer_size)
-	policy = gen_network(variant, action_dim, layer_size, policy=True)
+	qf = gen_network(variant, action_dim, layer_size)
+	target_qf = gen_network(variant, action_dim, layer_size)
+	policy = SoftmaxQPolicy(qf)
 	expl_policy = RandomPolicy(action_dim)
 
 	# Use GPU
 	if ptu.gpu_enabled():
-		qf1 = qf1.cuda()
-		qf2 = qf2.cuda()
-		target_qf1 = target_qf1.cuda()
-		target_qf2 = target_qf2.cuda()
+		qf = qf.cuda()
+		target_qf = target_qf.cuda()
 		policy = policy.cuda()
 
 	# eval_policy = MakeDeterministic(policy)
@@ -62,16 +62,12 @@ def experiment(variant):
 		dtype='uint8'
 	)
 
-	trainer = SACDiscreteTrainer(
-		env=eval_env,
-		policy=policy,
-		qf1=qf1,
-		qf2=qf2,
-		target_qf1=target_qf1,
-		target_qf2=target_qf2,
+	trainer = DoubleDQNTrainer(
+		qf=qf,
+		target_qf=target_qf,
+		qf_criterion=nn.MSELoss(),
 		**variant['trainer_kwargs']
 	)
-
 
 	algorithm = TorchBatchRLAlgorithm(
 		trainer=trainer,
@@ -88,6 +84,6 @@ def experiment(variant):
 
 if __name__ == "__main__":
 	# noinspection PyTypeChecker
-	setup_logger('sac-discrete', variant=variant)
+	setup_logger('dqn-expl', variant=variant)
 	ptu.set_gpu_mode(True)  # optionally set the GPU (default=False)
 	experiment(variant)

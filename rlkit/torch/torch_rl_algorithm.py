@@ -2,6 +2,8 @@ import abc
 from collections import OrderedDict
 
 from typing import Iterable
+
+from rlkit.core.lifetime_rl_algorithm import LifetimeRLAlgorithm
 from torch import nn as nn
 
 from rlkit.core.batch_rl_algorithm import BatchRLAlgorithm
@@ -21,6 +23,16 @@ class TorchOnlineRLAlgorithm(OnlineRLAlgorithm):
 
 
 class TorchBatchRLAlgorithm(BatchRLAlgorithm):
+    def to(self, device):
+        for net in self.trainer.networks:
+            net.to(device)
+
+    def training_mode(self, mode):
+        for net in self.trainer.networks:
+            net.train(mode)
+
+
+class TorchLifetimeRLAlgorithm(LifetimeRLAlgorithm):
     def to(self, device):
         for net in self.trainer.networks:
             net.to(device)

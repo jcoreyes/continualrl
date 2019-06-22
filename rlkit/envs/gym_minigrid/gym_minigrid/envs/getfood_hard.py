@@ -36,8 +36,12 @@ class FoodEnvHard(FoodEnvBase):
 			food_rate=4,
 			max_pantry_size=50,
 			obs_vision=False,
+			food_rate_decay=0.0,
+			init_resources=None,
 			**kwargs
 	):
+		self.food_rate_decay = food_rate_decay
+		self.init_resources = init_resources or {}
 		# food
 		self.pantry = []
 		self.max_pantry_size = max_pantry_size
@@ -81,21 +85,23 @@ class FoodEnvHard(FoodEnvBase):
 			)
 
 	def place_items(self):
-		if self.step_count % self.food_rate == 0:
-			self.place_obj(Food())
-		if self.step_count % (2 * self.food_rate) == 0:
-			self.place_obj(Metal())
-			self.place_obj(Energy())
-		if self.step_count % (3 * self.food_rate) == 0:
-			self.place_obj(Tree())
-		if self.step_count % (8 * self.food_rate) == 0:
+		self.place_prob(Food(), 1 / (self.food_rate + self.step_count * self.food_rate_decay))
+		self.place_prob(Metal(), 1 / (2 * self.food_rate))
+		self.place_prob(Energy(), 1 / (2 * self.food_rate))
+		self.place_prob(Tree(), 1 / (3 * self.food_rate))
+		if np.random.binomial(1, 1 / (8 * self.food_rate)):
 			# could have parameter for a monster that gets more efficient over time
 			# pick random position that isn't in gray border
 			monster = Monster(np.array(self._rand_pos(1, self.grid_size-2, 1, self.grid_size-2)),
 			                  self,
 							  12 * self.food_rate,
-							  0.3)
+							  0.5)
 			self.monsters.append(monster)
+
+	def extra_gen_grid(self):
+		for type, count in self.init_resources.items():
+			for _ in range(count):
+				self.place_obj(TYPE_TO_CLASS_ABS[type]())
 
 	def extra_step(self, action, matched):
 		# Let monsters act and die
@@ -240,6 +246,17 @@ class FoodEnvHard15and4Vision(FoodEnvHard):
 		super().__init__(health_rate=15, obs_vision=True)
 
 
+
+class FoodEnvHard5and4Cap100InitDecay(FoodEnvHard):
+	def __init__(self):
+		super().__init__(health_rate=5, health_cap=100, food_rate_decay=0.01,
+						 init_resources={
+							 'axe': 8,
+							 'wood': 5,
+							 'food': 15
+						 })
+
+
 register(
 	id='MiniGrid-Food-32x32-Hard-4and4-v1',
 	entry_point='gym_minigrid.envs:FoodEnvHard'
@@ -263,4 +280,9 @@ register(
 register(
 	id='MiniGrid-Food-32x32-Hard-15and4-Vision-v1',
 	entry_point='gym_minigrid.envs:FoodEnvHard15and4Vision'
+)
+
+register(
+	id='MiniGrid-Food-32x32-Hard-10and4-Cap100-Init-Decay-v1',
+	entry_point='gym_minigrid.envs:FoodEnvHard5and4Cap100InitDecay'
 )

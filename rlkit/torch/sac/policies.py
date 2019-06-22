@@ -1,6 +1,7 @@
 import numpy as np
 import torch
 from torch import nn as nn
+import torch.nn.functional as F
 from torch.distributions.categorical import Categorical
 
 from rlkit.policies.base import ExplorationPolicy, Policy
@@ -137,6 +138,32 @@ class CategoricalPolicy(Policy, nn.Module):
     def get_action(self, obs_np, deterministic=False, print_action=False):
         dist_vec = eval_np(self.prob_network, obs_np)
         return Categorical(torch.from_numpy(dist_vec)).sample().item() if not deterministic else dist_vec.argmax(), {}
+
+
+class RandomPolicy(Policy, nn.Module):
+    def __init__(self, action_dim):
+        super().__init__()
+        self.action_dim = action_dim
+
+    def forward(self, obs):
+        return np.random.randint(self.action_dim)
+
+    def get_action(self, obs_np):
+        return self(obs_np), {}
+
+
+class SoftmaxQPolicy(Policy, nn.Module):
+    def __init__(self, q):
+        super().__init__()
+        self.q = q
+        self.action_dim = q.action_dim
+
+    def forward(self, obs):
+        ac_dist = F.softmax(self.q(obs), dim=1)
+        return Categorical(ac_dist).sample().item()
+
+    def get_action(self, obs_np):
+        return eval_np(self, obs_np), {}
 
 
 class MakeDeterministic(Policy):

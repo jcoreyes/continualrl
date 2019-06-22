@@ -23,7 +23,7 @@ class FoodEnvBase(MiniGridAbsoluteEnv):
 				 food_rate=4,
 				 grid_size=8,
 				 obs_vision=False,
-				 reward_type='delta',
+				 reward_type='health',
 				 **kwargs
 				 ):
 		self.agent_start_pos = agent_start_pos
@@ -49,6 +49,8 @@ class FoodEnvBase(MiniGridAbsoluteEnv):
 			rwd = 1
 		elif self.reward_type == 'delta':
 			rwd = self.health - self.last_health
+		elif self.reward_type == 'health':
+			rwd = self.health
 		else:
 			assert False, "Reward type not matched"
 		self.last_health = self.health
@@ -71,6 +73,8 @@ class FoodEnvBase(MiniGridAbsoluteEnv):
 		else:
 			self.place_agent()
 
+		self.extra_gen_grid()
+
 		self.mission = None
 
 	def step(self, action, include_full_img=False):
@@ -85,15 +89,21 @@ class FoodEnvBase(MiniGridAbsoluteEnv):
 		# generate new food
 		self.place_items()
 		# generate obs after action is caught and food is placed. generate reward before death check
-		img = self.gen_obs()
-		full_img = self.grid.encode(self)
-		if self.obs_vision:
-			img = self.get_img_vision(img)
-			full_img = self.get_full_img_vision()
-		img = img.transpose(2, 0, 1)
-		full_img = full_img.transpose(2, 0, 1)
-
+		img = self.get_img()
+		full_img = self.get_full_img()
 		rwd = self._reward()
+
+		# tick on each grid item
+		to_remove = []
+		for j in range(0, self.grid.height):
+			for i in range(0, self.grid.width):
+				cell = self.grid.get(i, j)
+				if cell is not None:
+					if not cell.step():
+						to_remove.append((i, j))
+		for idxs in to_remove:
+			self.grid.set(*idxs, None)
+
 
 		# dead.
 		if self.dead():
@@ -101,27 +111,42 @@ class FoodEnvBase(MiniGridAbsoluteEnv):
 		return np.concatenate((img.flatten(), full_img.flatten(), np.array([self.health]))), rwd, done, {}
 
 	def reset(self):
-		img = super().reset()
-		full_img = self.grid.encode(self)
-		if self.obs_vision:
-			img = self.get_img_vision(img)
-			full_img = self.get_full_img_vision()
+		super().reset()
+		img = self.get_img()
+		full_img = self.get_full_img()
 		# return {'image': img, 'full_image': full_img, 'health': self.health}
 		return np.concatenate((img.flatten(), full_img.flatten(), np.array([self.health])))
 
-	def get_full_img_vision(self):
-		full_img = self.get_full_obs_render(scale=1/8)
-		# return cv2.resize(full_img, (0, 0), fx=0.125, fy=0.125, interpolation=cv2.INTER_AREA)
-		return full_img
+	def get_full_img(self):
+		""" Return the whole grid view """
+		if self.obs_vision:
+			full_img = self.get_full_obs_render(scale=1/8)
+		else:
+			full_img = self.grid.encode(self)
+		# NOTE: in case need to scale here instead of in above func call: return cv2.resize(full_img, (0, 0), fx=0.125, fy=0.125, interpolation=cv2.INTER_AREA)
+		# make the output torch-ready!
+		return full_img.transpose(2, 0, 1)
 
-	def get_img_vision(self, img):
-		return self.get_obs_render(img, CELL_PIXELS // 4)
+	def get_img(self):
+		""" Return the agent view """
+		img = self.gen_obs()
+		if self.obs_vision:
+			img = self.get_obs_render(img, CELL_PIXELS // 4)
+		# make the output torch-ready!
+		return img.transpose(2, 0, 1)
 
 	def extra_step(self, action, matched):
 		pass
 
 	def place_items(self):
 		pass
+
+	def extra_gen_grid(self):
+		pass
+
+	def place_prob(self, obj, prob):
+		if np.random.binomial(1, prob):
+			self.place_obj(obj)
 
 	def decay_health(self):
 		if self.step_count and self.step_count % self.health_rate == 0:
