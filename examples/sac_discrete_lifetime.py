@@ -30,40 +30,10 @@ def experiment(variant):
 	action_dim = eval_env.action_space.n
 
 	layer_size = variant['layer_size']
-	# qf1 = FlattenMlp(
-	# 	input_size=obs_dim,
-	# 	output_size=action_dim,
-	# 	hidden_sizes=[M, M],
-	# 	output_activation=F.softmax
-	# )
 	qf1 = gen_network(variant, action_dim, layer_size)
-	# qf2 = FlattenMlp(
-	# 	input_size=obs_dim,
-	# 	output_size=action_dim,
-	# 	hidden_sizes=[M, M],
-	# 	output_activation=F.softmax
-	# )
 	qf2 = gen_network(variant, action_dim, layer_size)
-	# target_qf1 = FlattenMlp(
-	# 	input_size=obs_dim,
-	# 	output_size=action_dim,
-	# 	hidden_sizes=[M, M],
-	# 	output_activation=F.softmax
-	# )
 	target_qf1 = gen_network(variant, action_dim, layer_size)
-	# target_qf2 = FlattenMlp(
-	# 	input_size=obs_dim,
-	# 	output_size=action_dim,
-	# 	hidden_sizes=[M, M],
-	# 	output_activation=F.softmax
-	# )
 	target_qf2 = gen_network(variant, action_dim, layer_size)
-	# policy = CategoricalPolicy(
-	# 	Mlp(hidden_sizes=[M, M],
-	# 		output_size=action_dim,
-	# 		input_size=obs_dim,
-	# 		output_activation=F.softmax)
-	# )
 	policy = gen_network(variant, action_dim, layer_size, policy=True)
 
 	# Use GPU
