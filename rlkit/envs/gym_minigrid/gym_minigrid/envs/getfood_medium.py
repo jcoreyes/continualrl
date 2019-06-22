@@ -36,8 +36,12 @@ class FoodEnvMedium(FoodEnvBase):
 			food_rate=4,
 			max_pantry_size=50,
 			obs_vision=False,
+			food_rate_decay=0.0,
+			init_resources=None,
 			**kwargs
 	):
+		self.init_resources = init_resources or {}
+		self.food_rate_decay = food_rate_decay
 		# food
 		self.pantry = []
 		self.max_pantry_size = max_pantry_size
@@ -68,22 +72,23 @@ class FoodEnvMedium(FoodEnvBase):
 			obs_vision=obs_vision
 		)
 
-		if self.obs_vision:
-			self.observation_space = spaces.Box(
-				low=0,
-				high=255,
-				shape=(22137,),
-				dtype='uint8'
+		self.observation_space = spaces.Box(
+			low=0,
+			high=255,
+			shape=(22137,) if self.obs_vision else (2587,),
+			dtype='uint8'
 			)
 
 	def place_items(self):
-		if self.step_count % self.food_rate == 0:
-			self.place_obj(Food())
-		if self.step_count % (2 * self.food_rate) == 0:
-			self.place_obj(Metal())
-			self.place_obj(Energy())
-		if self.step_count % (3 * self.food_rate) == 0:
-			self.place_obj(Tree())
+		self.place_prob(Food(), 1 / (self.food_rate + self.step_count * self.food_rate_decay))
+		self.place_prob(Metal(), 1 / (2 * self.food_rate))
+		self.place_prob(Energy(), 1 / (2 * self.food_rate))
+		self.place_prob(Tree(), 1 / (3 * self.food_rate))
+
+	def extra_gen_grid(self):
+		for type, count in self.init_resources.items():
+			for _ in range(count):
+				self.place_obj(TYPE_TO_CLASS_ABS[type]())
 
 	def extra_step(self, action, matched):
 		if matched:
@@ -212,6 +217,16 @@ class FoodEnvMedium10and4Vision(FoodEnvMedium):
 		super().__init__(health_rate=10, obs_vision=True)
 
 
+class FoodEnvMedium5and4Cap100InitDecay(FoodEnvMedium):
+	def __init__(self):
+		super().__init__(health_rate=5, health_cap=100, food_rate_decay=0.01,
+						 init_resources={
+							 'axe': 8,
+							 'woodfood': 5,
+							 'food': 15
+						 })
+
+
 register(
 	id='MiniGrid-Food-32x32-Medium-4and4-v1',
 	entry_point='gym_minigrid.envs:FoodEnvMedium'
@@ -230,4 +245,9 @@ register(
 register(
 	id='MiniGrid-Food-32x32-Medium-10and4-Vision-v1',
 	entry_point='gym_minigrid.envs:FoodEnvMedium10and4Vision'
+)
+
+register(
+	id='MiniGrid-Food-32x32-Medium-10and4-Cap100-Init-Decay-v1',
+	entry_point='gym_minigrid.envs:FoodEnvMedium5and4Cap100InitDecay'
 )

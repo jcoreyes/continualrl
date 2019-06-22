@@ -88,6 +88,83 @@ class MdpPathCollector(PathCollector):
         )
 
 
+class LifetimeMdpPathCollector(PathCollector):
+    def __init__(
+            self,
+            env,
+            policy,
+            max_num_epoch_paths_saved=None,
+            render=False,
+            render_kwargs=None,
+    ):
+        if render_kwargs is None:
+            render_kwargs = {}
+        self._env = env
+        self.curr_env = env
+        self.last_obs = None
+        self._policy = policy
+        self._max_num_epoch_paths_saved = max_num_epoch_paths_saved
+        self._epoch_paths = deque(maxlen=self._max_num_epoch_paths_saved)
+        self._render = render
+        self._render_kwargs = render_kwargs
+
+        self._num_steps_total = 0
+        self._num_paths_total = 0
+
+    def collect_new_paths(
+            self,
+            max_path_length,
+            num_steps,
+            discard_incomplete_paths,
+            render=False,
+            continuing=False
+    ):
+        if not continuing:
+            # reset held state re: env and obs since we're resetting now
+            self.curr_env = self._env
+            self.last_obs = None
+        path, self.curr_env, self.last_obs = rollout(
+            self.curr_env,
+            self._policy,
+            # suvansh: this is not a typo
+            max_path_length=num_steps,
+            render=render,
+            return_env_obs=True,
+            continuing=continuing,
+            obs=self.last_obs
+        )
+        path_len = len(path['actions'])
+        self._num_paths_total += 1
+        self._num_steps_total += path_len
+        self._epoch_paths.append(path)
+        return path
+
+    def get_epoch_paths(self):
+        return self._epoch_paths
+
+    def end_epoch(self, epoch):
+        self._epoch_paths = deque(maxlen=self._max_num_epoch_paths_saved)
+
+    def get_diagnostics(self):
+        path_lens = [len(path['actions']) for path in self._epoch_paths]
+        stats = OrderedDict([
+            ('num steps total', self._num_steps_total),
+            ('num paths total', self._num_paths_total),
+        ])
+        stats.update(create_stats_ordered_dict(
+            "path length",
+            path_lens,
+            always_show_all_stats=True,
+        ))
+        return stats
+
+    def get_snapshot(self):
+        return dict(
+            env=self._env,
+            policy=self._policy,
+        )
+
+
 class GoalConditionedPathCollector(PathCollector):
     def __init__(
             self,

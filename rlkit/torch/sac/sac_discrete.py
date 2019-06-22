@@ -94,7 +94,7 @@ class SACDiscreteTrainer(TorchTrainer):
         """
         Policy and Alpha Loss
         """
-        dist = Categorical(torch_ify(self.policy(obs)))
+        dist = Categorical(self.policy(obs))
         new_obs_actions = dist.sample()
         log_pi = dist.log_prob(new_obs_actions)
         log_pis = torch.stack([dist.log_prob(torch.tensor(ac, device=('cuda' if ptu.gpu_enabled() else 'cpu')))

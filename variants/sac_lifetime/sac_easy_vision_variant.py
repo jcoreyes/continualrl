@@ -5,7 +5,7 @@ from torch.nn import functional as F
 
 
 variant = dict(
-		env_name="MiniGrid-Food-8x8-Easy-6and4-v1",
+		env_name="MiniGrid-Food-8x8-Easy-6and4-Vision-v1",
 		algorithm="SAC Discrete",
 		version="normal",
 		layer_size=256,
@@ -29,43 +29,30 @@ variant = dict(
 			use_automatic_entropy_tuning=True,
 		),
 		img_conv_kwargs=dict(
-			# 7 grid
-			input_width=7,
-			input_height=7,
-			# 2 channels
-			input_channels=2,
-			output_size=32,
-			kernel_sizes=[2, 2],
-			# kernel_sizes=[2, 2, 2],
-			n_channels=[8, 8],
-			# n_channels=[16, 16, 16],
-			strides=[1, 1],
-			# strides=[1, 1, 1],
-			# TODO: padding is to ensure same shape after conv layers
-			paddings=[1, 0],
-			# paddings=[0, 0, 0],
-			hidden_sizes=[32],
-			# hidden_sizes=[64, 64],
-			batch_norm_conv=True
+			# 7 grid * 8 pixel/grid
+			input_width=56,
+			input_height=56,
+			# 3 rgb channels
+			input_channels=3,
+			output_size=64,
+			kernel_sizes=[8, 5, 2],
+			n_channels=[16, 32, 32],
+			strides=[4, 2, 1],
+			paddings=[0, 0, 0],
+			hidden_sizes=[256, 128],
 		),
 		full_img_conv_kwargs=dict(
-			# 8 grid
-			input_width=8,
-			input_height=8,
-			# 2 channels
-			input_channels=2,
-			output_size=32,
-			kernel_sizes=[2, 2],
-			# kernel_sizes=[2, 2, 2],
-			n_channels=[8, 8],
-			# n_channels=[16, 16, 16],
-			strides=[1, 1],
-			# strides=[1, 1, 1],
-			paddings=[0, 0],
-			# paddings=[0, 0, 0],
-			hidden_sizes=[32],
-			# hidden_sizes=[64, 64],
-			batch_norm_conv=True
+			# 8 grid * 4 pixel/grid
+			input_width=32,
+			input_height=32,
+			# 3 rgb channels
+			input_channels=3,
+			output_size=64,
+			kernel_sizes=[3, 2, 2],
+			n_channels=[16, 32, 32],
+			strides=[2, 1, 1],
+			paddings=[0, 0, 0],
+			hidden_sizes=[512, 256],
 		)
 	)
 

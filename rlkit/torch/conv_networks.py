@@ -105,7 +105,6 @@ class CNN(nn.Module):
                             self.input_channels,
                             self.input_height,
                             self.input_width)
-
         h = self.apply_forward(h, self.conv_layers, self.conv_norm_layers,
                                use_batch_norm=self.batch_norm_conv)
         # flatten channels for fc layers

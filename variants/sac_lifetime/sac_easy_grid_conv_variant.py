@@ -1,3 +1,5 @@
+import math
+
 from rlkit.policies.network_food import FoodNetworkEasy
 from rlkit.torch.conv_networks import CNN
 from rlkit.torch.networks import FlattenMlp
@@ -11,12 +13,14 @@ variant = dict(
 		layer_size=256,
 		replay_buffer_size=int(1E5),
 		algorithm_kwargs=dict(
+			# TODO below two params don't matter?
 			num_epochs=3000,
-			num_eval_steps_per_epoch=5000,
-			num_trains_per_train_loop=1000,
-			num_expl_steps_per_train_loop=1000,
-			min_num_steps_before_training=1000,
-			max_path_length=3000,
+			num_eval_steps_per_epoch=0,
+
+			num_trains_per_train_loop=100,
+			num_expl_steps_per_train_loop=10,
+			min_num_steps_before_training=50,
+			max_path_length=math.inf,
 			batch_size=256,
 		),
 		trainer_kwargs=dict(
@@ -41,8 +45,7 @@ variant = dict(
 			# n_channels=[16, 16, 16],
 			strides=[1, 1],
 			# strides=[1, 1, 1],
-			# TODO: padding is to ensure same shape after conv layers
-			paddings=[1, 0],
+			paddings=[0, 0],
 			# paddings=[0, 0, 0],
 			hidden_sizes=[32],
 			# hidden_sizes=[64, 64],

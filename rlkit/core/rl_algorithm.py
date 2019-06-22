@@ -51,11 +51,11 @@ class BaseRLAlgorithm(object, metaclass=abc.ABCMeta):
         """
         raise NotImplementedError('_train must implemented by inherited class')
 
-    def _end_epoch(self, epoch):
+    def _end_epoch(self, epoch, incl_eval=True):
         snapshot = self._get_snapshot()
         logger.save_itr_params(epoch, snapshot)
         gt.stamp('saving')
-        self._log_stats(epoch)
+        self._log_stats(epoch, incl_eval=incl_eval)
 
         self.expl_data_collector.end_epoch(epoch)
         self.eval_data_collector.end_epoch(epoch)
@@ -77,7 +77,7 @@ class BaseRLAlgorithm(object, metaclass=abc.ABCMeta):
             snapshot['replay_buffer/' + k] = v
         return snapshot
 
-    def _log_stats(self, epoch):
+    def _log_stats(self, epoch, incl_eval=True):
         logger.log("Epoch {} finished".format(epoch), with_timestamp=True)
 
         """
@@ -110,23 +110,25 @@ class BaseRLAlgorithm(object, metaclass=abc.ABCMeta):
             eval_util.get_generic_path_information(expl_paths),
             prefix="exploration/",
         )
-        """
-        Evaluation
-        """
-        logger.record_dict(
-            self.eval_data_collector.get_diagnostics(),
-            prefix='evaluation/',
-        )
-        eval_paths = self.eval_data_collector.get_epoch_paths()
-        if hasattr(self.eval_env, 'get_diagnostics'):
+
+        if incl_eval:
+            """
+            Evaluation
+            """
             logger.record_dict(
-                self.eval_env.get_diagnostics(eval_paths),
+                self.eval_data_collector.get_diagnostics(),
                 prefix='evaluation/',
             )
-        logger.record_dict(
-            eval_util.get_generic_path_information(eval_paths),
-            prefix="evaluation/",
-        )
+            eval_paths = self.eval_data_collector.get_epoch_paths()
+            if hasattr(self.eval_env, 'get_diagnostics'):
+                logger.record_dict(
+                    self.eval_env.get_diagnostics(eval_paths),
+                    prefix='evaluation/',
+                )
+            logger.record_dict(
+                eval_util.get_generic_path_information(eval_paths),
+                prefix="evaluation/",
+            )
 
         """
         Misc
