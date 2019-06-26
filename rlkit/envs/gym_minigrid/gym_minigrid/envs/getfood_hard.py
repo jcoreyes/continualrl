@@ -1,7 +1,7 @@
 from enum import IntEnum
 
-from gym_minigrid.minigrid_absolute import *
-from gym_minigrid.register import register
+from rlkit.envs.gym_minigrid.gym_minigrid.minigrid_absolute import *
+from rlkit.envs.gym_minigrid.gym_minigrid.register import register
 from rlkit.envs.gym_minigrid.gym_minigrid.envs.getfood_base import FoodEnvBase
 from rlkit.envs.gym_minigrid.gym_minigrid.minigrid_absolute import CELL_PIXELS, MiniGridAbsoluteEnv, DIR_TO_VEC, \
 	GridAbsolute
@@ -259,30 +259,30 @@ class FoodEnvHard5and4Cap100InitDecay(FoodEnvHard):
 
 register(
 	id='MiniGrid-Food-32x32-Hard-4and4-v1',
-	entry_point='gym_minigrid.envs:FoodEnvHard'
+	entry_point='rlkit.envs.gym_minigrid.gym_minigrid.envs:FoodEnvHard'
 )
 
 register(
 	id='MiniGrid-Food-32x32-Hard-6and4-v1',
-	entry_point='gym_minigrid.envs:FoodEnvHard6and4'
+	entry_point='rlkit.envs.gym_minigrid.gym_minigrid.envs:FoodEnvHard6and4'
 )
 
 register(
 	id='MiniGrid-Food-32x32-Hard-10and4-v1',
-	entry_point='gym_minigrid.envs:FoodEnvHard10and4'
+	entry_point='rlkit.envs.gym_minigrid.gym_minigrid.envs:FoodEnvHard10and4'
 )
 
 register(
 	id='MiniGrid-Food-32x32-Hard-10and4-Vision-v1',
-	entry_point='gym_minigrid.envs:FoodEnvHard10and4Vision'
+	entry_point='rlkit.envs.gym_minigrid.gym_minigrid.envs:FoodEnvHard10and4Vision'
 )
 
 register(
 	id='MiniGrid-Food-32x32-Hard-15and4-Vision-v1',
-	entry_point='gym_minigrid.envs:FoodEnvHard15and4Vision'
+	entry_point='rlkit.envs.gym_minigrid.gym_minigrid.envs:FoodEnvHard15and4Vision'
 )
 
 register(
 	id='MiniGrid-Food-32x32-Hard-10and4-Cap100-Init-Decay-v1',
-	entry_point='gym_minigrid.envs:FoodEnvHard5and4Cap100InitDecay'
+	entry_point='rlkit.envs.gym_minigrid.gym_minigrid.envs:FoodEnvHard5and4Cap100InitDecay'
 )
