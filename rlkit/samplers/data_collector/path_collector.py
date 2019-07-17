@@ -31,8 +31,7 @@ class MdpPathCollector(PathCollector):
             self,
             max_path_length,
             num_steps,
-            discard_incomplete_paths,
-            render=False
+            discard_incomplete_paths
     ):
         paths = []
         num_steps_collected = 0
@@ -45,7 +44,7 @@ class MdpPathCollector(PathCollector):
                 self._env,
                 self._policy,
                 max_path_length=max_path_length_this_loop,
-                render=render and len(paths) == 0
+                render=self._render and len(paths) == 0
             )
             path_len = len(path['actions'])
             # suvansh: we don't want to skip incomplete paths, and in fact don't have a meaningful max path length
@@ -116,7 +115,6 @@ class LifetimeMdpPathCollector(PathCollector):
             max_path_length,
             num_steps,
             discard_incomplete_paths,
-            render=False,
             continuing=False
     ):
         if not continuing:
@@ -128,7 +126,7 @@ class LifetimeMdpPathCollector(PathCollector):
             self._policy,
             # suvansh: this is not a typo
             max_path_length=num_steps,
-            render=render,
+            render=self._render,
             return_env_obs=True,
             continuing=continuing,
             obs=self.last_obs
@@ -195,6 +193,7 @@ class GoalConditionedPathCollector(PathCollector):
             max_path_length,
             num_steps,
             discard_incomplete_paths,
+            render=None
     ):
         paths = []
         num_steps_collected = 0
@@ -207,7 +206,7 @@ class GoalConditionedPathCollector(PathCollector):
                 self._env,
                 self._policy,
                 max_path_length=max_path_length_this_loop,
-                render=self._render,
+                render=self._render and len(paths) == 0,
                 render_kwargs=self._render_kwargs,
                 observation_key=self._observation_key,
                 desired_goal_key=self._desired_goal_key,

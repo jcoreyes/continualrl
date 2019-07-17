@@ -31,23 +31,31 @@ class FoodEnvMedium(FoodEnvBase):
 
 	def __init__(
 			self,
-			health_cap=10,
-			health_rate=4,
+			health_cap=100,
 			food_rate=4,
 			max_pantry_size=50,
 			obs_vision=False,
 			food_rate_decay=0.0,
 			init_resources=None,
+			her=False,
+			skewfit=False,
 			**kwargs
 	):
 		self.init_resources = init_resources or {}
 		self.food_rate_decay = food_rate_decay
+
+		assert not (her and skewfit), "cannot have both HER and skewfit enabled"
+		self.her = her
+		self.skewfit = skewfit
+
 		# food
 		self.pantry = []
 		self.max_pantry_size = max_pantry_size
 		# other resources
 		self.shelf = [None] * 5
 		self.shelf_type = [''] * 5
+		# stores info for the current timestep
+		self.info_last = {}
 		self.interactions = {
 			('energy', 'metal'): Axe,
 			# edible wood, used for health points
@@ -64,26 +72,69 @@ class FoodEnvMedium(FoodEnvBase):
 			'axe': 6,
 			'woodfood': 7
 		}
+		self.food_objs = {obj: idx for obj, idx in self.object_to_idx.items() if obj in FOOD_VALUES}
+		self.nonfood_objs = {obj: idx for obj, idx in self.object_to_idx.items() if obj not in FOOD_VALUES}
 		super().__init__(
 			grid_size=32,
 			health_cap=health_cap,
-			health_rate=health_rate,
 			food_rate=food_rate,
-			obs_vision=obs_vision
+			obs_vision=obs_vision,
+			**kwargs
 		)
 
-		self.observation_space = spaces.Box(
-			low=0,
-			high=255,
-			shape=(22137,) if self.obs_vision else (2587,),
-			dtype='uint8'
+		if self.her:
+			# position and inventory obs
+			obs_space = spaces.Box(low=0, high=len(self.object_to_idx), shape=(442,), dtype='uint8')
+			self.observation_space = spaces.Dict({
+				'observation': obs_space,
+				'achieved_goal': obs_space,
+				'desired_goal': obs_space
+			})
+		elif self.skewfit:
+			obs_space = spaces.Box(low=0, high=len(self.object_to_idx), shape=(442,), dtype='uint8')
+			self.observation_space = spaces.Dict({
+				'observation': obs_space,
+				'state_observation': obs_space,
+				'desired_goal': obs_space,
+				'state_desired_goal': obs_space,
+				'achieved_goal': obs_space,
+				'state_achieved_goal': obs_space
+			})
+		else:
+			self.observation_space = spaces.Box(
+				low=0,
+				high=255,
+				shape=(59001,) if self.obs_vision else (2587,),
+				dtype='uint8'
 			)
+
 
 	def place_items(self):
 		self.place_prob(Food(), 1 / (self.food_rate + self.step_count * self.food_rate_decay))
 		self.place_prob(Metal(), 1 / (2 * self.food_rate))
 		self.place_prob(Energy(), 1 / (2 * self.food_rate))
 		self.place_prob(Tree(), 1 / (3 * self.food_rate))
+
+	def extra_reset(self):
+		if self.her or self.skewfit:
+			goal_pos = np.random.randint(1, self.grid_size - 1, size=(2,))
+
+			pantry_size = (self.max_pantry_size, len(self.object_to_idx))
+			goal_pantry = np.zeros(pantry_size)
+			pantry_idxs_size = np.random.randint(0, self.max_pantry_size // 3)
+			pantry_idxs = np.random.choice(list(self.food_objs.values()), size=pantry_idxs_size)
+			goal_pantry[np.arange(len(pantry_idxs)), pantry_idxs] = 1
+
+			shelf_size = (len(self.shelf), len(self.object_to_idx))
+			shelf_idxs_size = np.random.randint(0, len(shelf_size))
+			shelf_idxs = np.random.choice(list(self.nonfood_objs.values()), size=shelf_idxs_size)
+			goal_shelf = np.zeros(shelf_size)
+			goal_shelf[np.arange(len(shelf_idxs)), shelf_idxs] = 1
+
+			self.goal_obs = np.concatenate((goal_pos, goal_pantry.flatten(), goal_shelf.flatten()))
+
+			print('goal pantry', goal_pantry.sum(axis=0))
+			print('goal shelf', goal_shelf.sum(axis=0))
 
 	def extra_gen_grid(self):
 		for type, count in self.init_resources.items():
@@ -110,6 +161,8 @@ class FoodEnvMedium(FoodEnvBase):
 					mined = self.add_to_shelf(agent_cell)
 
 				if mined:
+					# uncomment to add mined objs to info
+					# self.info_last.update({agent_cell.type: 1})
 					self.grid.set(*self.agent_pos, None)
 
 		# Consume stored food.
@@ -117,7 +170,10 @@ class FoodEnvMedium(FoodEnvBase):
 			self.pantry.sort(key=lambda item: item.food_value(), reverse=True)
 			if self.pantry:
 				eaten = self.pantry.pop(0)
-				self.add_health(eaten.food_value())
+				if Axe().type in self.shelf_type or Wood().type in self.shelf_type:
+					self.add_health(eaten.food_value() * 2)
+				else:
+					self.add_health(eaten.food_value())
 
 		# actions to use each element of inventory
 		elif action == self.actions.place0:
@@ -189,9 +245,54 @@ class FoodEnvMedium(FoodEnvBase):
 		return shelf_obs
 
 	def step(self, action):
-		obs, reward, done, info = super().step(action, include_full_img=True)
+		obs, reward, done, info = super().step(action)
 		obs = np.concatenate((obs, self.gen_pantry_obs().flatten(), self.gen_shelf_obs().flatten()))
+		if self.her:
+			obs = self.gen_her_obs()
+		elif self.skewfit:
+			obs = self.gen_skewfit_obs()
+		if self.her or self.skewfit:
+			reward = self.compute_reward(obs['achieved_goal'], self.goal_obs, info)
+
+		info.update(self.info_last)
+		self.info_last = {}
 		return obs, reward, done, info
+
+	def gen_her_obs(self):
+		achieved_goal = np.concatenate((self.agent_pos, self.gen_pantry_obs().flatten(), self.gen_shelf_obs().flatten()))
+		obs = {'observation': achieved_goal, 'desired_goal': self.goal_obs, 'achieved_goal': achieved_goal}
+		return obs
+
+	def gen_skewfit_obs(self):
+		achieved_goal = np.concatenate((self.agent_pos, self.gen_pantry_obs().flatten(), self.gen_shelf_obs().flatten()))
+		obs = {
+			'observation': achieved_goal,
+			'state_observation': achieved_goal,
+			'desired_goal': self.goal_obs,
+			'state_desired_goal': self.goal_obs,
+			'achieved_goal': achieved_goal,
+			'state_achieved_goal': achieved_goal
+		}
+		return obs
+
+	def compute_reward(self, achieved_goal, desired_goal, info):
+		assert self.her or self.skewfit, "`compute_reward` function should only be used for HER or skewfit"
+
+		pos, pantry, shelf = np.split(achieved_goal, (2, 402))
+		pantry = pantry.reshape((self.max_pantry_size, -1))
+		shelf = shelf.reshape((len(self.shelf), -1))
+
+		goal_pos, goal_pantry, goal_shelf = np.split(desired_goal, (2, 402))
+		goal_pantry = goal_pantry.reshape((self.max_pantry_size, -1))
+		goal_shelf = goal_shelf.reshape((len(self.shelf), -1))
+
+		pantry_error = np.linalg.norm(goal_pantry.sum(axis=0) - pantry.sum(axis=0), ord=1)
+		shelf_error = np.linalg.norm(goal_shelf.sum(axis=0) - shelf.sum(axis=0), ord=1)
+		pos_error = np.linalg.norm(goal_pos - pos, ord=1)
+		# 0.25 factor to match scale of pantry+shelf error
+		error = 0.25 * pos_error + pantry_error + shelf_error
+
+		return -error
 
 	def reset(self):
 		obs = super().reset()
@@ -199,27 +300,52 @@ class FoodEnvMedium(FoodEnvBase):
 		self.pantry = []
 		self.shelf = [None] * 5
 		self.shelf_type = [''] * 5
-		return obs
+
+		if self.her:
+			return self.gen_her_obs()
+		elif self.skewfit:
+			return self.gen_skewfit_obs()
+		else:
+			return obs
 
 
-class FoodEnvMedium6and4(FoodEnvMedium):
+class FoodEnvMediumCap100(FoodEnvMedium):
+	pass
+
+
+class FoodEnvMediumCap150(FoodEnvMedium):
 	def __init__(self):
-		super().__init__(health_rate=6)
+		super().__init__(health_cap=150)
 
 
-class FoodEnvMedium10and4(FoodEnvMedium):
+class FoodEnvMediumCap150Vision(FoodEnvMedium):
 	def __init__(self):
-		super().__init__(health_rate=10)
+		super().__init__(health_cap=150, obs_vision=True)
 
 
-class FoodEnvMedium10and4Vision(FoodEnvMedium):
+class FoodEnvMediumCap100InitDecay(FoodEnvMedium):
 	def __init__(self):
-		super().__init__(health_rate=10, obs_vision=True)
+		super().__init__(health_cap=100, food_rate_decay=0.01,
+						 init_resources={
+							 'axe': 8,
+							 'woodfood': 5,
+							 'food': 15
+						 })
 
 
-class FoodEnvMedium5and4Cap100InitDecay(FoodEnvMedium):
+class FoodEnvMediumCap100InitDecayHER(FoodEnvMedium):
 	def __init__(self):
-		super().__init__(health_rate=5, health_cap=100, food_rate_decay=0.01,
+		super().__init__(health_cap=100, food_rate_decay=0.01, her=True,
+						 init_resources={
+							 'axe': 8,
+							 'woodfood': 5,
+							 'food': 15
+						 })
+
+
+class FoodEnvMediumCap100InitDecaySkewFit(FoodEnvMedium):
+	def __init__(self):
+		super().__init__(health_cap=100, food_rate_decay=0.01, skewfit=True,
 						 init_resources={
 							 'axe': 8,
 							 'woodfood': 5,
@@ -228,26 +354,31 @@ class FoodEnvMedium5and4Cap100InitDecay(FoodEnvMedium):
 
 
 register(
-	id='MiniGrid-Food-32x32-Medium-4and4-v1',
-	entry_point='rlkit.envs.gym_minigrid.gym_minigrid.envs:FoodEnvMedium'
+	id='MiniGrid-Food-32x32-Medium-Cap100-v1',
+	entry_point='rlkit.envs.gym_minigrid.gym_minigrid.envs:FoodEnvMediumCap100'
 )
 
 register(
-	id='MiniGrid-Food-32x32-Medium-6and4-v1',
-	entry_point='rlkit.envs.gym_minigrid.gym_minigrid.envs:FoodEnvMedium6and4'
+	id='MiniGrid-Food-32x32-Medium-Cap150-v1',
+	entry_point='rlkit.envs.gym_minigrid.gym_minigrid.envs:FoodEnvMediumCap150'
 )
 
 register(
-	id='MiniGrid-Food-32x32-Medium-10and4-v1',
-	entry_point='rlkit.envs.gym_minigrid.gym_minigrid.envs:FoodEnvMedium10and4'
+	id='MiniGrid-Food-32x32-Medium-Cap150-Vision-v1',
+	entry_point='rlkit.envs.gym_minigrid.gym_minigrid.envs:FoodEnvMediumCap150Vision'
 )
 
 register(
-	id='MiniGrid-Food-32x32-Medium-10and4-Vision-v1',
-	entry_point='rlkit.envs.gym_minigrid.gym_minigrid.envs:FoodEnvMedium10and4Vision'
+	id='MiniGrid-Food-32x32-Medium-Cap100-InitDecay-v1',
+	entry_point='rlkit.envs.gym_minigrid.gym_minigrid.envs:FoodEnvMediumCap100InitDecay'
 )
 
 register(
-	id='MiniGrid-Food-32x32-Medium-10and4-Cap100-Init-Decay-v1',
-	entry_point='rlkit.envs.gym_minigrid.gym_minigrid.envs:FoodEnvMedium5and4Cap100InitDecay'
+	id='MiniGrid-Food-32x32-Medium-Cap100-InitDecay-HER-v1',
+	entry_point='rlkit.envs.gym_minigrid.gym_minigrid.envs:FoodEnvMediumCap100InitDecayHER'
+)
+
+register(
+	id='MiniGrid-Food-32x32-Medium-Cap100-InitDecay-SkewFit-v1',
+	entry_point='rlkit.envs.gym_minigrid.gym_minigrid.envs:FoodEnvMediumCap100InitDecaySkewFit'
 )

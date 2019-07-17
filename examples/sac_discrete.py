@@ -2,6 +2,7 @@ from gym.envs.mujoco import HalfCheetahEnv
 
 import gym
 from rlkit.policies.network_food import FoodNetworkMedium
+from rlkit.samplers.data_collector.path_collector import LifetimeMdpPathCollector
 from rlkit.torch.conv_networks import CNN
 from rlkit.torch.sac.sac_discrete import SACDiscreteTrainer
 from torch.nn import functional as F
@@ -15,11 +16,11 @@ from rlkit.torch.sac.policies import TanhGaussianPolicy, MakeDeterministic, Cate
     RandomPolicy
 from rlkit.torch.sac.sac import SACTrainer
 from rlkit.torch.networks import FlattenMlp, Mlp
-from rlkit.torch.torch_rl_algorithm import TorchBatchRLAlgorithm
+from rlkit.torch.torch_rl_algorithm import TorchBatchRLAlgorithm, TorchLifetimeRLAlgorithm
 from rlkit.envs.gym_minigrid.gym_minigrid import *
 
 # TODO NOTE: this is where you pick the variant
-from variants.sac.sac_easy_mlp_variant import variant, gen_network
+from variants.sac.sac_medium_1inv_fullobs_grid_conv_variant import variant, gen_network
 
 
 def experiment(variant):
@@ -29,6 +30,7 @@ def experiment(variant):
     eval_env = gym.make(variant['env_name'])
     obs_dim = expl_env.observation_space.low.size
     action_dim = eval_env.action_space.n
+    lifetime = bool(variant.get('lifetime', None))
 
     layer_size = variant['layer_size']
     qf1 = gen_network(variant, action_dim, layer_size)
@@ -48,11 +50,13 @@ def experiment(variant):
 
     # eval_policy = MakeDeterministic(policy)
     eval_policy = policy
-    eval_path_collector = MdpPathCollector(
+    collector_class = LifetimeMdpPathCollector if lifetime else MdpPathCollector
+    eval_path_collector = collector_class(
         eval_env,
         eval_policy,
+	    # render=True
     )
-    expl_path_collector = MdpPathCollector(
+    expl_path_collector = collector_class(
         expl_env,
         # TODO: can change this to `policy` to switch back to non-random exploration policy
         expl_policy,
@@ -60,7 +64,7 @@ def experiment(variant):
     replay_buffer = EnvReplayBuffer(
         variant['replay_buffer_size'],
         expl_env,
-        dtype='uint8'
+        dtype='float16'
     )
 
     trainer = SACDiscreteTrainer(
@@ -73,7 +77,8 @@ def experiment(variant):
         **variant['trainer_kwargs']
     )
 
-    algorithm = TorchBatchRLAlgorithm(
+    algo_class = TorchLifetimeRLAlgorithm if lifetime else TorchBatchRLAlgorithm
+    algorithm = algo_class(
         trainer=trainer,
         exploration_env=expl_env,
         evaluation_env=eval_env,

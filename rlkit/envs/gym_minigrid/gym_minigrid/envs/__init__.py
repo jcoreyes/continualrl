@@ -18,6 +18,8 @@
 # from gym_minigrid.envs.crossing import *
 # from gym_minigrid.envs.dynamicobstacles import *
 # from gym_minigrid.envs.distshift import *
+from rlkit.envs.gym_minigrid.gym_minigrid.envs.getfood_base import *
 from rlkit.envs.gym_minigrid.gym_minigrid.envs.getfood_easy import *
 from rlkit.envs.gym_minigrid.gym_minigrid.envs.getfood_medium import *
+from rlkit.envs.gym_minigrid.gym_minigrid.envs.getfood_medium_1inventory import *
 from rlkit.envs.gym_minigrid.gym_minigrid.envs.getfood_hard import *

@@ -57,6 +57,8 @@ def main():
 			action = env.actions.mine
 		elif keyName == 'PAGE_UP':
 			action = env.actions.eat
+		elif keyName == 'PAGE_DOWN':
+			action = env.actions.place
 		elif keyName == '0':
 			action = env.actions.place0
 		elif keyName == '1':

@@ -1,6 +1,6 @@
 import cv2
 from enum import IntEnum
-
+from rlkit.envs.gym_minigrid.gym_minigrid.register import register
 from gym import spaces
 import numpy as np
 
@@ -18,23 +18,25 @@ class FoodEnvBase(MiniGridAbsoluteEnv):
 
 	def __init__(self,
 				 agent_start_pos=(1, 1),
-				 health_cap=5,
-				 health_rate=4,
+				 health_cap=50,
 				 food_rate=4,
 				 grid_size=8,
 				 obs_vision=False,
-				 reward_type='health',
+				 reward_type='delta',
+				 fully_observed=False,
+				 can_die=True,
 				 **kwargs
 				 ):
 		self.agent_start_pos = agent_start_pos
 		# self.agent_start_dir = agent_start_dir
-		self.health_rate = health_rate
 		self.food_rate = food_rate
 		self.health_cap = health_cap
 		self.health = health_cap
 		self.last_health = self.health
 		self.obs_vision = obs_vision
 		self.reward_type = reward_type
+		self.fully_observed = fully_observed
+		self.can_die = can_die
 		if not hasattr(self, 'actions'):
 			self.actions = FoodEnvBase.Actions
 		super().__init__(
@@ -77,7 +79,7 @@ class FoodEnvBase(MiniGridAbsoluteEnv):
 
 		self.mission = None
 
-	def step(self, action, include_full_img=False):
+	def step(self, action):
 		done = False
 		matched = super().step(action, override=True)
 		# subclass-defined extra actions. if not caught by that, then unknown action
@@ -90,7 +92,7 @@ class FoodEnvBase(MiniGridAbsoluteEnv):
 		self.place_items()
 		# generate obs after action is caught and food is placed. generate reward before death check
 		img = self.get_img()
-		full_img = self.get_full_img()
+		full_img = self.get_full_img(scale=1 if self.fully_observed else 1/8)
 		rwd = self._reward()
 
 		# tick on each grid item
@@ -108,19 +110,28 @@ class FoodEnvBase(MiniGridAbsoluteEnv):
 		# dead.
 		if self.dead():
 			done = True
-		return np.concatenate((img.flatten(), full_img.flatten(), np.array([self.health]))), rwd, done, {}
+
+		if self.fully_observed:
+			obs = np.concatenate((full_img.flatten(), np.array([self.health]), np.array(self.agent_pos)))
+		else:
+			obs = np.concatenate((img.flatten(), full_img.flatten(), np.array([self.health])))
+		return obs, rwd, done, {}
 
 	def reset(self):
 		super().reset()
+		self.extra_reset()
 		img = self.get_img()
 		full_img = self.get_full_img()
-		# return {'image': img, 'full_image': full_img, 'health': self.health}
-		return np.concatenate((img.flatten(), full_img.flatten(), np.array([self.health])))
+		if self.fully_observed:
+			obs = np.concatenate((full_img.flatten(), np.array([self.health]), np.array(self.agent_pos)))
+		else:
+			obs = np.concatenate((img.flatten(), full_img.flatten(), np.array([self.health])))
+		return obs
 
-	def get_full_img(self):
+	def get_full_img(self, scale=1/8):
 		""" Return the whole grid view """
 		if self.obs_vision:
-			full_img = self.get_full_obs_render(scale=1/8)
+			full_img = self.get_full_obs_render(scale=scale)
 		else:
 			full_img = self.grid.encode(self)
 		# NOTE: in case need to scale here instead of in above func call: return cv2.resize(full_img, (0, 0), fx=0.125, fy=0.125, interpolation=cv2.INTER_AREA)
@@ -136,6 +147,9 @@ class FoodEnvBase(MiniGridAbsoluteEnv):
 		return img.transpose(2, 0, 1)
 
 	def extra_step(self, action, matched):
+		return matched
+
+	def extra_reset(self):
 		pass
 
 	def place_items(self):
@@ -149,14 +163,14 @@ class FoodEnvBase(MiniGridAbsoluteEnv):
 			self.place_obj(obj)
 
 	def decay_health(self):
-		if self.step_count and self.step_count % self.health_rate == 0:
-			self.add_health(-1)
+		self.add_health(-1)
 
 	def add_health(self, num):
+		# clip health between 0 and cap after adjustment
 		self.health = max(0, min(self.health_cap, self.health + num))
 
 	def dead(self):
-		return self.health <= 0
+		return self.can_die and self.health <= 0
 
 	def __getstate__(self):
 		d = self.__dict__.copy()
@@ -165,3 +179,17 @@ class FoodEnvBase(MiniGridAbsoluteEnv):
 
 	def __setstate__(self, d):
 		self.__dict__.update(d)
+
+
+class FoodEnvEmptyFullObs(FoodEnvBase):
+	def __init__(self):
+		super().__init__(fully_observed=True)
+
+	def decay_health(self):
+		pass
+
+
+register(
+	id='MiniGrid-Food-8x8-Empty-FullObs-v1',
+	entry_point='rlkit.envs.gym_minigrid.gym_minigrid.envs:FoodEnvEmptyFullObs'
+)
