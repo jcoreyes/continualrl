@@ -9,8 +9,9 @@ from torch.nn import functional as F
 
 
 variant = dict(
-		env_name="MiniGrid-Food-8x8-Easy-10and6-Cap50-Decay-Lifespan30-v1",
+		env_name="MiniGrid-Food-8x8-Easy-10and6-Cap200-Lifespan50-FullObs-v1",
 		algorithm="SAC Discrete Lifetime",
+		lifetime=True,
 		version="MLP",
 		layer_size=256,
 		replay_buffer_size=int(1E5),
@@ -35,7 +36,7 @@ variant = dict(
 			use_automatic_entropy_tuning=True,
 		),
 		network_kwargs=dict(
-			input_size=227
+			input_size=131
 		)
 	)
 

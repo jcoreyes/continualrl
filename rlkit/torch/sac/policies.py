@@ -156,10 +156,11 @@ class SoftmaxQPolicy(Policy, nn.Module):
     def __init__(self, q):
         super().__init__()
         self.q = q
-        self.action_dim = q.action_dim
+        self.action_dim = q.action_dim if hasattr(q, 'action_dim') else q.output_size
 
     def forward(self, obs):
-        ac_dist = F.softmax(self.q(obs), dim=1)
+        qs = self.q(obs.unsqueeze(0))
+        ac_dist = F.softmax(qs, dim=1)
         return Categorical(ac_dist).sample().item()
 
     def get_action(self, obs_np):

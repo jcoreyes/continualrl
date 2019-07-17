@@ -15,3 +15,23 @@ class EpsilonGreedy(RawExplorationStrategy):
         if random.random() <= self.prob_random_action:
             return self.action_space.sample()
         return action
+
+
+class EpsilonGreedySchedule(RawExplorationStrategy):
+    """
+    Take a random discrete action with some changing probability.
+    """
+    def __init__(self, action_space, schedule):
+        """
+        :param schedule: a function that takes one argument - the number of prior calls - and outputs epsilon
+        """
+        self.action_space = action_space
+        self.schedule = schedule
+        self.time = 0
+
+    def get_action_from_raw_action(self, action, **kwargs):
+        time = self.time
+        self.time += 1
+        if random.random() <= self.schedule(time):
+            return self.action_space.sample()
+        return action

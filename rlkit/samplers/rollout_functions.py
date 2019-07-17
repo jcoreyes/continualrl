@@ -32,6 +32,7 @@ def multitask_rollout(
     o = env.reset()
     if render:
         env.render(**render_kwargs)
+        time.sleep(0.25)
     goal = o[desired_goal_key]
     while path_length < max_path_length:
         dict_obs.append(o)
@@ -42,6 +43,7 @@ def multitask_rollout(
         next_o, r, d, env_info = env.step(a)
         if render:
             env.render(**render_kwargs)
+            time.sleep(0.1)
         observations.append(o)
         rewards.append(r)
         terminals.append(d)
@@ -118,9 +120,11 @@ def rollout(
     path_length = 0
     if render:
         env.render(**render_kwargs)
-        time.sleep(0.5)
+        time.sleep(0.25)
     while path_length < max_path_length:
         a, agent_info = agent.get_action(o)
+        if render:
+            print(a)
         next_o, r, d, env_info = env.step(a)
         observations.append(o)
         rewards.append(r)

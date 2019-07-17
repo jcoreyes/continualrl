@@ -9,10 +9,11 @@ from torch.nn import functional as F
 
 
 variant = dict(
-		env_name="MiniGrid-Food-8x8-Easy-10and6-Cap50-Decay-Lifespan30-v1",
-		algorithm="SAC Discrete Lifetime",
-		version="MLP",
-		layer_size=256,
+		env_name="MiniGrid-Food-8x8-Easy-10and6-Cap200-Lifespan50-FullObs-v1",
+		algorithm="DQN Lifetime",
+		lifetime=True,
+		version="normal",
+		layer_size=32,
 		replay_buffer_size=int(1E5),
 		algorithm_kwargs=dict(
 			# TODO below two params don't matter?
@@ -27,15 +28,10 @@ variant = dict(
 		),
 		trainer_kwargs=dict(
 			discount=0.99,
-			soft_target_tau=5e-3,
-			target_update_period=1,
-			policy_lr=3E-4,
-			qf_lr=3E-4,
-			reward_scale=1,
-			use_automatic_entropy_tuning=True,
+			learning_rate=6E-4,
 		),
 		network_kwargs=dict(
-			input_size=227
+			input_size=131
 		)
 	)
 

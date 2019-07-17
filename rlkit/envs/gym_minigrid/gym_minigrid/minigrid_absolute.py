@@ -99,9 +99,10 @@ DIR_TO_VEC = {
 }
 
 FOOD_VALUES = {
-	'food': 1,
-	'woodfood': 5,
-	'bigfood': 3
+	'food': 10,
+	'woodfood': 50,
+	'bigfood': 30,
+	'axefood': 20
 }
 
 # TYPE_TO_CLASS dict at bottom of file
@@ -471,8 +472,8 @@ class Food(WorldObj):
 
 
 class Tree(WorldObj):
-	def __init__(self, color='green'):
-		super().__init__('tree', color)
+	def __init__(self, color='green', lifespan=0):
+		super().__init__('tree', color, lifespan=lifespan)
 
 	def can_overlap(self):
 		return True
@@ -490,8 +491,8 @@ class Tree(WorldObj):
 
 
 class Metal(WorldObj):
-	def __init__(self, color='grey'):
-		super().__init__('metal', color)
+	def __init__(self, color='grey', lifespan=0):
+		super().__init__('metal', color, lifespan=lifespan)
 
 	def can_overlap(self):
 		return True
@@ -510,8 +511,8 @@ class Metal(WorldObj):
 
 
 class Energy(WorldObj):
-	def __init__(self, color='red'):
-		super().__init__('energy', color)
+	def __init__(self, color='red', lifespan=0):
+		super().__init__('energy', color, lifespan=lifespan)
 
 	def can_overlap(self):
 		return True
@@ -525,8 +526,8 @@ class Energy(WorldObj):
 
 
 class Axe(WorldObj):
-	def __init__(self, color='yellow'):
-		super().__init__('axe', color)
+	def __init__(self, color='yellow', lifespan=0):
+		super().__init__('axe', color, lifespan=lifespan)
 
 	def can_overlap(self):
 		return True
@@ -546,8 +547,8 @@ class Axe(WorldObj):
 
 
 class WoodFood(WorldObj):
-	def __init__(self, color='brown'):
-		super().__init__('woodfood', color)
+	def __init__(self, color='brown', lifespan=0):
+		super().__init__('woodfood', color, lifespan=lifespan)
 
 	def can_overlap(self):
 		return True
@@ -566,8 +567,8 @@ class WoodFood(WorldObj):
 
 
 class Wood(WorldObj):
-	def __init__(self, color='brown'):
-		super().__init__('wood', color)
+	def __init__(self, color='brown', lifespan=0):
+		super().__init__('wood', color, lifespan=lifespan)
 
 	def can_overlap(self):
 		return True
@@ -589,8 +590,8 @@ class Wood(WorldObj):
 
 
 class BigFood(WorldObj):
-	def __init__(self, color='purple'):
-		super().__init__('bigfood', color)
+	def __init__(self, color='purple', lifespan=0):
+		super().__init__('bigfood', color, lifespan=lifespan)
 
 	def can_overlap(self):
 		return True

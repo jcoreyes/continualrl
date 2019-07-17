@@ -15,19 +15,38 @@ class FoodEnvEasy(FoodEnvBase):
                  init_resources=None,
                  food_rate_decay=0.0,
                  lifespan=0,
+                 her=False,
                  **kwargs):
         self.init_resources = init_resources or {}
         self.food_rate_decay = food_rate_decay
         self.lifespan = lifespan
+        self.her = her
 
         super().__init__(**kwargs)
+
+        if self.obs_vision:
+            shape = (12481,)
+        else:
+            if self.fully_observed:
+                shape = (131,)
+            else:
+                shape = (227,)
 
         self.observation_space = spaces.Box(
             low=0,
             high=255,
-            shape=(12481,) if self.obs_vision else (227,),
+            shape=shape,
             dtype='uint8'
         )
+
+        if self.her:
+            # position obs
+            obs_space = spaces.Box(low=0, high=self.grid_size, shape=(2,), dtype='uint8')
+            self.observation_space = spaces.Dict({
+                'observation': obs_space,
+                'achieved_goal': obs_space,
+                'desired_goal': obs_space
+            })
 
     def extra_step(self, action, matched):
         self.food_rate += self.food_rate_decay
@@ -53,104 +72,165 @@ class FoodEnvEasy(FoodEnvBase):
             for _ in range(count):
                 self.place_obj(TYPE_TO_CLASS_ABS[type]())
 
+    def extra_reset(self):
+        if self.her:
+            self.goal_obs_her = np.random.randint(1, self.grid_size-1, size=(2,))
+            print(self.goal_obs_her)
+
     def place_items(self):
-        self.place_prob(Food(lifespan=self.lifespan), 1 / self.food_rate)
+        if self.food_rate:
+            self.place_prob(Food(lifespan=self.lifespan), 1 / self.food_rate)
+
+    def step(self, action):
+        obs, rwd, done, info = super().step(action)
+        if self.her:
+            obs = {'observation': self.agent_pos, 'desired_goal': self.goal_obs_her, 'achieved_goal': self.agent_pos}
+            rwd = self.compute_reward(self.agent_pos, self.goal_obs_her, info)
+        return obs, rwd, done, info
+
+    def compute_reward(self, achieved_goal, desired_goal, info):
+        assert self.her, "`compute_reward` function should only be used for HER"
+
+        return int(np.array_equal(achieved_goal, desired_goal))
+
+    def reset(self):
+        # this is done first so that agent_pos is updated
+        super_reset = super().reset()
+        if self.her:
+            return {'observation': self.agent_pos, 'desired_goal': self.goal_obs_her, 'achieved_goal': self.agent_pos}
+        else:
+            return super_reset
 
 
-class FoodEnvEasy6and4(FoodEnvEasy):
+class FoodEnvEmptyFullObsHER(FoodEnvEasy):
     def __init__(self):
-        super().__init__(health_rate=6)
+        super().__init__(fully_observed=True, her=True, food_rate=0)
 
 
-class FoodEnvEasy6and4Vision(FoodEnvEasy):
+class FoodEnvEasyCap50(FoodEnvEasy):
+    pass
+
+
+class FoodEnvEasyCap50Vision(FoodEnvEasy):
     def __init__(self):
-        super().__init__(health_rate=6, obs_vision=True)
+        super().__init__(obs_vision=True)
 
 
-class FoodEnvEasy10and4(FoodEnvEasy):
+class FoodEnvEasyCap100(FoodEnvEasy):
     def __init__(self):
-        super().__init__(health_rate=10)
+        super().__init__(health_cap=100)
 
 
-class FoodEnvEasy10and4Vision(FoodEnvEasy):
+class FoodEnvEasyCap100Vision(FoodEnvEasy):
     def __init__(self):
-        super().__init__(health_rate=10, obs_vision=True)
+        super().__init__(health_cap=100, obs_vision=True)
 
 
-class FoodEnvEasy10and4Cap50Decay(FoodEnvEasy):
+class FoodEnvEasyCap50Decay(FoodEnvEasy):
     def __init__(self):
-        super().__init__(health_rate=10, health_cap=50, food_rate_decay=0.005)
+        super().__init__(health_cap=50, food_rate_decay=0.005)
 
 
-class FoodEnvEasy10and4Cap50Init10Decay(FoodEnvEasy):
+class FoodEnvEasyCap100Init10Decay(FoodEnvEasy):
     def __init__(self):
-        super().__init__(health_rate=10, health_cap=50, init_resources={'food': 10},
+        super().__init__(health_cap=100, init_resources={'food': 10},
                          food_rate_decay=0.005)
 
 
-class FoodEnvEasy10and4Cap50Init10DecayVision(FoodEnvEasy):
+class FoodEnvEasyCap100Init10DecayVision(FoodEnvEasy):
     def __init__(self):
-        super().__init__(health_rate=10, health_cap=50, init_resources={'food': 10},
+        super().__init__(health_cap=100, init_resources={'food': 10},
                          food_rate_decay=0.005, obs_vision=True)
 
 
-class FoodEnvEasy10and6Cap50Decay(FoodEnvEasy):
+class FoodEnvEasyFood6Cap100Decay(FoodEnvEasy):
     def __init__(self):
-        super().__init__(health_rate=10, food_rate=6, health_cap=50, food_rate_decay=0.005)
+        super().__init__(health_cap=100, food_rate=6, food_rate_decay=0.005)
 
 
-class FoodEnvEasy10and6Cap50DecayLifespan30(FoodEnvEasy):
+class FoodEnvEasyFood6Cap2000Lifespan50FullObs(FoodEnvEasy):
     def __init__(self):
-        super().__init__(health_rate=10, food_rate=6, health_cap=50, food_rate_decay=0.005,
+        super().__init__(food_rate=6, health_cap=2000, lifespan=50, fully_observed=True)
+
+
+class FoodEnvEasyFood6Cap50DecayLifespan30(FoodEnvEasy):
+    def __init__(self):
+        super().__init__(food_rate=6, health_cap=50, food_rate_decay=0.005,
                          lifespan=30)
 
 
+class FoodEnvEasyFood6Cap2000DecayLifespan30(FoodEnvEasy):
+    def __init__(self):
+        super().__init__(health_rate=10, food_rate=6, health_cap=2000, food_rate_decay=0.005,
+                         lifespan=30)
+
+
+class FoodEnvEasyFood6Cap2000DecayLifespan30FullObs(FoodEnvEasy):
+    def __init__(self):
+        super().__init__(food_rate=6, health_cap=2000, food_rate_decay=0.005,
+                         lifespan=30, fully_observed=True)
+
 register(
-    id='MiniGrid-Food-8x8-Easy-4and4-v1',
-    entry_point='rlkit.envs.gym_minigrid.gym_minigrid.envs:FoodEnvEasy'
+    id='MiniGrid-Food-8x8-Empty-FullObs-HER-v1',
+    entry_point='rlkit.envs.gym_minigrid.gym_minigrid.envs:FoodEnvEmptyFullObsHER'
 )
 
 register(
-    id='MiniGrid-Food-8x8-Easy-6and4-v1',
-    entry_point='rlkit.envs.gym_minigrid.gym_minigrid.envs:FoodEnvEasy6and4'
+    id='MiniGrid-Food-8x8-Easy-Cap50-v1',
+    entry_point='rlkit.envs.gym_minigrid.gym_minigrid.envs:FoodEnvEasyCap50'
 )
 
 register(
-    id='MiniGrid-Food-8x8-Easy-6and4-Vision-v1',
-    entry_point='rlkit.envs.gym_minigrid.gym_minigrid.envs:FoodEnvEasy6and4Vision'
+    id='MiniGrid-Food-8x8-Easy-Cap50-Vision-v1',
+    entry_point='rlkit.envs.gym_minigrid.gym_minigrid.envs:FoodEnvEasyCap50Vision'
 )
 
 register(
-    id='MiniGrid-Food-8x8-Easy-10and4-v1',
-    entry_point='rlkit.envs.gym_minigrid.gym_minigrid.envs:FoodEnvEasy10and4'
+    id='MiniGrid-Food-8x8-Easy-Cap100-v1',
+    entry_point='rlkit.envs.gym_minigrid.gym_minigrid.envs:FoodEnvEasyCap100'
 )
 
 register(
-    id='MiniGrid-Food-8x8-Easy-10and4-Vision-v1',
-    entry_point='rlkit.envs.gym_minigrid.gym_minigrid.envs:FoodEnvEasy10and4Vision'
+    id='MiniGrid-Food-8x8-Easy-Cap100-Vision-v1',
+    entry_point='rlkit.envs.gym_minigrid.gym_minigrid.envs:FoodEnvEasyCap100Vision'
 )
 
 register(
-    id='MiniGrid-Food-8x8-Easy-10and4-Cap50-Decay-v1',
-    entry_point='rlkit.envs.gym_minigrid.gym_minigrid.envs:FoodEnvEasy10and4Cap50Decay'
+    id='MiniGrid-Food-8x8-Easy-Cap50-Decay-v1',
+    entry_point='rlkit.envs.gym_minigrid.gym_minigrid.envs:FoodEnvEasyCap50Decay'
 )
 
 register(
-    id='MiniGrid-Food-8x8-Easy-10and4-Cap50-Init10-Decay-v1',
-    entry_point='rlkit.envs.gym_minigrid.gym_minigrid.envs:FoodEnvEasy10and4Cap50Init10Decay'
+    id='MiniGrid-Food-8x8-Easy-Cap100-Init10-Decay-v1',
+    entry_point='rlkit.envs.gym_minigrid.gym_minigrid.envs:FoodEnvEasyCap100Init10Decay'
 )
 
 register(
-    id='MiniGrid-Food-8x8-Easy-10and4-Cap50-Init10-Decay-Vision-v1',
-    entry_point='rlkit.envs.gym_minigrid.gym_minigrid.envs:FoodEnvEasy10and4Cap50Init10DecayVision'
+    id='MiniGrid-Food-8x8-Easy-Cap100-Init10-Decay-Vision-v1',
+    entry_point='rlkit.envs.gym_minigrid.gym_minigrid.envs:FoodEnvEasyCap100Init10DecayVision'
 )
 
 register(
-    id='MiniGrid-Food-8x8-Easy-10and6-Cap50-Decay-v1',
-    entry_point='rlkit.envs.gym_minigrid.gym_minigrid.envs:FoodEnvEasy10and6Cap50Decay'
+    id='MiniGrid-Food-8x8-Easy-Food6-Cap100-Decay-v1',
+    entry_point='rlkit.envs.gym_minigrid.gym_minigrid.envs:FoodEnvEasyFood6Cap100Decay'
 )
 
 register(
-    id='MiniGrid-Food-8x8-Easy-10and6-Cap50-Decay-Lifespan30-v1',
-    entry_point='rlkit.envs.gym_minigrid.gym_minigrid.envs:FoodEnvEasy10and6Cap50DecayLifespan30'
+    id='MiniGrid-Food-8x8-Easy-Food6-Cap2000-Lifespan50-FullObs-v1',
+    entry_point='rlkit.envs.gym_minigrid.gym_minigrid.envs:FoodEnvEasyFood6Cap2000Lifespan50FullObs'
+)
+
+register(
+    id='MiniGrid-Food-8x8-Easy-Food6-Cap50-Decay-Lifespan30-v1',
+    entry_point='rlkit.envs.gym_minigrid.gym_minigrid.envs:FoodEnvEasyFood6Cap50DecayLifespan30'
+)
+
+register(
+    id='MiniGrid-Food-8x8-Easy-Food6-Cap2000-Decay-Lifespan30-v1',
+    entry_point='rlkit.envs.gym_minigrid.gym_minigrid.envs:FoodEnvEasyFood6Cap2000DecayLifespan30'
+)
+
+register(
+    id='MiniGrid-Food-8x8-Easy-Food6-Cap2000-Decay-Lifespan30-FullObs-v1',
+    entry_point='rlkit.envs.gym_minigrid.gym_minigrid.envs:FoodEnvEasyFood6Cap2000DecayLifespan30FullObs'
 )

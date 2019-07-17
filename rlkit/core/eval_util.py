@@ -32,12 +32,16 @@ def get_generic_path_information(paths, stat_prefix=''):
     ))
     statistics['Num Paths'] = len(paths)
     statistics[stat_prefix + 'Average Returns'] = get_average_returns(paths)
+    avg_time, num_solves, avg_solve_time = get_average_time_and_num_solve(paths)
+    statistics[stat_prefix + 'Average Time'] = avg_time
+    statistics[stat_prefix + 'Average Solve Time'] = avg_solve_time
+    statistics[stat_prefix + 'Number of Solves'] = num_solves
 
     for info_key in ['env_infos', 'agent_infos']:
         if info_key in paths[0]:
             all_env_infos = [
-                ppp.list_of_dicts__to__dict_of_lists(p[info_key])
-                for p in paths
+                ppp.list_of_dicts__to__dict_of_lists(path[info_key])
+                for path in paths
             ]
             for k in all_env_infos[0].keys():
                 final_ks = np.array([info[k][-1] for info in all_env_infos])
@@ -60,6 +64,25 @@ def get_generic_path_information(paths, stat_prefix=''):
                 ))
 
     return statistics
+
+
+def get_average_time_and_num_solve(paths):
+    def get_earliest_solve(path):
+        step_num = 1
+        for env_info in path['env_infos']:
+            if env_info.get('solved', False):
+                return step_num, True
+            step_num += 1
+        return step_num, False
+    step_nums, solveds = list(zip(*[get_earliest_solve(path) for path in paths]))
+    num_solves = sum(solveds)
+    avg_time = np.mean(step_nums)
+    # avg for the ones that actually got solved
+    solve_times = []
+    for time, solve in zip(step_nums, solveds):
+        if solve:
+            solve_times.append(time)
+    return avg_time, num_solves, np.mean(solve_times)
 
 
 def get_average_returns(paths):

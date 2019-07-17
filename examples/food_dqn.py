@@ -3,11 +3,13 @@ Run DQN on grid world.
 """
 
 import gym
+from rlkit.samplers.data_collector.path_collector import LifetimeMdpPathCollector
+from rlkit.torch.sac.policies import SoftmaxQPolicy
 from torch import nn as nn
 
 from rlkit.exploration_strategies.base import \
     PolicyWrappedWithExplorationStrategy
-from rlkit.exploration_strategies.epsilon_greedy import EpsilonGreedy
+from rlkit.exploration_strategies.epsilon_greedy import EpsilonGreedy, EpsilonGreedySchedule
 from rlkit.policies.argmax import ArgmaxDiscretePolicy
 from rlkit.torch.dqn.dqn import DQNTrainer
 from rlkit.torch.networks import Mlp
@@ -15,36 +17,39 @@ import rlkit.torch.pytorch_util as ptu
 from rlkit.data_management.env_replay_buffer import EnvReplayBuffer
 from rlkit.launchers.launcher_util import setup_logger
 from rlkit.samplers.data_collector import MdpPathCollector
-from rlkit.torch.torch_rl_algorithm import TorchBatchRLAlgorithm
+from rlkit.torch.torch_rl_algorithm import TorchBatchRLAlgorithm, TorchLifetimeRLAlgorithm
 from rlkit.envs.gym_minigrid.gym_minigrid import *
+from variants.dqn_lifetime.dqn_easy_mlp_variant import variant, gen_network
+
+
+def schedule(t):
+    return max(0.3 - 1e-4 * t, 0.05)
 
 
 def experiment(variant):
-    expl_env = gym.make('MiniGrid-Food-8x8-6and4-v1')
-    eval_env = gym.make('MiniGrid-Food-8x8-6and4-v1')
+    expl_env = gym.make(variant['env_name'])
+    eval_env = gym.make(variant['env_name'])
     obs_dim = expl_env.observation_space.low.size
     action_dim = eval_env.action_space.n
-    qf = Mlp(
-        hidden_sizes=[32, 32],
-        input_size=obs_dim,
-        output_size=action_dim,
-    )
-    target_qf = Mlp(
-        hidden_sizes=[32, 32],
-        input_size=obs_dim,
-        output_size=action_dim,
-    )
+    layer_size = variant['layer_size']
+    lifetime = bool(variant.get('lifetime', None))
+
+    qf = gen_network(variant, action_dim, layer_size)
+    target_qf = gen_network(variant, action_dim, layer_size)
+
     qf_criterion = nn.MSELoss()
-    eval_policy = ArgmaxDiscretePolicy(qf)
+    # eval_policy = ArgmaxDiscretePolicy(qf)
+    eval_policy = SoftmaxQPolicy(qf)
     expl_policy = PolicyWrappedWithExplorationStrategy(
-        EpsilonGreedy(expl_env.action_space),
+        EpsilonGreedySchedule(expl_env.action_space, schedule),
         eval_policy,
     )
-    eval_path_collector = MdpPathCollector(
+    collector_class = LifetimeMdpPathCollector if lifetime else MdpPathCollector
+    eval_path_collector = collector_class(
         eval_env,
         eval_policy,
     )
-    expl_path_collector = MdpPathCollector(
+    expl_path_collector = collector_class(
         expl_env,
         expl_policy,
     )
@@ -57,8 +62,10 @@ def experiment(variant):
     replay_buffer = EnvReplayBuffer(
         variant['replay_buffer_size'],
         expl_env,
+        dtype='int16'
     )
-    algorithm = TorchBatchRLAlgorithm(
+    algo_class = TorchLifetimeRLAlgorithm if lifetime else TorchBatchRLAlgorithm
+    algorithm = algo_class(
         trainer=trainer,
         exploration_env=expl_env,
         evaluation_env=eval_env,
@@ -72,26 +79,6 @@ def experiment(variant):
 
 
 if __name__ == "__main__":
-    # noinspection PyTypeChecker
-    variant = dict(
-        algorithm="SAC",
-        version="normal",
-        layer_size=256,
-        replay_buffer_size=int(1E6),
-        algorithm_kwargs=dict(
-            num_epochs=3000,
-            num_eval_steps_per_epoch=5000,
-            num_trains_per_train_loop=1000,
-            num_expl_steps_per_train_loop=1000,
-            min_num_steps_before_training=1000,
-            max_path_length=1000,
-            batch_size=256,
-        ),
-        trainer_kwargs=dict(
-            discount=0.99,
-            learning_rate=3E-4,
-        ),
-    )
     setup_logger('food-dqn', variant=variant)
-    # ptu.set_gpu_mode(True)  # optionally set the GPU (default=False)
+    ptu.set_gpu_mode(True)  # optionally set the GPU (default=False)
     experiment(variant)

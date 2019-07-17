@@ -31,8 +31,7 @@ class FoodEnvHard(FoodEnvBase):
 
 	def __init__(
 			self,
-			health_cap=10,
-			health_rate=4,
+			health_cap=100,
 			food_rate=4,
 			max_pantry_size=50,
 			obs_vision=False,
@@ -71,7 +70,6 @@ class FoodEnvHard(FoodEnvBase):
 		super().__init__(
 			grid_size=32,
 			health_cap=health_cap,
-			health_rate=health_rate,
 			food_rate=food_rate,
 			obs_vision=obs_vision
 		)
@@ -212,7 +210,7 @@ class FoodEnvHard(FoodEnvBase):
 		return super().dead() or any([np.allclose(monster.cur_pos, self.agent_pos) for monster in self.monsters])
 
 	def step(self, action):
-		obs, reward, done, info = super().step(action, include_full_img=True)
+		obs, reward, done, info = super().step(action)
 		obs = np.concatenate((obs, self.gen_pantry_obs().flatten(), self.gen_shelf_obs().flatten()))
 		return obs, reward, done, info
 
@@ -226,30 +224,28 @@ class FoodEnvHard(FoodEnvBase):
 		return obs
 
 
-class FoodEnvHard6and4(FoodEnvHard):
+class FoodEnvHardCap100(FoodEnvHard):
+	pass
+
+
+class FoodEnvHardCap150(FoodEnvHard):
 	def __init__(self):
-		super().__init__(health_rate=6)
+		super().__init__(health_cap=150)
 
 
-class FoodEnvHard10and4(FoodEnvHard):
+class FoodEnvHardCap100Vision(FoodEnvHard):
 	def __init__(self):
-		super().__init__(health_rate=10)
+		super().__init__(health_cap=100, obs_vision=True)
 
 
-class FoodEnvHard10and4Vision(FoodEnvHard):
+class FoodEnvHardCap150Vision(FoodEnvHard):
 	def __init__(self):
-		super().__init__(health_rate=10, obs_vision=True)
+		super().__init__(health_cap=150, obs_vision=True)
 
 
-class FoodEnvHard15and4Vision(FoodEnvHard):
+class FoodEnvHardCap500InitDecay(FoodEnvHard):
 	def __init__(self):
-		super().__init__(health_rate=15, obs_vision=True)
-
-
-
-class FoodEnvHard5and4Cap100InitDecay(FoodEnvHard):
-	def __init__(self):
-		super().__init__(health_rate=5, health_cap=100, food_rate_decay=0.01,
+		super().__init__(health_cap=500, food_rate_decay=0.01,
 						 init_resources={
 							 'axe': 8,
 							 'wood': 5,
@@ -258,31 +254,26 @@ class FoodEnvHard5and4Cap100InitDecay(FoodEnvHard):
 
 
 register(
-	id='MiniGrid-Food-32x32-Hard-4and4-v1',
-	entry_point='rlkit.envs.gym_minigrid.gym_minigrid.envs:FoodEnvHard'
+	id='MiniGrid-Food-32x32-Hard-Cap100-v1',
+	entry_point='rlkit.envs.gym_minigrid.gym_minigrid.envs:FoodEnvHardCap100'
 )
 
 register(
-	id='MiniGrid-Food-32x32-Hard-6and4-v1',
-	entry_point='rlkit.envs.gym_minigrid.gym_minigrid.envs:FoodEnvHard6and4'
+	id='MiniGrid-Food-32x32-Hard-Cap150-v1',
+	entry_point='rlkit.envs.gym_minigrid.gym_minigrid.envs:FoodEnvHardCap150'
 )
 
 register(
-	id='MiniGrid-Food-32x32-Hard-10and4-v1',
-	entry_point='rlkit.envs.gym_minigrid.gym_minigrid.envs:FoodEnvHard10and4'
+	id='MiniGrid-Food-32x32-Hard-Cap100-Vision-v1',
+	entry_point='rlkit.envs.gym_minigrid.gym_minigrid.envs:FoodEnvHardCap100Vision'
 )
 
 register(
-	id='MiniGrid-Food-32x32-Hard-10and4-Vision-v1',
-	entry_point='rlkit.envs.gym_minigrid.gym_minigrid.envs:FoodEnvHard10and4Vision'
+	id='MiniGrid-Food-32x32-Hard-Cap150-Vision-v1',
+	entry_point='rlkit.envs.gym_minigrid.gym_minigrid.envs:FoodEnvHardCap150Vision'
 )
 
 register(
-	id='MiniGrid-Food-32x32-Hard-15and4-Vision-v1',
-	entry_point='rlkit.envs.gym_minigrid.gym_minigrid.envs:FoodEnvHard15and4Vision'
-)
-
-register(
-	id='MiniGrid-Food-32x32-Hard-10and4-Cap100-Init-Decay-v1',
-	entry_point='rlkit.envs.gym_minigrid.gym_minigrid.envs:FoodEnvHard5and4Cap100InitDecay'
+	id='MiniGrid-Food-32x32-Hard-Cap500-Init-Decay-v1',
+	entry_point='rlkit.envs.gym_minigrid.gym_minigrid.envs:FoodEnvHardCap500InitDecay'
 )

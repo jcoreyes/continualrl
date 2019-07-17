@@ -10,7 +10,7 @@ from torch.nn import functional as F
 
 variant = dict(
 		# env_name="MiniGrid-Food-8x8-Easy-10and4-Cap50-Decay-v1",
-		env_name="MiniGrid-Food-8x8-Easy-6and4-v1",
+		env_name="MiniGrid-Food-8x8-Easy-Cap50-Decay-v1",
 		algorithm="SAC Discrete",
 		version="normal",
 		layer_size=256,
@@ -21,7 +21,7 @@ variant = dict(
 			num_trains_per_train_loop=1000,
 			num_expl_steps_per_train_loop=1000,
 			min_num_steps_before_training=1000,
-			max_path_length=math.inf,
+			max_path_length=1000,
 			batch_size=256,
 		),
 		trainer_kwargs=dict(
