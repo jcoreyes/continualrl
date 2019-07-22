@@ -74,7 +74,7 @@ class FoodEnvEasy(FoodEnvBase):
 
     def extra_reset(self):
         if self.her:
-            self.goal_obs_her = np.random.randint(1, self.grid_size-1, size=(2,))
+            self.goal_obs_her = np.random.randint(1, self.grid_size - 1, size=(2,))
             print(self.goal_obs_her)
 
     def place_items(self):
@@ -84,7 +84,8 @@ class FoodEnvEasy(FoodEnvBase):
     def step(self, action):
         obs, rwd, done, info = super().step(action)
         if self.her:
-            obs = {'observation': self.agent_pos, 'desired_goal': self.goal_obs_her, 'achieved_goal': self.agent_pos}
+            obs = {'observation': self.agent_pos, 'desired_goal': self.goal_obs_her,
+                   'achieved_goal': self.agent_pos}
             rwd = self.compute_reward(self.agent_pos, self.goal_obs_her, info)
         return obs, rwd, done, info
 
@@ -97,7 +98,8 @@ class FoodEnvEasy(FoodEnvBase):
         # this is done first so that agent_pos is updated
         super_reset = super().reset()
         if self.her:
-            return {'observation': self.agent_pos, 'desired_goal': self.goal_obs_her, 'achieved_goal': self.agent_pos}
+            return {'observation': self.agent_pos, 'desired_goal': self.goal_obs_her,
+                    'achieved_goal': self.agent_pos}
         else:
             return super_reset
 
@@ -169,6 +171,7 @@ class FoodEnvEasyFood6Cap2000DecayLifespan30FullObs(FoodEnvEasy):
     def __init__(self):
         super().__init__(food_rate=6, health_cap=2000, food_rate_decay=0.005,
                          lifespan=30, fully_observed=True)
+
 
 register(
     id='MiniGrid-Food-8x8-Empty-FullObs-HER-v1',

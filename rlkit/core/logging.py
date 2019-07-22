@@ -265,7 +265,7 @@ class Logger(object):
                 writer = csv.DictWriter(tabular_fd,
                                         fieldnames=list(tabular_dict.keys()))
                 if wh or (
-                        wh is None and tabular_fd not in self._tabular_header_written):
+                                wh is None and tabular_fd not in self._tabular_header_written):
                     writer.writeheader()
                     self._tabular_header_written.add(tabular_fd)
                 writer.writerow(tabular_dict)
@@ -302,4 +302,3 @@ class Logger(object):
 
 
 logger = Logger()
-

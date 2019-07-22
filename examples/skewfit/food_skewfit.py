@@ -6,7 +6,6 @@ from rlkit.launchers.skewfit_experiments import skewfit_full_experiment
 from rlkit.torch.vae.conv_vae import imsize48_default_architecture
 from rlkit.envs.gym_minigrid.gym_minigrid import *
 
-
 if __name__ == "__main__":
     variant = dict(
         algorithm='Skew-Fit',
@@ -158,4 +157,4 @@ if __name__ == "__main__":
                         num_gpu=1,
                     )
                 )
-          )
+            )

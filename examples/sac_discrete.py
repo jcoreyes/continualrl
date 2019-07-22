@@ -54,7 +54,7 @@ def experiment(variant):
     eval_path_collector = collector_class(
         eval_env,
         eval_policy,
-	    # render=True
+        # render=True
     )
     expl_path_collector = collector_class(
         expl_env,

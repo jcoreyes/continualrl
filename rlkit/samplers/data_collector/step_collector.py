@@ -110,8 +110,8 @@ class MdpStepCollector(StepCollector):
             path = self._current_path_builder.get_all_stacked()
             path_len = len(path['actions'])
             if (
-                    path_len != max_path_length
-                    and not path['terminals'][-1]
+                                path_len != max_path_length
+                        and not path['terminals'][-1]
                     and discard_incomplete_paths
             ):
                 return
@@ -240,8 +240,8 @@ class GoalConditionedStepCollector(StepCollector):
             path = self._current_path_builder.get_all_stacked()
             path_len = len(path['actions'])
             if (
-                    path_len != max_path_length
-                    and not path['terminals'][-1]
+                                path_len != max_path_length
+                        and not path['terminals'][-1]
                     and discard_incomplete_paths
             ):
                 return

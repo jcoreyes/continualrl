@@ -8,6 +8,7 @@ from gym import error, spaces, utils
 from .minigrid import OBJECT_TO_IDX, COLOR_TO_IDX
 from .minigrid import CELL_PIXELS
 
+
 class ReseedWrapper(gym.core.Wrapper):
     """
     Wrapper to always regenerate an environment with the same set of seeds.
@@ -29,6 +30,7 @@ class ReseedWrapper(gym.core.Wrapper):
     def step(self, action):
         obs, reward, done, info = self.env.step(action)
         return obs, reward, done, info
+
 
 class ActionBonus(gym.core.Wrapper):
     """
@@ -64,6 +66,7 @@ class ActionBonus(gym.core.Wrapper):
 
     def reset(self, **kwargs):
         return self.env.reset(**kwargs)
+
 
 class StateBonus(gym.core.Wrapper):
     """
@@ -101,6 +104,7 @@ class StateBonus(gym.core.Wrapper):
     def reset(self, **kwargs):
         return self.env.reset(**kwargs)
 
+
 class ImgObsWrapper(gym.core.ObservationWrapper):
     """
     Use the image as the only observation output, no language/mission.
@@ -114,6 +118,7 @@ class ImgObsWrapper(gym.core.ObservationWrapper):
 
     def observation(self, obs):
         return obs['image']
+
 
 class RGBImgObsWrapper(gym.core.ObservationWrapper):
     """
@@ -129,13 +134,14 @@ class RGBImgObsWrapper(gym.core.ObservationWrapper):
         self.observation_space = spaces.Box(
             low=0,
             high=255,
-            shape=(self.env.width*CELL_PIXELS, self.env.height*CELL_PIXELS, 3),
+            shape=(self.env.width * CELL_PIXELS, self.env.height * CELL_PIXELS, 3),
             dtype='uint8'
         )
 
     def observation(self, obs):
         env = self.unwrapped
-        return env.render(mode = 'rgb_array', highlight = False)
+        return env.render(mode='rgb_array', highlight=False)
+
 
 class FullyObsWrapper(gym.core.ObservationWrapper):
     """
@@ -163,6 +169,7 @@ class FullyObsWrapper(gym.core.ObservationWrapper):
         ])
 
         return full_grid
+
 
 class FlatObsWrapper(gym.core.ObservationWrapper):
     """
@@ -196,7 +203,8 @@ class FlatObsWrapper(gym.core.ObservationWrapper):
 
         # Cache the last-encoded mission string
         if mission != self.cachedStr:
-            assert len(mission) <= self.maxStrLen, 'mission string too long ({} chars)'.format(len(mission))
+            assert len(mission) <= self.maxStrLen, 'mission string too long ({} chars)'.format(
+                len(mission))
             mission = mission.lower()
 
             strArray = np.zeros(shape=(self.maxStrLen, self.numCharCodes), dtype='float32')
@@ -215,6 +223,7 @@ class FlatObsWrapper(gym.core.ObservationWrapper):
         obs = np.concatenate((image.flatten(), self.cachedArray.flatten()))
 
         return obs
+
 
 class AgentViewWrapper(gym.core.Wrapper):
     """

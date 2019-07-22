@@ -7,6 +7,7 @@ class EpsilonGreedy(RawExplorationStrategy):
     """
     Take a random discrete action with some probability.
     """
+
     def __init__(self, action_space, prob_random_action=0.1):
         self.prob_random_action = prob_random_action
         self.action_space = action_space
@@ -21,9 +22,11 @@ class EpsilonGreedySchedule(RawExplorationStrategy):
     """
     Take a random discrete action with some changing probability.
     """
+
     def __init__(self, action_space, schedule):
         """
-        :param schedule: a function that takes one argument - the number of prior calls - and outputs epsilon
+        :param schedule: a function that takes one argument - the number of prior calls - and
+        outputs epsilon
         """
         self.action_space = action_space
         self.schedule = schedule

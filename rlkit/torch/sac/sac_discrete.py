@@ -52,7 +52,8 @@ class SACDiscreteTrainer(TorchTrainer):
             if target_entropy:
                 self.target_entropy = target_entropy
             else:
-                self.target_entropy = -np.prod(self.env.action_space.shape).item()  # heuristic value from Tuomas
+                self.target_entropy = -np.prod(
+                    self.env.action_space.shape).item()  # heuristic value from Tuomas
             self.log_alpha = ptu.zeros(1, requires_grad=True)
             self.alpha_optimizer = optimizer_class(
                 [self.log_alpha],
@@ -97,8 +98,9 @@ class SACDiscreteTrainer(TorchTrainer):
         dist = Categorical(self.policy(obs))
         new_obs_actions = dist.sample()
         log_pi = dist.log_prob(new_obs_actions)
-        log_pis = torch.stack([dist.log_prob(torch.tensor(ac, device=('cuda' if ptu.gpu_enabled() else 'cpu')))
-                               for ac in range(self.policy.action_dim)]).permute(1, 0)
+        log_pis = torch.stack(
+            [dist.log_prob(torch.tensor(ac, device=('cuda' if ptu.gpu_enabled() else 'cpu')))
+             for ac in range(self.policy.action_dim)]).permute(1, 0)
 
         if self.use_automatic_entropy_tuning:
             alpha_loss = -(self.log_alpha * (log_pi + self.target_entropy).detach()).mean()
@@ -114,7 +116,7 @@ class SACDiscreteTrainer(TorchTrainer):
             self.qf1(obs),
             self.qf2(obs),
         )
-        policy_loss = (torch.exp(log_pis) * (alpha*log_pis - q_new_actions)).sum(dim=1).mean()
+        policy_loss = (torch.exp(log_pis) * (alpha * log_pis - q_new_actions)).sum(dim=1).mean()
 
         """
         QF Loss
@@ -231,4 +233,3 @@ class SACDiscreteTrainer(TorchTrainer):
             target_qf1=self.qf1,
             target_qf2=self.qf2,
         )
-

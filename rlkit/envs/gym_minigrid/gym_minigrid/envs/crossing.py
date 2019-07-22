@@ -14,7 +14,7 @@ class CrossingEnv(MiniGridEnv):
         self.obstacle_type = obstacle_type
         super().__init__(
             grid_size=size,
-            max_steps=4*size*size,
+            max_steps=4 * size * size,
             # Set this to True for maximum speed
             see_through_walls=False,
             seed=None
@@ -82,21 +82,26 @@ class CrossingEnv(MiniGridEnv):
             else "find the opening and get to the green goal square"
         )
 
+
 class LavaCrossingEnv(CrossingEnv):
     def __init__(self):
         super().__init__(size=9, num_crossings=1)
+
 
 class LavaCrossingS9N2Env(CrossingEnv):
     def __init__(self):
         super().__init__(size=9, num_crossings=2)
 
+
 class LavaCrossingS9N3Env(CrossingEnv):
     def __init__(self):
         super().__init__(size=9, num_crossings=3)
 
+
 class LavaCrossingS11N5Env(CrossingEnv):
     def __init__(self):
         super().__init__(size=11, num_crossings=5)
+
 
 register(
     id='MiniGrid-LavaCrossingS9N1-v0',
@@ -118,21 +123,26 @@ register(
     entry_point='gym_minigrid.envs:LavaCrossingS11N5Env'
 )
 
+
 class SimpleCrossingEnv(CrossingEnv):
     def __init__(self):
         super().__init__(size=9, num_crossings=1, obstacle_type=Wall)
+
 
 class SimpleCrossingS9N2Env(CrossingEnv):
     def __init__(self):
         super().__init__(size=9, num_crossings=2, obstacle_type=Wall)
 
+
 class SimpleCrossingS9N3Env(CrossingEnv):
     def __init__(self):
         super().__init__(size=9, num_crossings=3, obstacle_type=Wall)
 
+
 class SimpleCrossingS11N5Env(CrossingEnv):
     def __init__(self):
         super().__init__(size=11, num_crossings=5, obstacle_type=Wall)
+
 
 register(
     id='MiniGrid-SimpleCrossingS9N1-v0',

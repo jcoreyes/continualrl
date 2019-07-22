@@ -32,7 +32,7 @@ class DoubleDQNExplTrainer(DQNTrainer):
         y_pred = torch.sum(qs * actions, dim=1, keepdim=True)
         q_dist = F.softmax(qs, dim=1)
         q_ent = torch.sum(q_dist * torch.log(q_dist), dim=1)
-        qf_loss = self.qf_criterion(y_pred, y_target) #- q_ent
+        qf_loss = self.qf_criterion(y_pred, y_target)  # - q_ent
 
         """
         Update networks

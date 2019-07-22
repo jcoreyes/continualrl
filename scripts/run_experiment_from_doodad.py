@@ -5,6 +5,7 @@ from rlkit.launchers.launcher_util import run_experiment_here
 
 if __name__ == "__main__":
     import matplotlib
+
     matplotlib.use('agg')
 
     mp.set_start_method('forkserver')
@@ -15,6 +16,7 @@ if __name__ == "__main__":
     run_mode = args_dict.get('mode', None)
     if run_mode and run_mode in ['slurm_singularity', 'sss']:
         import os
+
         run_experiment_kwargs['variant']['slurm-job-id'] = os.environ.get(
             'SLURM_JOB_ID', None
         )
@@ -22,6 +24,7 @@ if __name__ == "__main__":
         if run_mode == 'ec2':
             try:
                 import urllib.request
+
                 instance_id = urllib.request.urlopen(
                     'http://169.254.169.254/latest/meta-data/instance-id'
                 ).read().decode()
@@ -32,6 +35,7 @@ if __name__ == "__main__":
         if run_mode == 'gcp':
             try:
                 import urllib.request
+
                 request = urllib.request.Request(
                     "http://metadata/computeMetadata/v1/instance/name",
                 )

@@ -12,16 +12,18 @@ try:
     import minecraft_py
     import MalmoPython
 except ImportError as e:
-    raise error.DependencyNotInstalled("{}. (HINT: install minecraft_py from https://github.com/tambetm/minecraft-py".format(e))
+    raise error.DependencyNotInstalled(
+        "{}. (HINT: install minecraft_py from https://github.com/tambetm/minecraft-py".format(e))
 
 logger = logging.getLogger(__name__)
 
-SINGLE_DIRECTION_DISCRETE_MOVEMENTS = [ "jumpeast", "jumpnorth", "jumpsouth", "jumpwest",
-                                        "movenorth", "moveeast", "movesouth", "movewest",
-                                        "jumpuse", "use", "attack", "jump" ]
+SINGLE_DIRECTION_DISCRETE_MOVEMENTS = ["jumpeast", "jumpnorth", "jumpsouth", "jumpwest",
+                                       "movenorth", "moveeast", "movesouth", "movewest",
+                                       "jumpuse", "use", "attack", "jump"]
 
-MULTIPLE_DIRECTION_DISCRETE_MOVEMENTS = [ "move", "turn", "look", "strafe",
-                                          "jumpmove", "jumpstrafe" ]
+MULTIPLE_DIRECTION_DISCRETE_MOVEMENTS = ["move", "turn", "look", "strafe",
+                                         "jumpmove", "jumpstrafe"]
+
 
 class MinecraftEnv(gym.Env):
     metadata = {'render.modes': ['human', 'rgb_array']}
@@ -128,9 +130,11 @@ class MinecraftEnv(gym.Env):
         self.video_width = self.mission_spec.getVideoWidth(0)
         self.video_depth = self.mission_spec.getVideoChannels(0)
         self.observation_space = spaces.Box(low=0, high=255,
-                shape=(self.video_height, self.video_width, self.video_depth))
+                                            shape=(
+                                            self.video_height, self.video_width, self.video_depth))
         # dummy image just for the first observation
-        self.last_image = np.zeros((self.video_height, self.video_width, self.video_depth), dtype=np.uint8)
+        self.last_image = np.zeros((self.video_height, self.video_width, self.video_depth),
+                                   dtype=np.uint8)
 
         self._create_action_space()
 
@@ -232,16 +236,17 @@ class MinecraftEnv(gym.Env):
         for retry in range(self.max_retries + 1):
             try:
                 if self.client_pool:
-                    self.agent_host.startMission(self.mission_spec, self.client_pool, self.mission_record_spec, 0, "experiment_id")
+                    self.agent_host.startMission(self.mission_spec, self.client_pool,
+                                                 self.mission_record_spec, 0, "experiment_id")
                 else:
                     self.agent_host.startMission(self.mission_spec, self.mission_record_spec)
                 break
             except RuntimeError as e:
                 if retry == self.max_retries:
-                    logger.error("Error starting mission: "+str(e))
+                    logger.error("Error starting mission: " + str(e))
                     raise
                 else:
-                    logger.warn("Error starting mission: "+str(e))
+                    logger.warn("Error starting mission: " + str(e))
                     logger.info("Sleeping for %d seconds...", self.retry_sleep)
                     time.sleep(self.retry_sleep)
 
@@ -283,7 +288,8 @@ class MinecraftEnv(gym.Env):
         while True:
             time.sleep(self.step_sleep)  # wait for 1ms to not consume entire CPU
             world_state = self.agent_host.peekWorldState()
-            if world_state.number_of_observations_since_last_state > self.skip_steps or not world_state.is_mission_running:
+            if world_state.number_of_observations_since_last_state > self.skip_steps or not \
+                    world_state.is_mission_running:
                 break
 
         return self.agent_host.getWorldState()
@@ -295,7 +301,7 @@ class MinecraftEnv(gym.Env):
             frame = world_state.video_frames[0]
             image = np.frombuffer(frame.pixels, dtype=np.uint8)
             image = image.reshape((frame.height, frame.width, frame.channels))
-            #logger.debug(image)
+            # logger.debug(image)
             self.last_image = image
         else:
             # can happen only when mission ends before we get frame
@@ -306,7 +312,8 @@ class MinecraftEnv(gym.Env):
 
     def _get_observation(self, world_state):
         if world_state.number_of_observations_since_last_state > 0:
-            missed = world_state.number_of_observations_since_last_state - len(world_state.observations) - self.skip_steps
+            missed = world_state.number_of_observations_since_last_state - len(
+                world_state.observations) - self.skip_steps
             if missed > 0:
                 logger.warn("Agent missed %d observation(s).", missed)
             assert len(world_state.observations) == 1
@@ -348,10 +355,15 @@ class MinecraftEnv(gym.Env):
         info = {}
         info['has_mission_begun'] = world_state.has_mission_begun
         info['is_mission_running'] = world_state.is_mission_running
-        info['number_of_video_frames_since_last_state'] = world_state.number_of_video_frames_since_last_state
+        info[
+            'number_of_video_frames_since_last_state'] = \
+            world_state.number_of_video_frames_since_last_state
         info['number_of_rewards_since_last_state'] = world_state.number_of_rewards_since_last_state
-        info['number_of_observations_since_last_state'] = world_state.number_of_observations_since_last_state
-        info['mission_control_messages'] = [msg.text for msg in world_state.mission_control_messages]
+        info[
+            'number_of_observations_since_last_state'] = \
+            world_state.number_of_observations_since_last_state
+        info['mission_control_messages'] = [msg.text for msg in
+                                            world_state.mission_control_messages]
         info['observation'] = self._get_observation(world_state)
 
         return image, reward, done, info
@@ -363,7 +375,8 @@ class MinecraftEnv(gym.Env):
             try:
                 import pygame
             except ImportError as e:
-                raise error.DependencyNotInstalled("{}. (HINT: install pygame using `pip install pygame`".format(e))
+                raise error.DependencyNotInstalled(
+                    "{}. (HINT: install pygame using `pip install pygame`".format(e))
 
             if close:
                 pygame.quit()

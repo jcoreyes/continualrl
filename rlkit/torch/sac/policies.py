@@ -9,7 +9,6 @@ from rlkit.torch.core import eval_np
 from rlkit.torch.distributions import TanhNormal
 from rlkit.torch.networks import Mlp
 
-
 LOG_SIG_MAX = 2
 LOG_SIG_MIN = -20
 
@@ -32,6 +31,7 @@ class TanhGaussianPolicy(Mlp, ExplorationPolicy):
     If return_log_prob is False (default), log_prob = None
         This is done because computing the log_prob can be a bit expensive.
     """
+
     def __init__(
             self,
             hidden_sizes,
@@ -137,7 +137,8 @@ class CategoricalPolicy(Policy, nn.Module):
 
     def get_action(self, obs_np, deterministic=False, print_action=False):
         dist_vec = eval_np(self.prob_network, obs_np)
-        return Categorical(torch.from_numpy(dist_vec)).sample().item() if not deterministic else dist_vec.argmax(), {}
+        return Categorical(torch.from_numpy(
+            dist_vec)).sample().item() if not deterministic else dist_vec.argmax(), {}
 
 
 class RandomPolicy(Policy, nn.Module):

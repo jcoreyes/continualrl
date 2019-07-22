@@ -11,6 +11,7 @@ class TanhNormal(Distribution):
 
     Note: this is not very numerically stable.
     """
+
     def __init__(self, normal_mean, normal_std, epsilon=1e-6):
         """
         :param normal_mean: Mean of the normal distribution
@@ -38,7 +39,7 @@ class TanhNormal(Distribution):
         """
         if pre_tanh_value is None:
             pre_tanh_value = torch.log(
-                (1+value) / (1-value)
+                (1 + value) / (1 - value)
             ) / 2
         return self.normal.log_prob(pre_tanh_value) - torch.log(
             1 - value * value + self.epsilon

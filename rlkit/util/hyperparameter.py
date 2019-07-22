@@ -49,6 +49,7 @@ class LogFloatParam(RandomHyperparameter):
     Return something ranging from [min_value + offset, max_value + offset],
     distributed with a log.
     """
+
     def __init__(self, name, min_value, max_value, *, offset=0):
         super(LogFloatParam, self).__init__(name)
         self._linear_float_param = LinearFloatParam("log_" + name,
@@ -153,6 +154,7 @@ class DeterministicHyperparameterSweeper(Sweeper):
     Do a grid search over hyperparameters based on a predefined set of
     hyperparameters.
     """
+
     def __init__(self, hyperparameters, default_parameters=None):
         """
 
@@ -203,6 +205,7 @@ class DeterministicSweeperCombiner(object):
     """
     A simple wrapper to combiner multiple DeterministicHyperParameterSweeper's
     """
+
     def __init__(self, sweepers: List[DeterministicHyperparameterSweeper]):
         self._sweepers = sweepers
 

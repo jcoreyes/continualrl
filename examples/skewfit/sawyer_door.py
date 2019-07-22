@@ -8,7 +8,6 @@ from rlkit.launchers.skewfit_experiments import \
     skewfit_full_experiment
 from rlkit.torch.vae.conv_vae import imsize48_default_architecture
 
-
 if __name__ == "__main__":
     variant = dict(
         algorithm='Skew-Fit-SAC',
@@ -132,5 +131,4 @@ if __name__ == "__main__":
                 mode=mode,
                 variant=variant,
                 use_gpu=True,
-          )
-
+            )

@@ -67,7 +67,8 @@ class CNN(nn.Module):
 
         # find output dim of conv_layers by trial and add normalization conv layers
         test_mat = torch.zeros(1, self.input_channels, self.input_width,
-                               self.input_height)  # initially the model is on CPU (caller should then move it to GPU if
+                               self.input_height)  # initially the model is on CPU (caller should
+        #  then move it to GPU if
         for conv_layer in self.conv_layers:
             test_mat = conv_layer(test_mat)
             self.conv_norm_layers.append(nn.BatchNorm2d(test_mat.shape[1]))
@@ -167,7 +168,8 @@ class TwoHeadDCNN(nn.Module):
         self.deconv_input_width = deconv_input_width
         self.deconv_input_height = deconv_input_height
         self.deconv_input_channels = deconv_input_channels
-        deconv_input_size = self.deconv_input_channels * self.deconv_input_height * self.deconv_input_width
+        deconv_input_size = self.deconv_input_channels * self.deconv_input_height * \
+                            self.deconv_input_width
         self.batch_norm_deconv = batch_norm_deconv
         self.batch_norm_fc = batch_norm_fc
 
@@ -207,7 +209,8 @@ class TwoHeadDCNN(nn.Module):
 
         test_mat = torch.zeros(1, self.deconv_input_channels,
                                self.deconv_input_width,
-                               self.deconv_input_height)  # initially the model is on CPU (caller should then move it to GPU if
+                               self.deconv_input_height)  # initially the model is on CPU (caller
+        #  should then move it to GPU if
         for deconv_layer in self.deconv_layers:
             test_mat = deconv_layer(test_mat)
             self.deconv_norm_layers.append(nn.BatchNorm2d(test_mat.shape[1]))

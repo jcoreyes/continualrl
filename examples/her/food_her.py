@@ -22,7 +22,6 @@ from rlkit.torch.torch_rl_algorithm import TorchBatchRLAlgorithm
 from rlkit.envs.gym_minigrid.gym_minigrid import *
 
 
-
 def experiment(variant):
     # env_name = 'MiniGrid-Food-8x8-Empty-FullObs-HER-v1'
     env_name = 'MiniGrid-Food-32x32-Medium-Cap100-InitDecay-HER-v1'

@@ -73,7 +73,7 @@ def dump_video(
 
     frames = np.array(frames, dtype=np.uint8)
     path_length = frames.size // (
-            N * (H + 2 * pad_length) * (W + 2 * pad_length) * num_channels
+        N * (H + 2 * pad_length) * (W + 2 * pad_length) * num_channels
     )
     frames = np.array(frames, dtype=np.uint8).reshape(
         (N, path_length, H + 2 * pad_length, W + 2 * pad_length, num_channels)

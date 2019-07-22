@@ -24,68 +24,68 @@ from variants.sac_lifetime.sac_easy_mlp_variant import variant, gen_network
 
 
 def experiment(variant):
-	expl_env = gym.make(variant['env_name'])
-	eval_env = gym.make(variant['env_name'])
-	obs_dim = expl_env.observation_space.low.size
-	action_dim = eval_env.action_space.n
+    expl_env = gym.make(variant['env_name'])
+    eval_env = gym.make(variant['env_name'])
+    obs_dim = expl_env.observation_space.low.size
+    action_dim = eval_env.action_space.n
 
-	layer_size = variant['layer_size']
-	qf1 = gen_network(variant, action_dim, layer_size)
-	qf2 = gen_network(variant, action_dim, layer_size)
-	target_qf1 = gen_network(variant, action_dim, layer_size)
-	target_qf2 = gen_network(variant, action_dim, layer_size)
-	policy = gen_network(variant, action_dim, layer_size, policy=True)
+    layer_size = variant['layer_size']
+    qf1 = gen_network(variant, action_dim, layer_size)
+    qf2 = gen_network(variant, action_dim, layer_size)
+    target_qf1 = gen_network(variant, action_dim, layer_size)
+    target_qf2 = gen_network(variant, action_dim, layer_size)
+    policy = gen_network(variant, action_dim, layer_size, policy=True)
 
-	# Use GPU
-	if ptu.gpu_enabled():
-		qf1 = qf1.cuda()
-		qf2 = qf2.cuda()
-		target_qf1 = target_qf1.cuda()
-		target_qf2 = target_qf2.cuda()
-		policy = policy.cuda()
+    # Use GPU
+    if ptu.gpu_enabled():
+        qf1 = qf1.cuda()
+        qf2 = qf2.cuda()
+        target_qf1 = target_qf1.cuda()
+        target_qf2 = target_qf2.cuda()
+        policy = policy.cuda()
 
-	# eval_policy = MakeDeterministic(policy)
-	eval_policy = policy
-	eval_path_collector = LifetimeMdpPathCollector(
-		eval_env,
-		eval_policy,
-	)
-	expl_path_collector = LifetimeMdpPathCollector(
-		expl_env,
-		policy,
-	)
-	replay_buffer = EnvReplayBuffer(
-		variant['replay_buffer_size'],
-		expl_env,
-		dtype='uint8'
-	)
+    # eval_policy = MakeDeterministic(policy)
+    eval_policy = policy
+    eval_path_collector = LifetimeMdpPathCollector(
+        eval_env,
+        eval_policy,
+    )
+    expl_path_collector = LifetimeMdpPathCollector(
+        expl_env,
+        policy,
+    )
+    replay_buffer = EnvReplayBuffer(
+        variant['replay_buffer_size'],
+        expl_env,
+        dtype='uint8'
+    )
 
-	trainer = SACDiscreteTrainer(
-		env=eval_env,
-		policy=policy,
-		qf1=qf1,
-		qf2=qf2,
-		target_qf1=target_qf1,
-		target_qf2=target_qf2,
-		**variant['trainer_kwargs']
-	)
+    trainer = SACDiscreteTrainer(
+        env=eval_env,
+        policy=policy,
+        qf1=qf1,
+        qf2=qf2,
+        target_qf1=target_qf1,
+        target_qf2=target_qf2,
+        **variant['trainer_kwargs']
+    )
 
-	algorithm = TorchLifetimeRLAlgorithm(
-		trainer=trainer,
-		exploration_env=expl_env,
-		evaluation_env=eval_env,
-		exploration_data_collector=expl_path_collector,
-		evaluation_data_collector=eval_path_collector,
-		replay_buffer=replay_buffer,
-		**variant['algorithm_kwargs']
-	)
-	algorithm.to(ptu.device)
-	print('Training!')
-	algorithm.train()
+    algorithm = TorchLifetimeRLAlgorithm(
+        trainer=trainer,
+        exploration_env=expl_env,
+        evaluation_env=eval_env,
+        exploration_data_collector=expl_path_collector,
+        evaluation_data_collector=eval_path_collector,
+        replay_buffer=replay_buffer,
+        **variant['algorithm_kwargs']
+    )
+    algorithm.to(ptu.device)
+    print('Training!')
+    algorithm.train()
 
 
 if __name__ == "__main__":
-	# noinspection PyTypeChecker
-	setup_logger('sac-discrete', variant=variant)
-	ptu.set_gpu_mode(True)  # optionally set the GPU (default=False)
-	experiment(variant)
+    # noinspection PyTypeChecker
+    setup_logger('sac-discrete', variant=variant)
+    ptu.set_gpu_mode(True)  # optionally set the GPU (default=False)
+    experiment(variant)

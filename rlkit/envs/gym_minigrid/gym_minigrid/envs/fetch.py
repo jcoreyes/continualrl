@@ -1,6 +1,7 @@
 from gym_minigrid.minigrid import *
 from gym_minigrid.register import register
 
+
 class FetchEnv(MiniGridEnv):
     """
     Environment in which the agent has to fetch a random object
@@ -8,15 +9,15 @@ class FetchEnv(MiniGridEnv):
     """
 
     def __init__(
-        self,
-        size=8,
-        numObjs=3
+            self,
+            size=8,
+            numObjs=3
     ):
         self.numObjs = numObjs
 
         super().__init__(
             grid_size=size,
-            max_steps=5*size**2,
+            max_steps=5 * size ** 2,
             # Set this to True for maximum speed
             see_through_walls=True
         )
@@ -26,9 +27,9 @@ class FetchEnv(MiniGridEnv):
 
         # Generate the surrounding walls
         self.grid.horz_wall(0, 0)
-        self.grid.horz_wall(0, height-1)
+        self.grid.horz_wall(0, height - 1)
         self.grid.vert_wall(0, 0)
-        self.grid.vert_wall(width-1, 0)
+        self.grid.vert_wall(width - 1, 0)
 
         types = ['key', 'ball']
 
@@ -76,7 +77,7 @@ class FetchEnv(MiniGridEnv):
 
         if self.carrying:
             if self.carrying.color == self.targetColor and \
-               self.carrying.type == self.targetType:
+                            self.carrying.type == self.targetType:
                 reward = self._reward()
                 done = True
             else:
@@ -85,13 +86,16 @@ class FetchEnv(MiniGridEnv):
 
         return obs, reward, done, info
 
+
 class FetchEnv5x5N2(FetchEnv):
     def __init__(self):
         super().__init__(size=5, numObjs=2)
 
+
 class FetchEnv6x6N2(FetchEnv):
     def __init__(self):
         super().__init__(size=6, numObjs=2)
+
 
 register(
     id='MiniGrid-Fetch-5x5-N2-v0',

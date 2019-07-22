@@ -61,7 +61,8 @@ class OnlineRLAlgorithm(BaseRLAlgorithm, metaclass=abc.ABCMeta):
 
             gt.stamp('initial exploration', unique=True)
 
-        num_trains_per_expl_step = self.num_trains_per_train_loop // self.num_expl_steps_per_train_loop
+        num_trains_per_expl_step = self.num_trains_per_train_loop // \
+                                   self.num_expl_steps_per_train_loop
         for epoch in gt.timed_for(
                 range(self._start_epoch, self.num_epochs),
                 save_itrs=True,

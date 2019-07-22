@@ -29,12 +29,13 @@ def relative_probs_from_log_probs(log_probs):
     assert not np.any(probs <= 0), 'choose a smaller power'
     return probs
 
+
 def compute_log_p_log_q_log_d(
-    model,
-    data,
-    decoder_distribution='bernoulli',
-    num_latents_to_sample=1,
-    sampling_method='importance_sampling'
+        model,
+        data,
+        decoder_distribution='bernoulli',
+        num_latents_to_sample=1,
+        sampling_method='importance_sampling'
 ):
     assert data.dtype == np.float64, 'images should be normalized'
     imgs = ptu.from_numpy(data)
@@ -62,7 +63,8 @@ def compute_log_p_log_q_log_d(
         log_q_z_given_x = vae_dist.log_prob(latents).sum(dim=1)
         if decoder_distribution == 'bernoulli':
             decoded = model.decode(latents)[0]
-            log_d_x_given_z = torch.log(imgs * decoded + (1 - imgs) * (1 - decoded) + 1e-8).sum(dim=1)
+            log_d_x_given_z = torch.log(imgs * decoded + (1 - imgs) * (1 - decoded) + 1e-8).sum(
+                dim=1)
         elif decoder_distribution == 'gaussian_identity_variance':
             _, obs_distribution_params = model.decode(latents)
             dec_mu, dec_logvar = obs_distribution_params
@@ -77,13 +79,14 @@ def compute_log_p_log_q_log_d(
         log_d[:, i] = log_d_x_given_z
     return log_p, log_q, log_d
 
+
 def compute_p_x_np_to_np(
-    model,
-    data,
-    power,
-    decoder_distribution='bernoulli',
-    num_latents_to_sample=1,
-    sampling_method='importance_sampling'
+        model,
+        data,
+        power,
+        decoder_distribution='bernoulli',
+        num_latents_to_sample=1,
+        sampling_method='importance_sampling'
 ):
     assert data.dtype == np.float64, 'images should be normalized'
     assert power >= -1 and power <= 0, 'power for skew-fit should belong to [-1, 0]'
@@ -158,9 +161,9 @@ class ConvVAETrainer(object):
         self.lr = lr
         params = list(self.model.parameters())
         self.optimizer = optim.Adam(params,
-            lr=self.lr,
-            weight_decay=weight_decay,
-        )
+                                    lr=self.lr,
+                                    weight_decay=weight_decay,
+                                    )
         self.train_dataset, self.test_dataset = train_dataset, test_dataset
         assert self.train_dataset.dtype == np.uint8
         assert self.test_dataset.dtype == np.uint8
@@ -265,7 +268,8 @@ class ConvVAETrainer(object):
             data = self.train_dataset[idxs, :]
             if method == 'vae_prob':
                 data = normalize_image(data)
-                weights[idxs] = compute_p_x_np_to_np(self.model, data, power=power, **self.priority_function_kwargs)
+                weights[idxs] = compute_p_x_np_to_np(self.model, data, power=power,
+                                                     **self.priority_function_kwargs)
             else:
                 raise NotImplementedError('Method {} not supported'.format(method))
             cur_idx = next_idx
@@ -335,11 +339,13 @@ class ConvVAETrainer(object):
                 obs = None
                 actions = None
             self.optimizer.zero_grad()
-            reconstructions, obs_distribution_params, latent_distribution_params = self.model(next_obs)
+            reconstructions, obs_distribution_params, latent_distribution_params = self.model(
+                next_obs)
             log_prob = self.model.logprob(next_obs, obs_distribution_params)
             kle = self.model.kl_divergence(latent_distribution_params)
 
-            encoder_mean = self.model.get_encoding_from_latent_distribution_params(latent_distribution_params)
+            encoder_mean = self.model.get_encoding_from_latent_distribution_params(
+                latent_distribution_params)
             z_data = ptu.get_numpy(encoder_mean.cpu())
             for i in range(len(z_data)):
                 zs.append(z_data[i, :])
@@ -387,7 +393,8 @@ class ConvVAETrainer(object):
         beta = float(self.beta_schedule.get_value(epoch))
         for batch_idx in range(10):
             next_obs = self.get_batch(train=False)
-            reconstructions, obs_distribution_params, latent_distribution_params = self.model(next_obs)
+            reconstructions, obs_distribution_params, latent_distribution_params = self.model(
+                next_obs)
             log_prob = self.model.logprob(next_obs, obs_distribution_params)
             kle = self.model.kl_divergence(latent_distribution_params)
             loss = -1 * log_prob + beta * kle
@@ -512,7 +519,8 @@ class ConvVAETrainer(object):
         for i in range(0, data.shape[0], self.batch_size):
             img = normalize_image(data[i:min(data.shape[0], i + self.batch_size), :])
             torch_img = ptu.from_numpy(img)
-            reconstructions, obs_distribution_params, latent_distribution_params = self.model(torch_img)
+            reconstructions, obs_distribution_params, latent_distribution_params = self.model(
+                torch_img)
 
             priority_function_kwargs['sampling_method'] = 'true_prior_sampling'
             log_p, log_q, log_d = compute_log_p_log_q_log_d(model, img, **priority_function_kwargs)

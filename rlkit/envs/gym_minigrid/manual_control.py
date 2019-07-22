@@ -10,6 +10,7 @@ from optparse import OptionParser
 
 import gym_minigrid
 
+
 def main():
     parser = OptionParser()
     parser.add_option(
@@ -82,6 +83,7 @@ def main():
         # If the window was closed
         if renderer.window == None:
             break
+
 
 if __name__ == "__main__":
     main()

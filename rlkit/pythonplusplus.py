@@ -48,7 +48,8 @@ def dot_map_dict_to_nested_dict(dot_map_dict):
     ```
     into its corresponding nested dict.
 
-    http://stackoverflow.com/questions/16547643/convert-a-list-of-delimited-strings-to-a-tree-nested-dict-using-python
+    http://stackoverflow.com/questions/16547643/convert-a-list-of-delimited-strings-to-a-tree
+    -nested-dict-using-python
     :param dot_map_dict:
     :return:
     """
@@ -195,7 +196,7 @@ def dict_to_safe_json(d, sort=False):
             new_d[key] = item
         else:
             if (
-                    isinstance(item, dict)
+                        isinstance(item, dict)
                     or isinstance(item, collections.OrderedDict)
             ):
                 new_d[key] = dict_to_safe_json(item, sort=sort)
@@ -311,7 +312,8 @@ def takespread(sequence, num):
     """
     Get `num` elements from the sequence that are as spread out as possible.
 
-    https://stackoverflow.com/questions/9873626/choose-m-evenly-spaced-elements-from-a-sequence-of-length-n
+    https://stackoverflow.com/questions/9873626/choose-m-evenly-spaced-elements-from-a-sequence
+    -of-length-n
     :param sequence:
     :param num:
     :return:

@@ -14,7 +14,6 @@ from rlkit.torch.vae.vae_trainer import (
 
 
 class OnlineVaeRelabelingBuffer(SharedObsDictRelabelingBuffer):
-
     def __init__(
             self,
             vae,
@@ -56,13 +55,13 @@ class OnlineVaeRelabelingBuffer(SharedObsDictRelabelingBuffer):
         self._relabeling_goal_sampling_mode = relabeling_goal_sampling_mode
 
         self._give_explr_reward_bonus = (
-                exploration_rewards_type != 'None'
-                and exploration_rewards_scale != 0.
+            exploration_rewards_type != 'None'
+            and exploration_rewards_scale != 0.
         )
         self._exploration_rewards = np.zeros((self.max_size, 1))
         self._prioritize_vae_samples = (
-                vae_priority_type != 'None'
-                and power != 0.
+            vae_priority_type != 'None'
+            and power != 0.
         )
         self._vae_sample_priorities = np.zeros((self.max_size, 1))
         self._vae_sample_probs = None
@@ -189,7 +188,7 @@ class OnlineVaeRelabelingBuffer(SharedObsDictRelabelingBuffer):
                 self._exploration_rewards[idxs] = rewards.reshape(-1, 1)
             if self._prioritize_vae_samples:
                 if (
-                        self.exploration_rewards_type == self.vae_priority_type
+                                self.exploration_rewards_type == self.vae_priority_type
                         and self._give_explr_reward_bonus
                 ):
                     self._vae_sample_priorities[idxs] = (
@@ -203,14 +202,14 @@ class OnlineVaeRelabelingBuffer(SharedObsDictRelabelingBuffer):
                             **self.priority_function_kwargs
                         ).reshape(-1, 1)
                     )
-            obs_sum+= self._obs[self.observation_key][idxs].sum(axis=0)
-            obs_square_sum+= np.power(self._obs[self.observation_key][idxs], 2).sum(axis=0)
+            obs_sum += self._obs[self.observation_key][idxs].sum(axis=0)
+            obs_square_sum += np.power(self._obs[self.observation_key][idxs], 2).sum(axis=0)
 
             cur_idx = next_idx
             next_idx += batch_size
             next_idx = min(next_idx, self._size)
-        self.vae.dist_mu = obs_sum/self._size
-        self.vae.dist_std = np.sqrt(obs_square_sum/self._size - np.power(self.vae.dist_mu, 2))
+        self.vae.dist_mu = obs_sum / self._size
+        self.vae.dist_std = np.sqrt(obs_square_sum / self._size - np.power(self.vae.dist_mu, 2))
 
         if self._prioritize_vae_samples:
             """
@@ -232,9 +231,9 @@ class OnlineVaeRelabelingBuffer(SharedObsDictRelabelingBuffer):
 
     def sample_weighted_indices(self, batch_size):
         if (
-            self._prioritize_vae_samples and
-            self._vae_sample_probs is not None and
-            self.skew
+                        self._prioritize_vae_samples and
+                            self._vae_sample_probs is not None and
+                    self.skew
         ):
             indices = np.random.choice(
                 len(self._vae_sample_probs),
@@ -274,8 +273,8 @@ class OnlineVaeRelabelingBuffer(SharedObsDictRelabelingBuffer):
         )
         next_latent_obs = self._next_obs[self.achieved_goal_key][weighted_idxs]
         return {
-            self.decoded_desired_goal_key:  next_image_obs,
-            self.desired_goal_key:          next_latent_obs
+            self.decoded_desired_goal_key: next_image_obs,
+            self.desired_goal_key: next_latent_obs
         }
 
     def random_vae_training_data(self, batch_size, epoch):

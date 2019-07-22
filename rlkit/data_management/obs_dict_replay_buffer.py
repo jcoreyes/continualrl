@@ -7,7 +7,8 @@ from rlkit.data_management.replay_buffer import ReplayBuffer
 class ObsDictRelabelingBuffer(ReplayBuffer):
     """
     Replay buffer for environments whose observations are dictionaries, such as
-        - OpenAI Gym GoalEnv environments. https://blog.openai.com/ingredients-for-robotics-research/
+        - OpenAI Gym GoalEnv environments. 
+        https://blog.openai.com/ingredients-for-robotics-research/
         - multiworld MultitaskEnv. https://github.com/vitchyr/multiworld/
 
     Implementation details:

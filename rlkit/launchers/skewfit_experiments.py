@@ -466,8 +466,8 @@ def skewfit_experiment(variant):
     desired_goal_key = variant.get('desired_goal_key', 'latent_desired_goal')
     achieved_goal_key = desired_goal_key.replace("desired", "achieved")
     obs_dim = (
-            env.observation_space.spaces[observation_key].low.size
-            + env.observation_space.spaces[desired_goal_key].low.size
+        env.observation_space.spaces[observation_key].low.size
+        + env.observation_space.spaces[desired_goal_key].low.size
     )
     action_dim = env.action_space.low.size
     hidden_sizes = variant.get('hidden_sizes', [400, 300])

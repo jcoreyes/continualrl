@@ -102,9 +102,11 @@ def rollout(
      - env_infos
 
     If `return_env_obs` is True, then return the env and last obs as well.
-    If `continuing` is True, then roll out without resetting env. `obs` must then be the most recent obs from the env
+    If `continuing` is True, then roll out without resetting env. `obs` must then be the most 
+    recent obs from the env
     """
-    assert not (continuing and obs is None), 'if continuing, then must provide the most recent obs from the env'
+    assert not (
+    continuing and obs is None), 'if continuing, then must provide the most recent obs from the env'
 
     if render_kwargs is None:
         render_kwargs = {}

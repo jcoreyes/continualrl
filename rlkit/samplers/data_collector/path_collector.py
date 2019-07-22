@@ -47,7 +47,8 @@ class MdpPathCollector(PathCollector):
                 render=self._render and len(paths) == 0
             )
             path_len = len(path['actions'])
-            # suvansh: we don't want to skip incomplete paths, and in fact don't have a meaningful max path length
+            # suvansh: we don't want to skip incomplete paths, and in fact don't have a
+            # meaningful max path length
             # if (
             #         path_len != max_path_length
             #         and not path['terminals'][-1]
@@ -214,8 +215,8 @@ class GoalConditionedPathCollector(PathCollector):
             )
             path_len = len(path['actions'])
             if (
-                    path_len != max_path_length
-                    and not path['terminals'][-1]
+                                path_len != max_path_length
+                        and not path['terminals'][-1]
                     and discard_incomplete_paths
             ):
                 break
