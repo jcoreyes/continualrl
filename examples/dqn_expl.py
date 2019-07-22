@@ -23,8 +23,8 @@ from rlkit.envs.gym_minigrid.gym_minigrid import *
 import torch.nn as nn
 
 # TODO NOTE: this is where you pick the variant
-# from variants.dqn_expl.dqn_expl_easy_grid_conv_variant import variant, gen_network
-from variants.dqn_lifetime.dqn_easy_mlp_variant import variant, gen_network
+from variants.dqn_expl.dqn_expl_medium16_grid_conv_variant import variant, gen_network
+# from variants.dqn_lifetime.dqn_easy_mlp_variant import variant, gen_network
 
 
 def experiment(variant):
@@ -54,6 +54,7 @@ def experiment(variant):
 	eval_path_collector = collector_class(
 		eval_env,
 		eval_policy,
+		# render=True
 	)
 	expl_path_collector = collector_class(
 		expl_env,

@@ -1,19 +1,15 @@
-import math
-
-from rlkit.policies.network_food import FoodNetworkEasy, FlatFoodNetworkMedium, FoodNetworkMediumFullObs
+from rlkit.policies.network_food import FoodNetworkEasy, FoodNetworkMediumFullObs
 from rlkit.pythonplusplus import identity
 from rlkit.torch.conv_networks import CNN
 from rlkit.torch.networks import FlattenMlp, Mlp
-from rlkit.torch.sac.policies import CategoricalPolicy
 from torch.nn import functional as F
 
 
 variant = dict(
-		# env_name="MiniGrid-Food-32x32-Medium-1Inv-Cap1000-Init-Decay-FullObs-Lifespan200-Task-CBE-v1",
-		env_name="MiniGrid-Food-32x32-Medium-1Inv-2Tier-Dense-v1",
-		algorithm="SAC Discrete",
+		env_name="MiniGrid-Food-16x16-Medium-1Inv-1Tier-Dense-v1",
+		algorithm="DQN-Exploration",
 		version="normal",
-		layer_size=64,
+		layer_size=256,
 		replay_buffer_size=int(1E5),
 		algorithm_kwargs=dict(
 			num_epochs=3000,
@@ -21,36 +17,36 @@ variant = dict(
 			num_trains_per_train_loop=1000,
 			num_expl_steps_per_train_loop=1000,
 			min_num_steps_before_training=1000,
-			max_path_length=math.inf,
+			max_path_length=3000,
 			batch_size=256,
 		),
 		trainer_kwargs=dict(
 			discount=0.99,
-			soft_target_tau=5e-3,
-			target_update_period=1,
-			policy_lr=3E-4,
-			qf_lr=3E-4,
-			reward_scale=1,
-			use_automatic_entropy_tuning=True,
+			learning_rate=3E-4,
 		),
 		inventory_network_kwargs=dict(
-			# pantry: 50x8, shelf: 8, health:1, pos: 2
+			# pantry: 400, shelf: 8, health:1, pos:2
 			input_size=411,
 			output_size=64,
 			hidden_sizes=[128, 128],
 		),
 		full_img_conv_kwargs=dict(
 			# 8 grid
-			input_width=32,
-			input_height=32,
+			input_width=16,
+			input_height=16,
 			# 2 channels
 			input_channels=2,
-			output_size=128,
-			kernel_sizes=[3, 3, 2],
-			n_channels=[16, 16, 8],
-			strides=[1, 1, 1],
-			paddings=[1, 1, 0],
-			hidden_sizes=[512, 512],
+			output_size=32,
+			kernel_sizes=[2, 2],
+			# kernel_sizes=[2, 2, 2],
+			n_channels=[8, 8],
+			# n_channels=[16, 16, 16],
+			strides=[1, 1],
+			# strides=[1, 1, 1],
+			paddings=[0, 0],
+			# paddings=[0, 0, 0],
+			hidden_sizes=[32],
+			# hidden_sizes=[64, 64],
 			batch_norm_conv=True
 		)
 	)
