@@ -19,7 +19,8 @@ from rlkit.launchers.launcher_util import setup_logger
 from rlkit.samplers.data_collector import MdpPathCollector
 from rlkit.torch.torch_rl_algorithm import TorchBatchRLAlgorithm, TorchLifetimeRLAlgorithm
 from rlkit.envs.gym_minigrid.gym_minigrid import *
-from variants.dqn_lifetime.dqn_easy_mlp_variant import variant, gen_network
+# from variants.dqn_lifetime.dqn_easy_mlp_variant import variant, gen_network
+from variants.dqn_expl.dqn_expl_medium16_mlp_variant import variant, gen_network
 
 
 def schedule(t):

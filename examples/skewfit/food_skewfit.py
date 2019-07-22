@@ -133,7 +133,7 @@ if __name__ == "__main__":
     )
 
     n_seeds = 1
-    mode = 'local'
+    mode = 'ec2'
     exp_prefix = 'dev-{}'.format(
         __file__.replace('/', '-').replace('_', '-').split('.')[0]
     )
@@ -148,6 +148,7 @@ if __name__ == "__main__":
                 mode=mode,
                 variant=variant,
                 use_gpu=True,
+                region='us-west-2',
                 num_exps_per_instance=3,
                 gcp_kwargs=dict(
                     terminate=True,

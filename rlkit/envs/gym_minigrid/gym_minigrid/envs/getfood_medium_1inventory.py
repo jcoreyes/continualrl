@@ -31,23 +31,41 @@ class FoodEnvMedium1Inv(FoodEnvBase):
 
 	def __init__(
 			self,
+			grid_size=32,
 			health_cap=100,
 			food_rate=4,
 			max_pantry_size=50,
 			obs_vision=False,
 			food_rate_decay=0.0,
 			init_resources=None,
+			gen_resources=True,
+			make_rtype='sparse',
 			lifespan=0,
 			task=None,
 			rnd=False,
 			cbe=False,
+			woodfood=True,
 			**kwargs
 	):
 		self.init_resources = init_resources or {}
 		self.food_rate_decay = food_rate_decay
 		self.lifespan = lifespan
-		# e.g. 'pickup axe', 'navigate 3 5', 'make wood'
-		self.task = task.split()
+		self.interactions = {
+			('energy', 'metal'): 'axe',
+			# edible wood, used for health points
+			('axe', 'tree'): 'woodfood' if woodfood else 'wood',
+		}
+		self.ingredients = {v: k for k, v in self.interactions.items()}
+		self.gen_resources = gen_resources
+
+		# TASK stuff
+		self.task = task.split()  # e.g. 'pickup axe', 'navigate 3 5', 'make wood'
+		self.make_sequence = self.get_make_sequence()
+		# print(self.make_sequence)
+		self.make_rtype = make_rtype
+		self.max_make_idx = -1
+		self.made_obj_type = None
+		self.last_placed_on = None
 
 		# Exploration!
 		assert not (cbe and rnd), "can't have both CBE and RND"
@@ -64,12 +82,6 @@ class FoodEnvMedium1Inv(FoodEnvBase):
 		# food
 		self.pantry = []
 		self.max_pantry_size = max_pantry_size
-		# other resources
-		self.interactions = {
-			('energy', 'metal'): Axe,
-			# edible wood, used for health points
-			('axe', 'tree'): WoodFood,
-		}
 		# stores info for the current timestep
 		self.info_last = {}
 		self.actions = FoodEnvMedium1Inv.Actions
@@ -81,23 +93,35 @@ class FoodEnvMedium1Inv(FoodEnvBase):
 			'metal': 4,
 			'energy': 5,
 			'axe': 6,
-			'woodfood': 7,
 		}
+		if woodfood:
+			self.object_to_idx.update({'woodfood': 7})
+		else:
+			self.object_to_idx.update({'wood': 7})
+
 		super().__init__(
-			grid_size=32,
+			grid_size=grid_size,
 			health_cap=health_cap,
 			food_rate=food_rate,
 			obs_vision=obs_vision,
 			**kwargs
 		)
 
-		if self.obs_vision:
-			shape = (58969,)
-		else:
-			if self.fully_observed:
-				shape = (2459,)
+		shape = None
+		if self.grid_size == 32:
+			if self.obs_vision:
+				shape = (58969,)
 			else:
-				shape = (2555,)
+				if self.fully_observed:
+					shape = (2459,)
+				else:
+					shape = (2555,)
+		elif self.grid_size == 16:
+			if not self.obs_vision and self.fully_observed:
+				shape = (923,)
+
+		if shape is None:
+			raise TypeError("Env configuration not supported")
 
 		self.observation_space = spaces.Box(
 			low=0,
@@ -111,11 +135,25 @@ class FoodEnvMedium1Inv(FoodEnvBase):
 			self.rnd_target_network = Mlp([128, 128], 32, self.observation_space.low.size)
 			self.rnd_optimizer = Adam(self.rnd_target_network.parameters(), lr=3e-4)
 
+	def get_make_sequence(self):
+		def add_ingredients(obj, seq):
+			if obj in self.ingredients:
+				for ingredient in self.ingredients[obj]:
+					add_ingredients(ingredient, seq)
+				seq.append(obj)
+			else:
+				seq.append(obj)
+		make_sequence = []
+		goal_obj = self.task[1]
+		add_ingredients(goal_obj, make_sequence)
+		return make_sequence
+
 	def place_items(self):
-		self.place_prob(Food(lifespan=self.lifespan), 1 / (self.food_rate + self.step_count * self.food_rate_decay))
-		self.place_prob(Metal(lifespan=self.lifespan), 1 / (2 * self.food_rate))
-		self.place_prob(Energy(lifespan=self.lifespan), 1 / (2 * self.food_rate))
-		self.place_prob(Tree(lifespan=self.lifespan), 1 / (3 * self.food_rate))
+		if self.gen_resources:
+			self.place_prob(Food(lifespan=self.lifespan), 1 / (self.food_rate + self.step_count * self.food_rate_decay))
+			self.place_prob(Metal(lifespan=self.lifespan), 1 / (2 * self.food_rate))
+			self.place_prob(Energy(lifespan=self.lifespan), 1 / (2 * self.food_rate))
+			self.place_prob(Tree(lifespan=self.lifespan), 1 / (3 * self.food_rate))
 
 	def extra_gen_grid(self):
 		for type, count in self.init_resources.items():
@@ -179,13 +217,14 @@ class FoodEnvMedium1Inv(FoodEnvBase):
 		else:
 			# let's try to combine the placed object with the existing object
 			interact_tup = tuple(sorted([self.carrying.type, agent_cell.type]))
-			new_class = self.interactions.get(interact_tup, None)
-			if not new_class:
+			new_type = self.interactions.get(interact_tup, None)
+			if not new_type:
 				# the objects cannot be combined, no-op
 				return
 			else:
+				self.last_placed_on = agent_cell
 				# replace existing obj with new obj
-				new_obj = new_class()
+				new_obj = TYPE_TO_CLASS_ABS[new_type]()
 				self.grid.set(*self.agent_pos, new_obj)
 				self.made_obj_type = new_obj.type
 		# remove placed object from inventory
@@ -219,9 +258,15 @@ class FoodEnvMedium1Inv(FoodEnvBase):
 		extra_obs = np.concatenate((pantry_obs.flatten(), shelf_obs.flatten()))
 		extra_obs_count_string = np.concatenate((pantry_obs.sum(axis=0), shelf_obs.sum(axis=0))).tostring()
 		obs = np.concatenate((obs, extra_obs))
-		if self.solved_task():
+		solved = self.solved_task()
+		if self.task and self.task[0] == 'make':
+			reward = self.get_make_reward()
+			info.update({'progress': (self.max_make_idx + 1) / len(self.make_sequence)})
+		else:
+			reward = int(solved)
+
+		if solved:
 			done = True
-			reward = 1
 			info.update({'solved': True})
 		else:
 			info.update({'solved': False})
@@ -250,6 +295,9 @@ class FoodEnvMedium1Inv(FoodEnvBase):
 		obs = super().reset()
 		obs = np.concatenate((obs, self.gen_pantry_obs().flatten(), self.gen_shelf_obs().flatten()))
 		self.pantry = []
+		self.made_obj_type = None
+		self.last_placed_on = None
+		self.max_make_idx = -1
 		return obs
 
 	def solved_task(self):
@@ -258,10 +306,70 @@ class FoodEnvMedium1Inv(FoodEnvBase):
 				pos = np.array(self.task[1:])
 				return np.array_equal(pos, self.agent_pos)
 			elif self.task[0] == 'pickup':
-				return self.carrying and (self.carrying.type == self.task[1])
+				return self.carrying is not None and (self.carrying.type == self.task[1])
 			elif self.task[0] == 'make':
-				return self.made_obj_type == self.task[1]
+				return self.carrying is not None and self.carrying.type == self.task[1]
 		return False
+
+	def get_make_reward(self):
+		reward = 0
+		if self.make_rtype == 'sparse':
+			reward = int(self.solved_task())
+		elif self.make_rtype in ['dense', 'waypoint']:
+			carry_idx = self.make_sequence.index(self.carrying.type) if self.carrying and self.carrying.type in self.make_sequence else -1
+			place_idx = self.make_sequence.index(self.last_placed_on.type) if self.last_placed_on and self.last_placed_on.type in self.make_sequence else -1
+			idx = max(carry_idx, place_idx)
+			true_idx = min(idx, self.max_make_idx)
+			if idx == self.max_make_idx + 1:
+				reward = 50
+				self.max_make_idx = idx
+				if idx == len(self.make_sequence) - 1:
+					reward = 100
+			elif self.make_rtype == 'dense':
+				next_pos = self.get_closest_obj_pos(self.make_sequence[true_idx + 1])
+				if next_pos is not None:
+					dist = np.linalg.norm(next_pos - self.agent_pos, ord=1)
+					reward = -dist
+				# else there is no obj of that type, so 0 reward
+		else:
+			raise TypeError('Make reward type "%s" not recognized' % self.make_rtype)
+		return reward
+
+	def get_closest_obj_pos(self, type=None):
+		def test_point(point, type):
+			try:
+				obj = self.grid.get(*point)
+				if obj and (type is None or obj.type == type):
+					return True
+			except AssertionError:
+				# OOB grid access
+				return False
+		corner = np.array([0, -1])
+		for i in range(0, self.grid_size-2):
+			# width of the fixed distance level set (diamond shape centered at agent pos)
+			width = i + 1
+			test_pos = self.agent_pos + corner * i
+			for j in range(width):
+				if test_point(test_pos, type):
+					return test_pos
+				test_pos += np.array([1, 1])
+			test_pos -= np.array([1, 1])
+			for j in range(width):
+				if test_point(test_pos, type):
+					return test_pos
+				test_pos += np.array([-1, 1])
+			test_pos -= np.array([-1, 1])
+			for j in range(width):
+				if test_point(test_pos, type):
+					return test_pos
+				test_pos += np.array([-1, -1])
+			test_pos -= np.array([-1, -1])
+			for j in range(width):
+				if test_point(test_pos, type):
+					return test_pos
+				test_pos += np.array([1, -1])
+		return None
+
 
 class FoodEnvMedium1InvCap50(FoodEnvMedium1Inv):
 	def __init__(self):
@@ -330,11 +438,14 @@ class FoodEnvMedium1InvCap2500InitDecayLifespan200FullObs(FoodEnvMedium1Inv):
 
 class FoodEnvMedium1InvCap1000InitDecayFullObsLifespan200Task(FoodEnvMedium1Inv):
 	def __init__(self):
-		super().__init__(health_cap=1000, food_rate_decay=0.01, lifespan=200, fully_observed=True, task='pickup axe',
+		super().__init__(health_cap=1000, food_rate_decay=0.01, lifespan=200, fully_observed=True, task='make axe',
+		                 make_rtype='dense',
 						 init_resources={
 							 'axe': 8,
-							 'woodfood': 5,
-							 'food': 15
+							 # 'woodfood': 5,
+							 'food': 15,
+							 'metal': 30,
+							 'energy': 30
 						 })
 
 
@@ -345,7 +456,73 @@ class FoodEnvMedium1InvCap1000InitDecayFullObsLifespan200TaskCBE(FoodEnvMedium1I
 						 init_resources={
 							 'axe': 8,
 							 'woodfood': 5,
-							 'food': 15
+							 'food': 15,
+						 })
+
+
+class FoodEnvMedium1Inv1TierDenseReward16(FoodEnvMedium1Inv):
+	def __init__(self):
+		super().__init__(grid_size=16, health_cap=1000, gen_resources=False, fully_observed=True, task='make energy',
+		                 make_rtype='dense',
+						 init_resources={
+							 'energy': 4
+						 })
+
+
+class FoodEnvMedium1Inv2TierDenseReward(FoodEnvMedium1Inv):
+	def __init__(self):
+		super().__init__(health_cap=1000, gen_resources=False, fully_observed=True, task='make axe',
+		                 make_rtype='dense',
+						 init_resources={
+							 # 'food': 6,
+							 'metal': 12,
+							 'energy': 12
+						 })
+
+
+class FoodEnvMedium1Inv2TierDenseReward16(FoodEnvMedium1Inv):
+	def __init__(self):
+		super().__init__(grid_size=16, health_cap=1000, gen_resources=False, fully_observed=True, task='make axe',
+		                 make_rtype='dense',
+						 init_resources={
+							 # 'food': 6,
+							 'metal': 12,
+							 'energy': 12
+						 })
+
+
+class FoodEnvMedium1Inv2TierWaypointReward(FoodEnvMedium1Inv):
+	def __init__(self):
+		super().__init__(health_cap=1000, lifespan=200, fully_observed=True, task='make axe',
+		                 make_rtype='waypoint',
+						 init_resources={
+							 'food': 15,
+							 'metal': 30,
+							 'energy': 30
+						 })
+
+
+class FoodEnvMedium1Inv3TierDenseReward(FoodEnvMedium1Inv):
+	def __init__(self):
+		super().__init__(health_cap=1000, lifespan=200, fully_observed=True, task='make wood', woodfood=False,
+		                 make_rtype='dense',
+						 init_resources={
+							 'food': 15,
+							 'metal': 30,
+							 'energy': 30,
+							 'tree': 15
+						 })
+
+
+class FoodEnvMedium1Inv3TierWaypointReward(FoodEnvMedium1Inv):
+	def __init__(self):
+		super().__init__(health_cap=1000, lifespan=200, fully_observed=True, task='make wood', woodfood=False,
+		                 make_rtype='waypoint',
+						 init_resources={
+							 'food': 15,
+							 'metal': 30,
+							 'energy': 30,
+							 'tree': 15
 						 })
 
 
@@ -402,4 +579,34 @@ register(
 register(
 	id='MiniGrid-Food-32x32-Medium-1Inv-Cap1000-Init-Decay-FullObs-Lifespan200-Task-CBE-v1',
 	entry_point='rlkit.envs.gym_minigrid.gym_minigrid.envs:FoodEnvMedium1InvCap1000InitDecayFullObsLifespan200TaskCBE'
+)
+
+register(
+	id='MiniGrid-Food-16x16-Medium-1Inv-1Tier-Dense-v1',
+	entry_point='rlkit.envs.gym_minigrid.gym_minigrid.envs:FoodEnvMedium1Inv1TierDenseReward16'
+)
+
+register(
+	id='MiniGrid-Food-32x32-Medium-1Inv-2Tier-Dense-v1',
+	entry_point='rlkit.envs.gym_minigrid.gym_minigrid.envs:FoodEnvMedium1Inv2TierDenseReward'
+)
+
+register(
+	id='MiniGrid-Food-16x16-Medium-1Inv-2Tier-Dense-v1',
+	entry_point='rlkit.envs.gym_minigrid.gym_minigrid.envs:FoodEnvMedium1Inv2TierDenseReward16'
+)
+
+register(
+	id='MiniGrid-Food-32x32-Medium-1Inv-2Tier-Waypoint-v1',
+	entry_point='rlkit.envs.gym_minigrid.gym_minigrid.envs:FoodEnvMedium1Inv2TierWaypointReward'
+)
+
+register(
+	id='MiniGrid-Food-32x32-Medium-1Inv-3Tier-Dense-v1',
+	entry_point='rlkit.envs.gym_minigrid.gym_minigrid.envs:FoodEnvMedium1Inv3TierDenseReward'
+)
+
+register(
+	id='MiniGrid-Food-32x32-Medium-1Inv-3Tier-Waypoint-v1',
+	entry_point='rlkit.envs.gym_minigrid.gym_minigrid.envs:FoodEnvMedium1Inv3TierWaypointReward'
 )

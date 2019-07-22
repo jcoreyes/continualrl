@@ -10,7 +10,7 @@ from torch.nn import functional as F
 import rlkit.torch.pytorch_util as ptu
 from rlkit.data_management.env_replay_buffer import EnvReplayBuffer
 from rlkit.envs.wrappers import NormalizedBoxEnv
-from rlkit.launchers.launcher_util import setup_logger
+from rlkit.launchers.launcher_util import setup_logger, run_experiment
 from rlkit.samplers.data_collector import MdpPathCollector
 from rlkit.torch.sac.policies import TanhGaussianPolicy, MakeDeterministic, CategoricalPolicy, \
     RandomPolicy
@@ -20,7 +20,7 @@ from rlkit.torch.torch_rl_algorithm import TorchBatchRLAlgorithm, TorchLifetimeR
 from rlkit.envs.gym_minigrid.gym_minigrid import *
 
 # TODO NOTE: this is where you pick the variant
-from variants.sac.sac_medium_1inv_fullobs_grid_conv_variant import variant, gen_network
+from variants.sac.sac_medium16_mlp_variant import variant, gen_network
 
 
 def experiment(variant):
@@ -92,7 +92,20 @@ def experiment(variant):
 
 
 if __name__ == "__main__":
+    exp_prefix = 'sac-discrete'
     # noinspection PyTypeChecker
-    setup_logger('sac-discrete', variant=variant)
+    setup_logger(exp_prefix, variant=variant)
     ptu.set_gpu_mode(True)  # optionally set the GPU (default=False)
     experiment(variant)
+
+    # mode = 'local'
+    #
+    # run_experiment(
+    #     experiment,
+    #     exp_prefix=exp_prefix,
+    #     mode=mode,
+    #     variant=variant,
+    #     use_gpu=False,
+    #     region='us-west-2',
+    #     num_exps_per_instance=3
+    # )
