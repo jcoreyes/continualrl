@@ -641,7 +641,7 @@ def run_experiment(
                 ),
             )
     else:
-        image_id = None
+        image_id = conf.REGION_TO_GPU_AWS_IMAGE_ID[region]
     if hasattr(conf, "AWS_S3_PATH"):
         aws_s3_path = conf.AWS_S3_PATH
     else:

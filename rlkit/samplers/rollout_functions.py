@@ -123,8 +123,8 @@ def rollout(
         time.sleep(0.25)
     while path_length < max_path_length:
         a, agent_info = agent.get_action(o)
-        if render:
-            print(a)
+        # if render:
+        #     print(a)
         next_o, r, d, env_info = env.step(a)
         observations.append(o)
         rewards.append(r)
