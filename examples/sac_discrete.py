@@ -17,13 +17,14 @@ from rlkit.torch.sac.policies import TanhGaussianPolicy, MakeDeterministic, Cate
 from rlkit.torch.sac.sac import SACTrainer
 from rlkit.torch.networks import FlattenMlp, Mlp
 from rlkit.torch.torch_rl_algorithm import TorchBatchRLAlgorithm, TorchLifetimeRLAlgorithm
-from rlkit.envs.gym_minigrid.gym_minigrid import *
 
 # TODO NOTE: this is where you pick the variant
 from variants.sac.sac_medium16_mlp_variant import variant, gen_network
 
 
 def experiment(variant):
+    from rlkit.envs.gym_minigrid.gym_minigrid import envs
+
     assert gen_network is not None, "unable to import gen_network function, check env variant."
 
     expl_env = gym.make(variant['env_name'])
@@ -94,18 +95,18 @@ def experiment(variant):
 if __name__ == "__main__":
     exp_prefix = 'sac-discrete'
     # noinspection PyTypeChecker
-    setup_logger(exp_prefix, variant=variant)
-    ptu.set_gpu_mode(True)  # optionally set the GPU (default=False)
-    experiment(variant)
+    # setup_logger(exp_prefix, variant=variant)
+    # ptu.set_gpu_mode(True)  # optionally set the GPU (default=False)
+    # experiment(variant)
 
-    # mode = 'local'
-    #
-    # run_experiment(
-    #     experiment,
-    #     exp_prefix=exp_prefix,
-    #     mode=mode,
-    #     variant=variant,
-    #     use_gpu=False,
-    #     region='us-west-2',
-    #     num_exps_per_instance=3
-    # )
+    mode = 'ec2'
+
+    run_experiment(
+        experiment,
+        exp_prefix=exp_prefix,
+        mode=mode,
+        variant=variant,
+        use_gpu=False,
+        region='us-west-2',
+        num_exps_per_instance=3
+    )

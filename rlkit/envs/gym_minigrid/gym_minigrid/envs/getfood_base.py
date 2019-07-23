@@ -24,6 +24,7 @@ class FoodEnvBase(MiniGridAbsoluteEnv):
 				 obs_vision=False,
 				 reward_type='delta',
 				 fully_observed=False,
+	             only_partial_obs=False,
 				 can_die=True,
 				 **kwargs
 				 ):
@@ -36,6 +37,7 @@ class FoodEnvBase(MiniGridAbsoluteEnv):
 		self.obs_vision = obs_vision
 		self.reward_type = reward_type
 		self.fully_observed = fully_observed
+		self.only_partial_obs = only_partial_obs
 		self.can_die = can_die
 		if not hasattr(self, 'actions'):
 			self.actions = FoodEnvBase.Actions
@@ -113,6 +115,8 @@ class FoodEnvBase(MiniGridAbsoluteEnv):
 
 		if self.fully_observed:
 			obs = np.concatenate((full_img.flatten(), np.array([self.health]), np.array(self.agent_pos)))
+		elif self.only_partial_obs:
+			obs = np.concatenate((img.flatten(), np.array([self.health])))
 		else:
 			obs = np.concatenate((img.flatten(), full_img.flatten(), np.array([self.health])))
 		return obs, rwd, done, {}
@@ -124,6 +128,8 @@ class FoodEnvBase(MiniGridAbsoluteEnv):
 		full_img = self.get_full_img()
 		if self.fully_observed:
 			obs = np.concatenate((full_img.flatten(), np.array([self.health]), np.array(self.agent_pos)))
+		elif self.only_partial_obs:
+			obs = np.concatenate((img.flatten(), np.array([self.health])))
 		else:
 			obs = np.concatenate((img.flatten(), full_img.flatten(), np.array([self.health])))
 		return obs

@@ -4,6 +4,7 @@ Run DQN on grid world.
 
 import gym
 from rlkit.samplers.data_collector.path_collector import LifetimeMdpPathCollector
+from rlkit.torch.dqn.double_dqn import DoubleDQNTrainer
 from rlkit.torch.sac.policies import SoftmaxQPolicy
 from torch import nn as nn
 
@@ -15,16 +16,17 @@ from rlkit.torch.dqn.dqn import DQNTrainer
 from rlkit.torch.networks import Mlp
 import rlkit.torch.pytorch_util as ptu
 from rlkit.data_management.env_replay_buffer import EnvReplayBuffer
-from rlkit.launchers.launcher_util import setup_logger
+from rlkit.launchers.launcher_util import setup_logger, run_experiment
 from rlkit.samplers.data_collector import MdpPathCollector
 from rlkit.torch.torch_rl_algorithm import TorchBatchRLAlgorithm, TorchLifetimeRLAlgorithm
 from rlkit.envs.gym_minigrid.gym_minigrid import *
 # from variants.dqn_lifetime.dqn_easy_mlp_variant import variant, gen_network
-from variants.dqn_expl.dqn_expl_medium16_mlp_variant import variant, gen_network
+# from variants.dqn_expl.dqn_expl_medium8_mlp_variant import variant, gen_network
+from variants.dqn_expl.dqn_expl_medium8_mlp_partial_variant import variant, gen_network
 
 
 def schedule(t):
-    return max(0.3 - 1e-4 * t, 0.05)
+    return max(1 - 1e-3 * t, 0.05)
 
 
 def experiment(variant):
@@ -49,12 +51,13 @@ def experiment(variant):
     eval_path_collector = collector_class(
         eval_env,
         eval_policy,
+        # render=True
     )
     expl_path_collector = collector_class(
         expl_env,
         expl_policy,
     )
-    trainer = DQNTrainer(
+    trainer = DoubleDQNTrainer(
         qf=qf,
         target_qf=target_qf,
         qf_criterion=qf_criterion,
@@ -80,6 +83,20 @@ def experiment(variant):
 
 
 if __name__ == "__main__":
-    setup_logger('food-dqn', variant=variant)
+    exp_prefix = 'food-dqn'
+
+    setup_logger(exp_prefix, variant=variant)
     ptu.set_gpu_mode(True)  # optionally set the GPU (default=False)
     experiment(variant)
+
+    # mode = 'ec2'
+    #
+    # run_experiment(
+    #     experiment,
+    #     exp_prefix=exp_prefix,
+    #     mode=mode,
+    #     variant=variant,
+    #     use_gpu=False,
+    #     region='us-west-2',
+    #     num_exps_per_instance=3
+    # )
