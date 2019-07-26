@@ -39,6 +39,7 @@ class FoodEnvMedium1Inv(FoodEnvBase):
 			food_rate_decay=0.0,
 			init_resources=None,
 			gen_resources=True,
+			resource_prob=None,
 			make_rtype='sparse',
 			lifespan=0,
 			task=None,
@@ -59,6 +60,7 @@ class FoodEnvMedium1Inv(FoodEnvBase):
 		}
 		self.ingredients = {v: k for k, v in self.interactions.items()}
 		self.gen_resources = gen_resources
+		self.resource_prob = resource_prob
 		self.seed_val = seed_val
 		self.fixed_reset = fixed_reset
 
@@ -166,10 +168,14 @@ class FoodEnvMedium1Inv(FoodEnvBase):
 
 	def place_items(self):
 		if self.gen_resources:
-			self.place_prob(Food(lifespan=self.lifespan), 1 / (self.food_rate + self.step_count * self.food_rate_decay))
-			self.place_prob(Metal(lifespan=self.lifespan), 1 / (2 * self.food_rate))
-			self.place_prob(Energy(lifespan=self.lifespan), 1 / (2 * self.food_rate))
-			self.place_prob(Tree(lifespan=self.lifespan), 1 / (3 * self.food_rate))
+			if self.resource_prob:
+				for type, prob in self.resource_prob.items():
+					self.place_prob(TYPE_TO_CLASS_ABS[type](lifespan=self.lifespan), prob)
+			else:
+				self.place_prob(Food(lifespan=self.lifespan), 1 / (self.food_rate + self.step_count * self.food_rate_decay))
+				self.place_prob(Metal(lifespan=self.lifespan), 1 / (2 * self.food_rate))
+				self.place_prob(Energy(lifespan=self.lifespan), 1 / (2 * self.food_rate))
+				self.place_prob(Tree(lifespan=self.lifespan), 1 / (3 * self.food_rate))
 
 	def extra_gen_grid(self):
 		for type, count in self.init_resources.items():
@@ -641,6 +647,10 @@ class FoodEnvMedium1Inv2TierOneTimeRewardPartialFixed16(FoodEnvMedium1Inv):
 						 init_resources={
 							 'metal': 4,
 							 'energy': 4
+						 },
+						 resource_prob={
+							'metal': 0.01,
+							 'energy': 0.01
 						 })
 
 
