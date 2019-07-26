@@ -1,5 +1,6 @@
 import numpy as np
 import torch
+import torch.nn as nn
 
 import rlkit.torch.pytorch_util as ptu
 from rlkit.core.eval_util import create_stats_ordered_dict
@@ -35,6 +36,8 @@ class DoubleDQNTrainer(DQNTrainer):
         """
         self.qf_optimizer.zero_grad()
         qf_loss.backward()
+        if self.grad_clip_val is not None:
+            nn.utils.clip_grad_norm_(self.qf.parameters(), self.grad_clip_val)
         self.qf_optimizer.step()
 
         """

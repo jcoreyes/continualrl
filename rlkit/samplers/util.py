@@ -43,11 +43,11 @@ def rollout(env, agent, max_path_length=np.inf, render=False):
         agent_infos.append(agent_info)
         env_infos.append(env_info)
         path_length += 1
-        if d:
-            break
         o = next_o
         if render:
             env.render()
+        if d:
+            break
 
     actions = np.array(actions)
     if len(actions.shape) == 1:

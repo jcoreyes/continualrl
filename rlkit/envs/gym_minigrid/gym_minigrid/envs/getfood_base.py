@@ -26,6 +26,7 @@ class FoodEnvBase(MiniGridAbsoluteEnv):
 				 fully_observed=False,
 	             only_partial_obs=False,
 				 can_die=True,
+	             one_hot_obs=True,
 				 **kwargs
 				 ):
 		self.agent_start_pos = agent_start_pos
@@ -39,6 +40,8 @@ class FoodEnvBase(MiniGridAbsoluteEnv):
 		self.fully_observed = fully_observed
 		self.only_partial_obs = only_partial_obs
 		self.can_die = can_die
+		self.one_hot_obs = one_hot_obs
+
 		if not hasattr(self, 'actions'):
 			self.actions = FoodEnvBase.Actions
 		super().__init__(
@@ -81,7 +84,7 @@ class FoodEnvBase(MiniGridAbsoluteEnv):
 
 		self.mission = None
 
-	def step(self, action):
+	def step(self, action, incl_health=True):
 		done = False
 		matched = super().step(action, override=True)
 		# subclass-defined extra actions. if not caught by that, then unknown action
@@ -94,7 +97,12 @@ class FoodEnvBase(MiniGridAbsoluteEnv):
 		self.place_items()
 		# generate obs after action is caught and food is placed. generate reward before death check
 		img = self.get_img()
-		full_img = self.get_full_img(scale=1 if self.fully_observed else 1/8)
+		full_img = self.get_full_img(scale=1 if self.fully_observed else 1 / 8)
+
+		if self.one_hot_obs:
+			img = np.concatenate([np.eye(len(self.object_to_idx))[ch].transpose(2, 0, 1) for ch in img])
+			full_img = np.concatenate([np.eye(len(self.object_to_idx))[ch].transpose(2, 0, 1) for ch in full_img])
+
 		rwd = self._reward()
 
 		# tick on each grid item
@@ -114,24 +122,47 @@ class FoodEnvBase(MiniGridAbsoluteEnv):
 			done = True
 
 		if self.fully_observed:
-			obs = np.concatenate((full_img.flatten(), np.array([self.health]), np.array(self.agent_pos)))
+			if incl_health:
+				obs = np.concatenate((full_img.flatten(), np.array([self.health]), np.array(self.agent_pos)))
+			else:
+				obs = np.concatenate((full_img.flatten(), np.array(self.agent_pos)))
 		elif self.only_partial_obs:
-			obs = np.concatenate((img.flatten(), np.array([self.health])))
+			if incl_health:
+				obs = np.concatenate((img.flatten(), np.array([self.health])))
+			else:
+				obs = img.flatten()
 		else:
-			obs = np.concatenate((img.flatten(), full_img.flatten(), np.array([self.health])))
+			if incl_health:
+				obs = np.concatenate((img.flatten(), full_img.flatten(), np.array([self.health])))
+			else:
+				obs = np.concatenate((img.flatten(), full_img.flatten()))
 		return obs, rwd, done, {}
 
-	def reset(self):
+	def reset(self, incl_health=True):
 		super().reset()
 		self.extra_reset()
 		img = self.get_img()
 		full_img = self.get_full_img()
+
+		if self.one_hot_obs:
+			img = np.concatenate([np.eye(len(self.object_to_idx))[ch].transpose(2, 0, 1) for ch in img])
+			full_img = np.concatenate([np.eye(len(self.object_to_idx))[ch].transpose(2, 0, 1) for ch in full_img])
+
 		if self.fully_observed:
-			obs = np.concatenate((full_img.flatten(), np.array([self.health]), np.array(self.agent_pos)))
+			if incl_health:
+				obs = np.concatenate((full_img.flatten(), np.array([self.health]), np.array(self.agent_pos)))
+			else:
+				obs = np.concatenate((full_img.flatten(), np.array(self.agent_pos)))
 		elif self.only_partial_obs:
-			obs = np.concatenate((img.flatten(), np.array([self.health])))
+			if incl_health:
+				obs = np.concatenate((img.flatten(), np.array([self.health])))
+			else:
+				obs = img.flatten()
 		else:
-			obs = np.concatenate((img.flatten(), full_img.flatten(), np.array([self.health])))
+			if incl_health:
+				obs = np.concatenate((img.flatten(), full_img.flatten(), np.array([self.health])))
+			else:
+				obs = np.concatenate((img.flatten(), full_img.flatten()))
 		return obs
 
 	def get_full_img(self, scale=1/8):

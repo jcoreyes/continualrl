@@ -35,3 +35,14 @@ class EpsilonGreedySchedule(RawExplorationStrategy):
         if random.random() <= self.schedule(time):
             return self.action_space.sample()
         return action
+
+
+class EpsilonGreedyDecay(EpsilonGreedySchedule):
+    def __init__(self, action_space, rate, max_eps, min_eps):
+        self.rate = rate
+        self.max_eps = max_eps
+        self.min_eps = min_eps
+        super().__init__(action_space, self.schedule)
+
+    def schedule(self, t):
+        return max(self.max_eps - self.rate * t, self.min_eps)

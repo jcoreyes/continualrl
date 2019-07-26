@@ -63,13 +63,16 @@ class FoodEnvMedium1Inv(FoodEnvBase):
 		self.fixed_reset = fixed_reset
 
 		# TASK stuff
-		self.task = task.split()  # e.g. 'pickup axe', 'navigate 3 5', 'make wood'
+		self.task = task.split()  # e.g. 'pickup axe', 'navigate 3 5', 'make wood', 'make_lifelong axe'
 		self.make_sequence = self.get_make_sequence()
+		self.onetime_reward_sequence = [False for _ in range(len(self.make_sequence))]
 		# print(self.make_sequence)
 		self.make_rtype = make_rtype
 		self.max_make_idx = -1
 		self.made_obj_type = None
 		self.last_placed_on = None
+		# used for task 'make_lifelong'
+		self.num_solves = 0
 
 		# Exploration!
 		assert not (cbe and rnd), "can't have both CBE and RND"
@@ -111,6 +114,7 @@ class FoodEnvMedium1Inv(FoodEnvBase):
 			**kwargs
 		)
 		shape = None
+		# TODO some of these shapes are wrong. fix by running through each branch and getting empirical obs shape
 		if self.grid_size == 32:
 			if self.obs_vision:
 				shape = (58969,)
@@ -128,9 +132,12 @@ class FoodEnvMedium1Inv(FoodEnvBase):
 		elif self.grid_size == 8:
 			if not self.obs_vision:
 				if self.fully_observed:
-					shape = (539,)
+					shape = (1491,)
 				if self.only_partial_obs:
-					shape = (507,)
+					shape = (865,)
+		if self.task:
+			# exclude pantry and health
+			shape = (shape[0] - 401,)
 
 		# if shape is None:
 		# 	raise TypeError("Env configuration not supported")
@@ -149,12 +156,9 @@ class FoodEnvMedium1Inv(FoodEnvBase):
 
 	def get_make_sequence(self):
 		def add_ingredients(obj, seq):
-			if obj in self.ingredients:
-				for ingredient in self.ingredients[obj]:
-					add_ingredients(ingredient, seq)
-				seq.append(obj)
-			else:
-				seq.append(obj)
+			for ingredient in self.ingredients.get(obj, []):
+				add_ingredients(ingredient, seq)
+			seq.append(obj)
 		make_sequence = []
 		goal_obj = self.task[1]
 		add_ingredients(goal_obj, make_sequence)
@@ -263,23 +267,32 @@ class FoodEnvMedium1Inv(FoodEnvBase):
 		return shelf_obs
 
 	def step(self, action):
-		obs, reward, done, info = super().step(action)
+		obs, reward, done, info = super().step(action, incl_health=not bool(self.task))
 		pantry_obs = self.gen_pantry_obs()
 		shelf_obs = self.gen_shelf_obs()
 
-		extra_obs = np.concatenate((pantry_obs.flatten(), shelf_obs.flatten()))
-		extra_obs_count_string = np.concatenate((pantry_obs.sum(axis=0), shelf_obs.sum(axis=0))).tostring()
+		if not self.task:
+			extra_obs = np.concatenate((pantry_obs.flatten(), shelf_obs.flatten()))
+			extra_obs_count_string = np.concatenate((pantry_obs.sum(axis=0), shelf_obs.sum(axis=0))).tostring()
+		else:
+			extra_obs = shelf_obs.flatten()
+			# magic number repeating shelf 8 times to fill up more of the obs
+			extra_obs = np.repeat(extra_obs, 8)
+			extra_obs_count_string = shelf_obs.sum(axis=0).tostring()
 		obs = np.concatenate((obs, extra_obs))
 		solved = self.solved_task()
-		if self.task and self.task[0] == 'make':
+		if self.task and 'make' in self.task[0]:
 			reward = self.get_make_reward()
-			info.update({'progress': (self.max_make_idx + 1) / len(self.make_sequence)})
+			if self.task[0] == 'make':
+				info.update({'progress': (self.max_make_idx + 1) / len(self.make_sequence)})
 		else:
 			reward = int(solved)
 
 		if solved:
 			done = True
 			info.update({'solved': True})
+		elif self.task[0] == 'make_lifelong':
+			info.update({'num_solves': self.num_solves})
 		else:
 			info.update({'solved': False})
 		# Exploration bonuses
@@ -306,8 +319,12 @@ class FoodEnvMedium1Inv(FoodEnvBase):
 	def reset(self):
 		if self.fixed_reset:
 			self.seed(self.seed_val)
-		obs = super().reset()
-		obs = np.concatenate((obs, self.gen_pantry_obs().flatten(), self.gen_shelf_obs().flatten()))
+		obs = super().reset(incl_health=not bool(self.task))
+		if not self.task:
+			obs = np.concatenate((obs, self.gen_pantry_obs().flatten(), self.gen_shelf_obs().flatten()))
+		else:
+			extra_obs = np.repeat(self.gen_shelf_obs(), 8)
+			obs = np.concatenate((obs, extra_obs.flatten()))
 		self.pantry = []
 		self.made_obj_type = None
 		self.last_placed_on = None
@@ -352,6 +369,21 @@ class FoodEnvMedium1Inv(FoodEnvBase):
 					dist = np.linalg.norm(next_pos - self.agent_pos, ord=1)
 					reward = -dist
 				# else there is no obj of that type, so 0 reward
+		elif self.make_rtype == 'one-time':
+			# if self.last_make_sequence[]
+			if self.carrying and self.carrying.type in self.make_sequence:
+					idx = self.make_sequence.index(self.carrying.type)
+					if idx == len(self.make_sequence) - 1:
+						reward = 100
+						self.onetime_reward_sequence = [False for _ in range(len(self.make_sequence))]
+						self.num_solves += 1
+						# remove the created goal object
+						self.carrying = None
+					elif not self.onetime_reward_sequence[idx]:
+						reward = 50
+						self.onetime_reward_sequence[idx] = True
+
+
 		else:
 			raise TypeError('Make reward type "%s" not recognized' % self.make_rtype)
 		return reward
@@ -391,6 +423,11 @@ class FoodEnvMedium1Inv(FoodEnvBase):
 					return test_pos
 				test_pos += np.array([1, -1])
 		return None
+
+	def decay_health(self):
+		if self.task and self.task[0] == 'make_lifelong':
+			return
+		super().decay_health()
 
 
 class FoodEnvMedium1InvCap50(FoodEnvMedium1Inv):
@@ -575,6 +612,38 @@ class FoodEnvMedium1Inv2TierDenseRewardPartialRandom8(FoodEnvMedium1Inv):
 						 })
 
 
+class FoodEnvMedium1Inv2TierDenseRewardRandom8(FoodEnvMedium1Inv):
+	def __init__(self):
+		super().__init__(grid_size=8, health_cap=1000, gen_resources=False, fully_observed=True, task='make axe',
+		                 make_rtype='dense', fixed_reset=False,
+						 init_resources={
+							 # 'food': 6,
+							 'metal': 4,
+							 'energy': 4
+						 })
+
+
+class FoodEnvMedium1Inv2TierDenseRewardPartialFixed8(FoodEnvMedium1Inv):
+	def __init__(self):
+		super().__init__(grid_size=8, health_cap=1000, gen_resources=False, fully_observed=False, task='make axe',
+		                 make_rtype='dense', fixed_reset=True, only_partial_obs=True,
+						 init_resources={
+							 # 'food': 6,
+							 'metal': 4,
+							 'energy': 4
+						 })
+
+
+class FoodEnvMedium1Inv2TierOneTimeRewardPartialFixed16(FoodEnvMedium1Inv):
+	def __init__(self):
+		super().__init__(grid_size=16, health_cap=1000, gen_resources=True, fully_observed=False, task='make_lifelong axe',
+		                 make_rtype='one-time', only_partial_obs=True,
+						 init_resources={
+							 'metal': 4,
+							 'energy': 4
+						 })
+
+
 class FoodEnvMedium1Inv3TierDenseReward8(FoodEnvMedium1Inv):
 	def __init__(self):
 		super().__init__(grid_size=8, health_cap=1000, gen_resources=False, fully_observed=True, task='make wood',
@@ -711,10 +780,24 @@ register(
 )
 
 register(
+	id='MiniGrid-Food-8x8-Medium-1Inv-2Tier-Dense-Random-v1',
+	entry_point='rlkit.envs.gym_minigrid.gym_minigrid.envs:FoodEnvMedium1Inv2TierDenseRewardRandom8'
+)
+
+register(
+	id='MiniGrid-Food-8x8-Medium-1Inv-2Tier-Dense-Partial-Fixed-v1',
+	entry_point='rlkit.envs.gym_minigrid.gym_minigrid.envs:FoodEnvMedium1Inv2TierDenseRewardPartialFixed8'
+)
+
+register(
+	id='MiniGrid-Food-8x8-Medium-1Inv-2Tier-OneTime-Partial-Fixed-v1',
+	entry_point='rlkit.envs.gym_minigrid.gym_minigrid.envs:FoodEnvMedium1Inv2TierOneTimeRewardPartialFixed8'
+)
+
+register(
 	id='MiniGrid-Food-8x8-Medium-1Inv-3Tier-Dense-v1',
 	entry_point='rlkit.envs.gym_minigrid.gym_minigrid.envs:FoodEnvMedium1Inv3TierDenseReward8'
 )
-
 
 register(
 	id='MiniGrid-Food-32x32-Medium-1Inv-3Tier-Dense-v1',

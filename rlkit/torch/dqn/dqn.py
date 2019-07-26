@@ -19,7 +19,7 @@ class DQNTrainer(TorchTrainer):
             soft_target_tau=1e-3,
             target_update_period=1,
             qf_criterion=None,
-
+            grad_clip_val=None,
             discount=0.99,
             reward_scale=1.0,
     ):
@@ -36,6 +36,7 @@ class DQNTrainer(TorchTrainer):
         self.discount = discount
         self.reward_scale = reward_scale
         self.qf_criterion = qf_criterion or nn.MSELoss()
+        self.grad_clip_val = grad_clip_val
         self.eval_statistics = OrderedDict()
         self._n_train_steps_total = 0
         self._need_to_update_eval_statistics = True
