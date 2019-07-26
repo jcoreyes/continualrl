@@ -10,7 +10,7 @@ from torch import nn as nn
 
 from rlkit.exploration_strategies.base import \
     PolicyWrappedWithExplorationStrategy
-from rlkit.exploration_strategies.epsilon_greedy import EpsilonGreedy, EpsilonGreedySchedule
+from rlkit.exploration_strategies.epsilon_greedy import EpsilonGreedy, EpsilonGreedySchedule, EpsilonGreedyDecay
 from rlkit.policies.argmax import ArgmaxDiscretePolicy
 from rlkit.torch.dqn.dqn import DQNTrainer
 from rlkit.torch.networks import Mlp
@@ -19,17 +19,19 @@ from rlkit.data_management.env_replay_buffer import EnvReplayBuffer
 from rlkit.launchers.launcher_util import setup_logger, run_experiment
 from rlkit.samplers.data_collector import MdpPathCollector
 from rlkit.torch.torch_rl_algorithm import TorchBatchRLAlgorithm, TorchLifetimeRLAlgorithm
-from rlkit.envs.gym_minigrid.gym_minigrid import *
-# from variants.dqn_lifetime.dqn_easy_mlp_variant import variant, gen_network
-# from variants.dqn_expl.dqn_expl_medium8_mlp_variant import variant, gen_network
-from variants.dqn_expl.dqn_expl_medium8_mlp_partial_variant import variant, gen_network
+
+# from variants.dqn.dqn_medium8_mlp_task_variant import variant, gen_network
+# from variants.dqn.dqn_medium8_gridconv_task_partial_variant import variant, gen_network
+from variants.dqn_lifetime.dqn_medium8_gridconv_task_partial_variant import variant, gen_network
 
 
 def schedule(t):
-    return max(1 - 1e-3 * t, 0.05)
+    return max(1 - 5e-4 * t, 0.05)
 
 
 def experiment(variant):
+    from rlkit.envs.gym_minigrid.gym_minigrid import envs
+
     expl_env = gym.make(variant['env_name'])
     eval_env = gym.make(variant['env_name'])
     obs_dim = expl_env.observation_space.low.size
@@ -44,18 +46,23 @@ def experiment(variant):
     # eval_policy = ArgmaxDiscretePolicy(qf)
     eval_policy = SoftmaxQPolicy(qf)
     expl_policy = PolicyWrappedWithExplorationStrategy(
-        EpsilonGreedySchedule(expl_env.action_space, schedule),
+        EpsilonGreedyDecay(expl_env.action_space, 5e-4, 1, 0.05),
         eval_policy,
     )
+    # expl_policy = PolicyWrappedWithExplorationStrategy(
+    #     EpsilonGreedy(expl_env.action_space, 0.5),
+    #     eval_policy,
+    # )
     collector_class = LifetimeMdpPathCollector if lifetime else MdpPathCollector
     eval_path_collector = collector_class(
         eval_env,
         eval_policy,
-        # render=True
+        render=True
     )
     expl_path_collector = collector_class(
         expl_env,
         expl_policy,
+        render=lifetime
     )
     trainer = DoubleDQNTrainer(
         qf=qf,
@@ -85,18 +92,18 @@ def experiment(variant):
 if __name__ == "__main__":
     exp_prefix = 'food-dqn'
 
-    setup_logger(exp_prefix, variant=variant)
-    ptu.set_gpu_mode(True)  # optionally set the GPU (default=False)
-    experiment(variant)
+    # setup_logger(exp_prefix, variant=variant)
+    # ptu.set_gpu_mode(True)  # optionally set the GPU (default=False)
+    # experiment(variant)
 
-    # mode = 'ec2'
-    #
-    # run_experiment(
-    #     experiment,
-    #     exp_prefix=exp_prefix,
-    #     mode=mode,
-    #     variant=variant,
-    #     use_gpu=False,
-    #     region='us-west-2',
-    #     num_exps_per_instance=3
-    # )
+    mode = 'local'
+
+    run_experiment(
+        experiment,
+        exp_prefix=exp_prefix,
+        mode=mode,
+        variant=variant,
+        use_gpu=False,
+        region='us-west-2',
+        num_exps_per_instance=3
+    )

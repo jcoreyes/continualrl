@@ -13,7 +13,7 @@ from gym_minigrid.rendering import *
 CELL_PIXELS = 32
 
 # Number of cells (width and height) in the agent view
-AGENT_VIEW_SIZE = 7
+AGENT_VIEW_SIZE = 5
 
 # Size of the array given as an observation to the agent
 OBS_ARRAY_SIZE = (AGENT_VIEW_SIZE, AGENT_VIEW_SIZE, 5)
@@ -1703,24 +1703,25 @@ class MiniGridAbsoluteEnv(gym.Env):
 		r_vec = DIR_TO_VEC['east']
 		top_left = self.agent_pos + f_vec * (AGENT_VIEW_SIZE // 2) - r_vec * (AGENT_VIEW_SIZE // 2)
 
-		# For each cell in the visibility mask
-		for vis_j in range(0, AGENT_VIEW_SIZE):
-			for vis_i in range(0, AGENT_VIEW_SIZE):
-				# If this cell is not visible, don't highlight it
-				if not vis_mask[vis_i, vis_j]:
-					continue
+		if not getattr(self, 'fully_observed', False):
+			# For each cell in the visibility mask
+			for vis_j in range(0, AGENT_VIEW_SIZE):
+				for vis_i in range(0, AGENT_VIEW_SIZE):
+					# If this cell is not visible, don't highlight it
+					if not vis_mask[vis_i, vis_j]:
+						continue
 
-				# Compute the world coordinates of this cell
-				abs_i, abs_j = top_left - (f_vec * vis_j) + (r_vec * vis_i)
+					# Compute the world coordinates of this cell
+					abs_i, abs_j = top_left - (f_vec * vis_j) + (r_vec * vis_i)
 
-				# Highlight the cell
-				r.fillRect(
-					abs_i * CELL_PIXELS,
-					abs_j * CELL_PIXELS,
-					CELL_PIXELS,
-					CELL_PIXELS,
-					255, 255, 255, 75
-				)
+					# Highlight the cell
+					r.fillRect(
+						abs_i * CELL_PIXELS,
+						abs_j * CELL_PIXELS,
+						CELL_PIXELS,
+						CELL_PIXELS,
+						255, 255, 255, 75
+					)
 
 		r.endFrame()
 		if save is not None:

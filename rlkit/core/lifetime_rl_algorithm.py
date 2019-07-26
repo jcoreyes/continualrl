@@ -84,14 +84,14 @@ class LifetimeRLAlgorithm(BaseRLAlgorithm, metaclass=abc.ABCMeta):
             self.training_mode(False)
             done = np.any(new_expl_path['terminals'])
 
-            total_infos = {}
-            for info in new_expl_path['env_infos']:
-                for k, v in info:
-                    total_infos[k] = total_infos.get(k, 0) + v
-            logger.record_dict(
-                total_infos,
-                prefix='mined/'
-            )
+            # total_infos = {}
+            # for info in new_expl_path['env_infos']:
+            #     for k, v in info.items():
+            #         total_infos[k] = total_infos.get(k, 0) + v
+            # logger.record_dict(
+            #     total_infos,
+            #     prefix='mined/'
+            # )
 
             print('Ending epoch')
             self._end_epoch(num_loops-1, incl_eval=False)

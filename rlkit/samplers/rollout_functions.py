@@ -133,12 +133,12 @@ def rollout(
         agent_infos.append(agent_info)
         env_infos.append(env_info)
         path_length += 1
-        if d:
-            break
         o = next_o
         if render:
             env.render(**render_kwargs)
             time.sleep(0.1)
+        if d:
+            break
 
     actions = np.array(actions)
     if len(actions.shape) == 1:

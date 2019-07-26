@@ -1,4 +1,5 @@
-from rlkit.policies.network_food import FoodNetworkEasy, FoodNetworkMediumFullObs
+from rlkit.policies.network_food import FoodNetworkEasy, FoodNetworkMediumFullObs, \
+	FoodNetworkMediumPartialObsTask
 from rlkit.pythonplusplus import identity
 from rlkit.torch.conv_networks import CNN
 from rlkit.torch.networks import FlattenMlp, Mlp
@@ -6,7 +7,7 @@ from torch.nn import functional as F
 
 
 variant = dict(
-		env_name="MiniGrid-Food-8x8-Medium-1Inv-2Tier-Dense-v1",
+		env_name="MiniGrid-Food-8x8-Medium-1Inv-2Tier-Dense-Partial-Fixed-v1",
 		# env_name="MiniGrid-Food-8x8-Medium-1Inv-2Tier-Dense-v1",
 		algorithm="DQN-Exploration",
 		version="normal",
@@ -24,17 +25,18 @@ variant = dict(
 		trainer_kwargs=dict(
 			discount=0.99,
 			learning_rate=1E-3,
-			soft_target_tau=3E-4
+			soft_target_tau=3E-4,
+			# grad_clip_val=5
 		),
 		inventory_network_kwargs=dict(
-			# pantry: 400, shelf: 8, health:1, pos:2
-			input_size=411,
-			output_size=64,
-			hidden_sizes=[128, 128],
+			# shelf: 8
+			input_size=8,
+			output_size=8,
+			hidden_sizes=[8, 8],
 		),
 		full_img_network_kwargs=dict(
-			# 8 x 8 x 2
-			input_size=128,
+			# 7 x 7 x 2
+			input_size=98,
 			output_size=32,
 			hidden_sizes=[64, 64]
 		)
@@ -42,8 +44,8 @@ variant = dict(
 
 
 def gen_network(variant, action_dim, layer_size, policy=False):
-	return FoodNetworkMediumFullObs(
-		full_img_network=Mlp(**variant['full_img_network_kwargs']),
+	return FoodNetworkMediumPartialObsTask(
+		img_network=Mlp(**variant['full_img_network_kwargs']),
 		inventory_network=FlattenMlp(**variant['inventory_network_kwargs']),
 		final_network=FlattenMlp(
 			input_size=variant['full_img_network_kwargs']['output_size']
@@ -54,12 +56,6 @@ def gen_network(variant, action_dim, layer_size, policy=False):
 		),
 		sizes=[
 			variant['full_img_network_kwargs']['input_size'],
-			# health dim
-			1,
-			# agent pos dim
-			2,
-			# pantry dim
-			400,
 			# shelf dim
 			8
 		]
