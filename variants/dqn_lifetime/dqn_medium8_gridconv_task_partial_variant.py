@@ -8,7 +8,8 @@ from torch.nn import functional as F
 
 
 variant = dict(
-		env_name="MiniGrid-Food-8x8-Medium-1Inv-2Tier-OneTime-Partial-Fixed-v1",
+		# env_name="MiniGrid-Food-16x16-Medium-1Inv-2Tier-OneTime-Partial-Fixed-Lifespan200-v1",
+		env_name="MiniGrid-Food-8x8-Medium-1Inv-2Tier-OneTime-Partial-Fixed-Lifespan500-v1",
 		algorithm="DQN Lifetime",
 		lifetime=True,
 		version="normal",

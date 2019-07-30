@@ -2,6 +2,7 @@
 
 from __future__ import division, print_function
 
+import pickle
 import sys
 import numpy
 import gym
@@ -9,6 +10,8 @@ import time
 from optparse import OptionParser
 
 import gym_minigrid
+from rlkit.torch.core import torch_ify
+
 
 def main():
 	parser = OptionParser()
@@ -19,10 +22,20 @@ def main():
 		help="gym environment to load",
 		default='MiniGrid-MultiRoom-N6-v0'
 	)
+	parser.add_option(
+		"-q",
+		"--qfunc",
+		dest="qf",
+		help="path to pickle file of q network to load",
+		default=None
+	)
 	(options, args) = parser.parse_args()
 
 	# Load the gym environment
 	env = gym.make(options.env_name)
+	pkl = options.qf
+	params = pickle.load(open(pkl, 'rb'))
+	qf = params['trainer/qf']
 
 	def resetEnv():
 		env.reset()
@@ -77,6 +90,8 @@ def main():
 			return
 
 		obs, reward, done, info = env.step(action)
+		if qf is not None:
+			print(qf(torch_ify(obs)).data.numpy()[0])
 
 		print('step=%s, reward=%.2f, health=%d' % (env.step_count, reward, env.health))
 

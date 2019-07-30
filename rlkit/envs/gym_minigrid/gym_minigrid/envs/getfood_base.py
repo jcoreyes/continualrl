@@ -100,8 +100,9 @@ class FoodEnvBase(MiniGridAbsoluteEnv):
 		full_img = self.get_full_img(scale=1 if self.fully_observed else 1 / 8)
 
 		if self.one_hot_obs:
-			img = np.concatenate([np.eye(len(self.object_to_idx))[ch].transpose(2, 0, 1) for ch in img])
-			full_img = np.concatenate([np.eye(len(self.object_to_idx))[ch].transpose(2, 0, 1) for ch in full_img])
+			# ignore second channel since redundant (due to one-to-one mapping btwn color and obj type for now)
+			img = np.concatenate([np.eye(len(self.object_to_idx))[ch].transpose(2, 0, 1) for ch in img[:1]])
+			full_img = np.concatenate([np.eye(len(self.object_to_idx))[ch].transpose(2, 0, 1) for ch in full_img[:1]])
 
 		rwd = self._reward()
 
@@ -145,8 +146,9 @@ class FoodEnvBase(MiniGridAbsoluteEnv):
 		full_img = self.get_full_img()
 
 		if self.one_hot_obs:
-			img = np.concatenate([np.eye(len(self.object_to_idx))[ch].transpose(2, 0, 1) for ch in img])
-			full_img = np.concatenate([np.eye(len(self.object_to_idx))[ch].transpose(2, 0, 1) for ch in full_img])
+			# ignore second channel since redundant (due to one-to-one mapping btwn color and obj type for now)
+			img = np.concatenate([np.eye(len(self.object_to_idx))[ch].transpose(2, 0, 1) for ch in img[:1]])
+			full_img = np.concatenate([np.eye(len(self.object_to_idx))[ch].transpose(2, 0, 1) for ch in full_img[:1]])
 
 		if self.fully_observed:
 			if incl_health:

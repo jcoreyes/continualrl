@@ -21,8 +21,8 @@ from rlkit.samplers.data_collector import MdpPathCollector
 from rlkit.torch.torch_rl_algorithm import TorchBatchRLAlgorithm, TorchLifetimeRLAlgorithm
 
 # from variants.dqn.dqn_medium8_mlp_task_variant import variant, gen_network
-# from variants.dqn.dqn_medium8_gridconv_task_partial_variant import variant, gen_network
-from variants.dqn_lifetime.dqn_medium8_gridconv_task_partial_variant import variant, gen_network
+from variants.dqn.dqn_medium8_mlp_task_partial_variant import variant, gen_network
+# from variants.dqn_lifetime.dqn_medium8_gridconv_task_partial_variant import variant, gen_network
 
 
 def schedule(t):
@@ -46,7 +46,7 @@ def experiment(variant):
     # eval_policy = ArgmaxDiscretePolicy(qf)
     eval_policy = SoftmaxQPolicy(qf)
     expl_policy = PolicyWrappedWithExplorationStrategy(
-        EpsilonGreedyDecay(expl_env.action_space, 5e-4, 1, 0.05),
+        EpsilonGreedyDecay(expl_env.action_space, 2e-4, 1, 0.1),
         eval_policy,
     )
     # expl_policy = PolicyWrappedWithExplorationStrategy(
