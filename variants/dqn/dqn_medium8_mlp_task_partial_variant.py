@@ -7,36 +7,36 @@ from torch.nn import functional as F
 
 
 variant = dict(
-		env_name="MiniGrid-Food-8x8-Medium-1Inv-2Tier-Dense-Partial-Fixed-v1",
+		env_name="MiniGrid-Food-8x8-Medium-1Inv-2Tier-Dense-Partial-Fixed-NoEnd-v1",
 		# env_name="MiniGrid-Food-8x8-Medium-1Inv-2Tier-Dense-v1",
 		algorithm="DQN-Exploration",
 		version="normal",
-		layer_size=256,
-		replay_buffer_size=int(1E5),
+		layer_size=16,
+		replay_buffer_size=int(5E5),
 		algorithm_kwargs=dict(
 			num_epochs=1500,
 			num_eval_steps_per_epoch=5000,
 			num_trains_per_train_loop=1000,
 			num_expl_steps_per_train_loop=1000,
 			min_num_steps_before_training=1000,
-			max_path_length=300,
-			batch_size=256,
+			max_path_length=100,
+			batch_size=512,
 		),
 		trainer_kwargs=dict(
 			discount=0.99,
-			learning_rate=1E-3,
+			learning_rate=1E-5,
 			soft_target_tau=3E-4,
-			# grad_clip_val=5
+			grad_clip_val=5
 		),
 		inventory_network_kwargs=dict(
-			# shelf: 8
-			input_size=8,
-			output_size=8,
-			hidden_sizes=[8, 8],
+			# shelf: 8 x 8
+			input_size=64,
+			output_size=16,
+			hidden_sizes=[16, 16],
 		),
 		full_img_network_kwargs=dict(
-			# 7 x 7 x 2
-			input_size=98,
+			# 5 x 5 x 8
+			input_size=200,
 			output_size=32,
 			hidden_sizes=[64, 64]
 		)
@@ -57,6 +57,6 @@ def gen_network(variant, action_dim, layer_size, policy=False):
 		sizes=[
 			variant['full_img_network_kwargs']['input_size'],
 			# shelf dim
-			8
+			64
 		]
 	)
