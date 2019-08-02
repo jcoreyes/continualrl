@@ -1,3 +1,5 @@
+import math
+
 from rlkit.policies.network_food import FoodNetworkEasy, FoodNetworkMediumFullObs, \
 	FoodNetworkMediumPartialObsTask
 from rlkit.pythonplusplus import identity
@@ -12,6 +14,7 @@ variant = dict(
 		env_name="MiniGrid-Food-8x8-Medium-1Inv-2Tier-OneTime-Partial-Lifespan100-v1",
 		algorithm="DQN",
 		version="normal",
+		lifetime=True,
 		layer_size=16,
 		replay_buffer_size=int(5E5),
 		algorithm_kwargs=dict(
@@ -20,7 +23,7 @@ variant = dict(
 			num_trains_per_train_loop=1000,
 			num_expl_steps_per_train_loop=1000,
 			min_num_steps_before_training=1000,
-			max_path_length=100,
+			max_path_length=math.inf,
 			batch_size=512,
 		),
 		trainer_kwargs=dict(

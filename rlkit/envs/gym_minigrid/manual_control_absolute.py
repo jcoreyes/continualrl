@@ -34,8 +34,9 @@ def main():
 	# Load the gym environment
 	env = gym.make(options.env_name)
 	pkl = options.qf
-	params = pickle.load(open(pkl, 'rb'))
-	qf = params['trainer/qf']
+	if pkl is not None:
+		params = pickle.load(open(pkl, 'rb'))
+		qf = params['trainer/qf']
 
 	def resetEnv():
 		env.reset()
@@ -90,7 +91,7 @@ def main():
 			return
 
 		obs, reward, done, info = env.step(action)
-		if qf is not None:
+		if pkl is not None:
 			print(qf(torch_ify(obs)).data.numpy()[0])
 
 		print('step=%s, reward=%.2f, health=%d' % (env.step_count, reward, env.health))

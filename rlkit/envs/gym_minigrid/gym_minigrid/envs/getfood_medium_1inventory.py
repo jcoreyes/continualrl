@@ -366,9 +366,13 @@ class FoodEnvMedium1Inv(FoodEnvBase):
 		return False
 
 	def get_make_reward(self):
+		NEG_RWD = -100
+		POS_RWD = 100
+		MED_RWD = 1
+
 		reward = 0
 		if self.make_rtype == 'sparse':
-			reward = 2 * int(self.solved_task())
+			reward = POS_RWD * int(self.solved_task())
 		elif self.make_rtype in ['dense', 'waypoint']:
 			carry_idx = self.make_sequence.index(self.carrying.type) if self.carrying and self.carrying.type in self.make_sequence else -1
 			place_idx = self.make_sequence.index(self.last_placed_on.type) if self.last_placed_on and self.last_placed_on.type in self.make_sequence else -1
@@ -379,18 +383,18 @@ class FoodEnvMedium1Inv(FoodEnvBase):
 			cur_idx = max(carry_idx, just_made_idx)
 
 			if idx == len(self.make_sequence) - 1:
-				reward = 2
+				reward = POS_RWD
 				self.max_make_idx = idx
 			elif idx == self.max_make_idx + 1:
-				reward = 1
+				reward = MED_RWD
 				self.max_make_idx = idx
 				# return reward
 			elif made_idx > self.max_make_idx:
-				reward = 1
+				reward = MED_RWD
 				self.max_make_idx = made_idx
 			elif self.make_rtype == 'dense':
 				if cur_idx < self.last_idx:
-					reward = -2
+					reward = NEG_RWD
 				else:
 					next_pos = self.get_closest_obj_pos(self.make_sequence[true_idx + 1])
 					if next_pos is not None:
@@ -403,20 +407,22 @@ class FoodEnvMedium1Inv(FoodEnvBase):
 				just_made_idx = self.make_sequence.index(self.just_made_obj_type) if self.just_made_obj_type in self.make_sequence else -1
 				max_idx = max(carry_idx, just_made_idx)
 				if carry_idx == len(self.make_sequence) - 1:
-					reward = 2
+					reward = POS_RWD
 					self.onetime_reward_sequence = [False for _ in range(len(self.make_sequence))]
 					self.num_solves += 1
 					# remove the created goal object
 					self.carrying = None
-					self.max_make_idx = -1
 					self.last_idx = -1
+					if self.task[0] == 'make_lifelong':
+						# otherwise messes with progress metric
+						self.max_make_idx = -1
 				elif max_idx != -1 and not self.onetime_reward_sequence[max_idx]:
-					reward = 1
+					reward = MED_RWD
 					self.onetime_reward_sequence[max_idx] = True
 				elif max_idx > self.max_make_idx:
 					self.max_make_idx = max_idx
 				elif max_idx < self.last_idx:
-					reward = -2
+					reward = NEG_RWD
 				# only do this if it didn't just solve the task
 				if carry_idx != len(self.make_sequence) - 1:
 					self.last_idx = max_idx
@@ -675,8 +681,8 @@ class FoodEnvMedium1Inv2TierDenseRewardPartialFixed8(FoodEnvMedium1Inv):
 		                 make_rtype='dense', fixed_reset=True, only_partial_obs=True,
 						 init_resources={
 							 # 'food': 6,
-							 'metal': 4,
-							 'energy': 4
+							 'metal': 1,
+							 'energy': 1
 						 })
 
 
@@ -702,6 +708,16 @@ class FoodEnvMedium1Inv2TierOneTimeRewardPartial8Lifespan100(FoodEnvMedium1Inv):
 						 resource_prob={
 							'metal': 0.04,
 							 'energy': 0.04
+						 })
+
+
+class FoodEnvMedium1Inv2TierOneTimeRewardPartial8(FoodEnvMedium1Inv):
+	def __init__(self):
+		super().__init__(grid_size=8, health_cap=1000, gen_resources=False, fully_observed=False, task='make axe',
+		                 make_rtype='one-time', only_partial_obs=True,
+						 init_resources={
+							 'metal': 4,
+							 'energy': 4
 						 })
 
 
@@ -886,6 +902,11 @@ register(
 register(
 	id='MiniGrid-Food-8x8-Medium-1Inv-2Tier-OneTime-Partial-Lifespan100-v1',
 	entry_point='rlkit.envs.gym_minigrid.gym_minigrid.envs:FoodEnvMedium1Inv2TierOneTimeRewardPartial8Lifespan100'
+)
+
+register(
+	id='MiniGrid-Food-8x8-Medium-1Inv-2Tier-OneTime-Partial-v1',
+	entry_point='rlkit.envs.gym_minigrid.gym_minigrid.envs:FoodEnvMedium1Inv2TierOneTimeRewardPartial8'
 )
 
 register(
