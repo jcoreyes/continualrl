@@ -6,7 +6,8 @@ from torch.nn import functional as F
 
 
 variant = dict(
-		env_name="MiniGrid-Food-8x8-Medium-1Inv-2Tier-Dense-Partial-Fixed-v1",
+		env_name="MiniGrid-Food-8x8-Medium-1Inv-2Tier-OneTime-Partial-v1",
+		# env_name="MiniGrid-Food-8x8-Medium-1Inv-2Tier-Dense-Partial-Fixed-v1",
 		# env_name="MiniGrid-Food-8x8-Medium-1Inv-2Tier-Dense-Partial-Random-v1",
 		# env_name="MiniGrid-Food-8x8-Medium-1Inv-2Tier-OneTime-Partial-Lifespan400-v1",
 		algorithm="DQN",
@@ -14,7 +15,7 @@ variant = dict(
 		layer_size=128,
 		replay_buffer_size=int(5E5),
 		algorithm_kwargs=dict(
-			num_epochs=3000,
+			num_epochs=1500,
 			num_eval_steps_per_epoch=5000,
 			num_trains_per_train_loop=1000,
 			num_expl_steps_per_train_loop=1000,
@@ -24,7 +25,7 @@ variant = dict(
 		),
 		trainer_kwargs=dict(
 			discount=0.99,
-			learning_rate=1E-5,
+			learning_rate=1E-4,
 			grad_clip_val=5
 		),
 		inventory_network_kwargs=dict(

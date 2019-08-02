@@ -21,7 +21,7 @@ from rlkit.samplers.data_collector import MdpPathCollector
 from rlkit.torch.torch_rl_algorithm import TorchBatchRLAlgorithm, TorchLifetimeRLAlgorithm
 
 # from variants.dqn.dqn_medium8_mlp_task_variant import variant, gen_network
-from variants.dqn.dqn_medium8_mlp_task_partial_variant import variant, gen_network
+from variants.dqn_lifetime.dqn_medium8_mlp_task_partial_variant import variant, gen_network
 # from variants.dqn_lifetime.dqn_medium8_gridconv_task_partial_variant import variant, gen_network
 
 
@@ -37,14 +37,14 @@ def experiment(variant):
     obs_dim = expl_env.observation_space.low.size
     action_dim = eval_env.action_space.n
     layer_size = variant['layer_size']
-    lifetime = bool(variant.get('lifetime', None))
+    lifetime = variant.get('lifetime', False)
 
     qf = gen_network(variant, action_dim, layer_size)
     target_qf = gen_network(variant, action_dim, layer_size)
 
     qf_criterion = nn.MSELoss()
-    # eval_policy = ArgmaxDiscretePolicy(qf)
-    eval_policy = SoftmaxQPolicy(qf)
+    eval_policy = ArgmaxDiscretePolicy(qf)
+    # eval_policy = SoftmaxQPolicy(qf)
     expl_policy = PolicyWrappedWithExplorationStrategy(
         EpsilonGreedyDecay(expl_env.action_space, 2e-4, 1, 0.1),
         eval_policy,
