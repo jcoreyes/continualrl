@@ -21,8 +21,8 @@ from rlkit.samplers.data_collector import MdpPathCollector
 from rlkit.torch.torch_rl_algorithm import TorchBatchRLAlgorithm, TorchLifetimeRLAlgorithm
 
 # from variants.dqn.dqn_medium8_mlp_task_variant import variant, gen_network
-from variants.dqn_lifetime.dqn_medium8_mlp_task_partial_variant import variant, gen_network
-# from variants.dqn_lifetime.dqn_medium8_gridconv_task_partial_variant import variant, gen_network
+from variants.dqn.dqn_medium8_mlp_task_partial_variant import variant, gen_network
+# from variants.dqn_lifetime.dqn_medium8_mlp_task_partial_variant import variant, gen_network
 
 
 def schedule(t):
