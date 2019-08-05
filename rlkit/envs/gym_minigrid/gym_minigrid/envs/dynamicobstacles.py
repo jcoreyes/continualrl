@@ -2,6 +2,7 @@ from gym_minigrid.minigrid import *
 from gym_minigrid.register import register
 from operator import add
 
+
 class DynamicObstaclesEnv(MiniGridEnv):
     """
     Single-room square grid environment with moving obstacles
@@ -20,10 +21,10 @@ class DynamicObstaclesEnv(MiniGridEnv):
         self.show_obstacles = show_obstacles
 
         # Reduce obstacles if there are too many
-        if n_obstacles <= size/2 + 1:
+        if n_obstacles <= size / 2 + 1:
             self.n_obstacles = int(n_obstacles)
         else:
-            self.n_obstacles = int(size/2)
+            self.n_obstacles = int(size / 2)
         super().__init__(
             grid_size=size,
             max_steps=4 * size * size,
@@ -72,32 +73,38 @@ class DynamicObstaclesEnv(MiniGridEnv):
                 old_pos = self.obstacles[i_obst].cur_pos
                 top = tuple(map(add, old_pos, (-1, -1)))
                 self.grid.set(*old_pos, None)
-                self.place_obj(self.obstacles[i_obst], top=top, size=(3,3), max_tries=100)
+                self.place_obj(self.obstacles[i_obst], top=top, size=(3, 3), max_tries=100)
                 if np.array_equal(self.obstacles[i_obst].cur_pos, self.agent_pos):
                     reward = -1
                     done = True
 
         return obs, reward, done, info
 
+
 class DynamicObstaclesEnv5x5(DynamicObstaclesEnv):
     def __init__(self):
         super().__init__(size=5, n_obstacles=2)
+
 
 class DynamicObstaclesRandomEnv5x5(DynamicObstaclesEnv):
     def __init__(self):
         super().__init__(size=5, agent_start_pos=None, n_obstacles=2)
 
+
 class DynamicObstaclesEnv6x6(DynamicObstaclesEnv):
     def __init__(self):
         super().__init__(size=6, n_obstacles=3)
+
 
 class DynamicObstaclesRandomEnv6x6(DynamicObstaclesEnv):
     def __init__(self):
         super().__init__(size=6, agent_start_pos=None, n_obstacles=3)
 
+
 class DynamicObstaclesEnv16x16(DynamicObstaclesEnv):
     def __init__(self):
         super().__init__(size=16, n_obstacles=8)
+
 
 register(
     id='MiniGrid-Dynamic-Obstacles-5x5-v0',

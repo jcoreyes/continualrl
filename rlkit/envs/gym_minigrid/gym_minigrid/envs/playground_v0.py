@@ -1,6 +1,7 @@
 from gym_minigrid.minigrid import *
 from gym_minigrid.register import register
 
+
 class PlaygroundV0(MiniGridEnv):
     """
     Environment with multiple rooms and random objects.
@@ -16,9 +17,9 @@ class PlaygroundV0(MiniGridEnv):
 
         # Generate the surrounding walls
         self.grid.horz_wall(0, 0)
-        self.grid.horz_wall(0, height-1)
+        self.grid.horz_wall(0, height - 1)
         self.grid.vert_wall(0, 0)
-        self.grid.vert_wall(width-1, 0)
+        self.grid.vert_wall(width - 1, 0)
 
         roomW = width // 3
         roomH = height // 3
@@ -34,16 +35,16 @@ class PlaygroundV0(MiniGridEnv):
                 yB = yT + roomH
 
                 # Bottom wall and door
-                if i+1 < 3:
+                if i + 1 < 3:
                     self.grid.vert_wall(xR, yT, roomH)
-                    pos = (xR, self._rand_int(yT+1, yB-1))
+                    pos = (xR, self._rand_int(yT + 1, yB - 1))
                     color = self._rand_elem(COLOR_NAMES)
                     self.grid.set(*pos, Door(color))
 
                 # Bottom wall and door
-                if j+1 < 3:
+                if j + 1 < 3:
                     self.grid.horz_wall(xL, yB, roomW)
-                    pos = (self._rand_int(xL+1, xR-1), yB)
+                    pos = (self._rand_int(xL + 1, xR - 1), yB)
                     color = self._rand_elem(COLOR_NAMES)
                     self.grid.set(*pos, Door(color))
 
@@ -69,6 +70,7 @@ class PlaygroundV0(MiniGridEnv):
     def step(self, action):
         obs, reward, done, info = MiniGridEnv.step(self, action)
         return obs, reward, done, info
+
 
 register(
     id='MiniGrid-Playground-v0',

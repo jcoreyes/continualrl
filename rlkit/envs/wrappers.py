@@ -134,7 +134,7 @@ class ImageMujocoEnv(ProxyEnv, Env):
         self.observation_space = Box(low=0.0,
                                      high=1.0,
                                      shape=(
-                                     self.image_length * self.history_length,))
+                                         self.image_length * self.history_length,))
 
     def step(self, action):
         # image observation get returned as a flattened 1D array
@@ -225,8 +225,8 @@ class ImageMujocoWithObsEnv(ImageMujocoEnv):
         self.observation_space = Box(low=0.0,
                                      high=1.0,
                                      shape=(
-                                     self.image_length * self.history_length +
-                                     self.wrapped_env.obs_dim,))
+                                         self.image_length * self.history_length +
+                                         self.wrapped_env.obs_dim,))
 
     def _get_obs(self, history_flat, true_state):
         return np.concatenate([history_flat,
@@ -307,4 +307,3 @@ class NormalizedBoxEnv(ProxyEnv):
 
     def __str__(self):
         return "Normalized: %s" % self._wrapped_env
-

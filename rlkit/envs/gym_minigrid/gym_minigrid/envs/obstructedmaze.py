@@ -2,6 +2,7 @@ from gym_minigrid.minigrid import *
 from gym_minigrid.roomgrid import RoomGrid
 from gym_minigrid.register import register
 
+
 class ObstructedMazeEnv(RoomGrid):
     """
     A blue ball is hidden in the maze. Doors may be locked,
@@ -9,13 +10,13 @@ class ObstructedMazeEnv(RoomGrid):
     """
 
     def __init__(self,
-        num_rows,
-        num_cols,
-        num_rooms_visited,
-        seed=None
-    ):
+                 num_rows,
+                 num_cols,
+                 num_rooms_visited,
+                 seed=None
+                 ):
         room_size = 6
-        max_steps = 4*num_rooms_visited*room_size**2
+        max_steps = 4 * num_rooms_visited * room_size ** 2
 
         super().__init__(
             room_size=room_size,
@@ -61,8 +62,8 @@ class ObstructedMazeEnv(RoomGrid):
         if blocked:
             vec = DIR_TO_VEC[door_idx]
             blocking_ball = Ball(self.blocking_ball_color) if blocked else None
-            self.grid.set(door_pos[0]-vec[0], door_pos[1]-vec[1], blocking_ball)
-            
+            self.grid.set(door_pos[0] - vec[0], door_pos[1] - vec[1], blocking_ball)
+
         if locked:
             obj = Key(door.color)
             if key_in_box:
@@ -72,6 +73,7 @@ class ObstructedMazeEnv(RoomGrid):
             self.place_in_room(i, j, obj)
 
         return door, door_pos
+
 
 class ObstructedMaze_1Dlhb(ObstructedMazeEnv):
     """
@@ -101,13 +103,16 @@ class ObstructedMaze_1Dlhb(ObstructedMazeEnv):
         self.obj, _ = self.add_object(1, 0, "ball", color=self.ball_to_find_color)
         self.place_agent(0, 0)
 
+
 class ObstructedMaze_1Dl(ObstructedMaze_1Dlhb):
     def __init__(self, seed=None):
         super().__init__(False, False, seed)
 
+
 class ObstructedMaze_1Dlh(ObstructedMaze_1Dlhb):
     def __init__(self, seed=None):
         super().__init__(True, False, seed)
+
 
 class ObstructedMaze_Full(ObstructedMazeEnv):
     """
@@ -146,8 +151,8 @@ class ObstructedMaze_Full(ObstructedMazeEnv):
             for k in [-1, 1]:
                 # Add a door to each side of the side room
                 self.add_door(*side_room, locked=True,
-                              door_idx=(i+k)%4,
-                              color=self.door_colors[(i+k)%len(self.door_colors)],
+                              door_idx=(i + k) % 4,
+                              color=self.door_colors[(i + k) % len(self.door_colors)],
                               key_in_box=self.key_in_box,
                               blocked=self.blocked)
 
@@ -157,9 +162,11 @@ class ObstructedMaze_Full(ObstructedMazeEnv):
         self.obj, _ = self.add_object(*ball_room, "ball", color=self.ball_to_find_color)
         self.place_agent(*self.agent_room)
 
+
 class ObstructedMaze_2Dl(ObstructedMaze_Full):
     def __init__(self, seed=None):
         super().__init__((2, 1), False, False, 1, 4, seed)
+
 
 class ObstructedMaze_2Dlh(ObstructedMaze_Full):
     def __init__(self, seed=None):
@@ -170,13 +177,16 @@ class ObstructedMaze_2Dlhb(ObstructedMaze_Full):
     def __init__(self, seed=None):
         super().__init__((2, 1), True, True, 1, 4, seed)
 
+
 class ObstructedMaze_1Q(ObstructedMaze_Full):
     def __init__(self, seed=None):
         super().__init__((1, 1), True, True, 1, 5, seed)
 
+
 class ObstructedMaze_2Q(ObstructedMaze_Full):
     def __init__(self, seed=None):
         super().__init__((1, 1), True, True, 2, 11, seed)
+
 
 register(
     id="MiniGrid-ObstructedMaze-1Dl-v0",

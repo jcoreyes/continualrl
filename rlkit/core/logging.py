@@ -302,4 +302,3 @@ class Logger(object):
 
 
 logger = Logger()
-

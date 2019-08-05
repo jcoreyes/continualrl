@@ -41,8 +41,8 @@ class DDPG(TorchRLAlgorithm):
             plotter=None,
             render_eval_paths=False,
 
-            obs_normalizer: TorchFixedNormalizer=None,
-            action_normalizer: TorchFixedNormalizer=None,
+            obs_normalizer: TorchFixedNormalizer = None,
+            action_normalizer: TorchFixedNormalizer = None,
             num_paths_for_normalization=0,
 
             min_q_value=-np.inf,
@@ -130,13 +130,13 @@ class DDPG(TorchRLAlgorithm):
                 obs, return_preactivations=True,
             )
             pre_activation_policy_loss = (
-                (pre_tanh_value**2).sum(dim=1).mean()
+                (pre_tanh_value ** 2).sum(dim=1).mean()
             )
             q_output = self.qf(obs, policy_actions)
             raw_policy_loss = - q_output.mean()
             policy_loss = (
-                raw_policy_loss +
-                pre_activation_policy_loss * self.policy_pre_activation_weight
+                    raw_policy_loss +
+                    pre_activation_policy_loss * self.policy_pre_activation_weight
             )
         else:
             policy_actions = self.policy(obs)
@@ -159,7 +159,7 @@ class DDPG(TorchRLAlgorithm):
         q_target = torch.clamp(q_target, self.min_q_value, self.max_q_value)
         # Hack for ICLR rebuttal
         if hasattr(self, 'reward_type') and self.reward_type == 'indicator':
-            q_target = torch.clamp(q_target, -self.reward_scale/(1-self.discount), 0)
+            q_target = torch.clamp(q_target, -self.reward_scale / (1 - self.discount), 0)
         q_pred = self.qf(obs, actions)
         bellman_errors = (q_pred - q_target) ** 2
         raw_qf_loss = self.qf_criterion(q_pred, q_target)
@@ -173,15 +173,15 @@ class DDPG(TorchRLAlgorithm):
                 residual_next_actions,
             )
             residual_q_target = (
-                rewards
-                + (1. - terminals) * self.discount * residual_target_q_values
+                    rewards
+                    + (1. - terminals) * self.discount * residual_target_q_values
             )
             residual_bellman_errors = (q_pred - residual_q_target) ** 2
             # noinspection PyUnresolvedReferences
             residual_qf_loss = residual_bellman_errors.mean()
             raw_qf_loss = (
-                self.residual_gradient_weight * residual_qf_loss
-                + (1 - self.residual_gradient_weight) * raw_qf_loss
+                    self.residual_gradient_weight * residual_qf_loss
+                    + (1 - self.residual_gradient_weight) * raw_qf_loss
             )
 
         if self.qf_weight_decay > 0:
@@ -220,8 +220,8 @@ class DDPG(TorchRLAlgorithm):
                 raw_policy_loss
             ))
             self.eval_statistics['Preactivation Policy Loss'] = (
-                self.eval_statistics['Policy Loss'] -
-                self.eval_statistics['Raw Policy Loss']
+                    self.eval_statistics['Policy Loss'] -
+                    self.eval_statistics['Raw Policy Loss']
             )
             self.eval_statistics.update(create_stats_ordered_dict(
                 'Q Predictions',
@@ -271,8 +271,8 @@ class DDPG(TorchRLAlgorithm):
 
     def pretrain(self):
         if (
-            self.num_paths_for_normalization == 0
-            or (self.obs_normalizer is None and self.action_normalizer is None)
+                self.num_paths_for_normalization == 0
+                or (self.obs_normalizer is None and self.action_normalizer is None)
         ):
             return
 

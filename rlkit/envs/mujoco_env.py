@@ -16,6 +16,7 @@ class MujocoEnv(mujoco_env.MujocoEnv, Serializable):
 
     The caller needs to declare
     """
+
     def __init__(
             self,
             model_path,

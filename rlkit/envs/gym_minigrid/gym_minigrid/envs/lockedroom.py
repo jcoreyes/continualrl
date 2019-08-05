@@ -2,12 +2,13 @@ from gym import spaces
 from gym_minigrid.minigrid import *
 from gym_minigrid.register import register
 
+
 class Room:
     def __init__(self,
-        top,
-        size,
-        doorPos
-    ):
+                 top,
+                 size,
+                 doorPos
+                 ):
         self.top = top
         self.size = size
         self.doorPos = doorPos
@@ -22,6 +23,7 @@ class Room:
             topY + 1, topY + sizeY - 1
         )
 
+
 class LockedRoom(MiniGridEnv):
     """
     Environment in which the agent is instructed to go to a given object
@@ -29,10 +31,10 @@ class LockedRoom(MiniGridEnv):
     """
 
     def __init__(
-        self,
-        size=19
+            self,
+            size=19
     ):
-        super().__init__(grid_size=size, max_steps=10*size)
+        super().__init__(grid_size=size, max_steps=10 * size)
 
     def _gen_grid(self, width, height):
         # Create the grid
@@ -41,10 +43,10 @@ class LockedRoom(MiniGridEnv):
         # Generate the surrounding walls
         for i in range(0, width):
             self.grid.set(i, 0, Wall())
-            self.grid.set(i, height-1, Wall())
+            self.grid.set(i, height - 1, Wall())
         for j in range(0, height):
             self.grid.set(0, j, Wall())
-            self.grid.set(width-1, j, Wall())
+            self.grid.set(width - 1, j, Wall())
 
         # Hallway walls
         lWallIdx = width // 2 - 2
@@ -104,19 +106,20 @@ class LockedRoom(MiniGridEnv):
         # Randomize the player start position and orientation
         self.start_pos = self.place_agent(
             top=(lWallIdx, 0),
-            size=(rWallIdx-lWallIdx, height)
+            size=(rWallIdx - lWallIdx, height)
         )
 
         # Generate the mission string
         self.mission = (
-            'get the %s key from the %s room, '
-            'unlock the %s door and '
-            'go to the goal'
-        ) % (lockedRoom.color, keyRoom.color, lockedRoom.color)
+                           'get the %s key from the %s room, '
+                           'unlock the %s door and '
+                           'go to the goal'
+                       ) % (lockedRoom.color, keyRoom.color, lockedRoom.color)
 
     def step(self, action):
         obs, reward, done, info = MiniGridEnv.step(self, action)
         return obs, reward, done, info
+
 
 register(
     id='MiniGrid-LockedRoom-v0',

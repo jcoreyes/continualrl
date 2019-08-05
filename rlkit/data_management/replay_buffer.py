@@ -91,4 +91,3 @@ class ReplayBuffer(object, metaclass=abc.ABCMeta):
 
     def end_epoch(self, epoch):
         return
-

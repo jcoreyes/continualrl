@@ -2,6 +2,7 @@ from gym_minigrid.minigrid import Ball
 from gym_minigrid.roomgrid import RoomGrid
 from gym_minigrid.register import register
 
+
 class BlockedUnlockPickup(RoomGrid):
     """
     Unlock a door blocked by a ball, then pick up a box
@@ -14,7 +15,7 @@ class BlockedUnlockPickup(RoomGrid):
             num_rows=1,
             num_cols=2,
             room_size=room_size,
-            max_steps=16*room_size**2,
+            max_steps=16 * room_size ** 2,
             seed=seed
         )
 
@@ -27,7 +28,7 @@ class BlockedUnlockPickup(RoomGrid):
         door, pos = self.add_door(0, 0, 0, locked=True)
         # Block the door with a ball
         color = self._rand_color()
-        self.grid.set(pos[0]-1, pos[1], Ball(color))
+        self.grid.set(pos[0] - 1, pos[1], Ball(color))
         # Add a key to unlock the door
         self.add_object(0, 0, 'key', door.color)
 
@@ -45,6 +46,7 @@ class BlockedUnlockPickup(RoomGrid):
                 done = True
 
         return obs, reward, done, info
+
 
 register(
     id='MiniGrid-BlockedUnlockPickup-v0',

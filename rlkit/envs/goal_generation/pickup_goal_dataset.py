@@ -18,7 +18,7 @@ def setup_pickup_image_env(image_env, num_presampled_goals):
                                                   num_presampled_goals)
     image_env._presampled_goals = presampled_goals
     image_env.num_goals_presampled = \
-    presampled_goals[random.choice(list(presampled_goals))].shape[0]
+        presampled_goals[random.choice(list(presampled_goals))].shape[0]
 
 
 def get_image_presampled_goals_from_vae_env(env, num_presampled_goals,

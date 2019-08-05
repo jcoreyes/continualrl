@@ -109,7 +109,7 @@ class SACTrainer(TorchTrainer):
             self.qf1(obs, new_obs_actions),
             self.qf2(obs, new_obs_actions),
         )
-        policy_loss = (alpha*log_pi - q_new_actions).mean()
+        policy_loss = (alpha * log_pi - q_new_actions).mean()
 
         """
         QF Loss
@@ -224,4 +224,3 @@ class SACTrainer(TorchTrainer):
             target_qf1=self.qf1,
             target_qf2=self.qf2,
         )
-

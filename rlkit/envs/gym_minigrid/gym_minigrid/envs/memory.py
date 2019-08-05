@@ -1,6 +1,7 @@
 from gym_minigrid.minigrid import *
 from gym_minigrid.register import register
 
+
 class MemoryEnv(MiniGridEnv):
     """
     This environment is a memory test. The agent starts in a small room
@@ -12,16 +13,16 @@ class MemoryEnv(MiniGridEnv):
     """
 
     def __init__(
-        self,
-        seed,
-        size=8,
-        random_length=False,
+            self,
+            seed,
+            size=8,
+            random_length=False,
     ):
         self.random_length = random_length
         super().__init__(
             seed=seed,
             grid_size=size,
-            max_steps=5*size**2,
+            max_steps=5 * size ** 2,
             # Set this to True for maximum speed
             see_through_walls=False,
         )
@@ -31,7 +32,7 @@ class MemoryEnv(MiniGridEnv):
 
         # Generate the surrounding walls
         self.grid.horz_wall(0, 0)
-        self.grid.horz_wall(0, height-1)
+        self.grid.horz_wall(0, height - 1)
         self.grid.vert_wall(0, 0)
         self.grid.vert_wall(width - 1, 0)
 
@@ -99,54 +100,66 @@ class MemoryEnv(MiniGridEnv):
 
         return obs, reward, done, info
 
+
 class MemoryS17Random(MemoryEnv):
     def __init__(self, seed=None):
         super().__init__(seed=seed, size=17, random_length=True)
+
 
 register(
     id='MiniGrid-MemoryS17Random-v0',
     entry_point='gym_minigrid.envs:MemoryS17Random',
 )
 
+
 class MemoryS13Random(MemoryEnv):
     def __init__(self, seed=None):
         super().__init__(seed=seed, size=13, random_length=True)
+
 
 register(
     id='MiniGrid-MemoryS13Random-v0',
     entry_point='gym_minigrid.envs:MemoryS13Random',
 )
 
+
 class MemoryS13(MemoryEnv):
     def __init__(self, seed=None):
         super().__init__(seed=seed, size=13)
+
 
 register(
     id='MiniGrid-MemoryS13-v0',
     entry_point='gym_minigrid.envs:MemoryS13',
 )
 
+
 class MemoryS11(MemoryEnv):
     def __init__(self, seed=None):
         super().__init__(seed=seed, size=11)
+
 
 register(
     id='MiniGrid-MemoryS11-v0',
     entry_point='gym_minigrid.envs:MemoryS11',
 )
 
+
 class MemoryS9(MemoryEnv):
     def __init__(self, seed=None):
         super().__init__(seed=seed, size=9)
+
 
 register(
     id='MiniGrid-MemoryS9-v0',
     entry_point='gym_minigrid.envs:MemoryS9',
 )
 
+
 class MemoryS7(MemoryEnv):
     def __init__(self, seed=None):
         super().__init__(seed=seed, size=7)
+
 
 register(
     id='MiniGrid-MemoryS7-v0',

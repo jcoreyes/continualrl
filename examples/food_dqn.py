@@ -21,7 +21,9 @@ from rlkit.samplers.data_collector import MdpPathCollector
 from rlkit.torch.torch_rl_algorithm import TorchBatchRLAlgorithm, TorchLifetimeRLAlgorithm
 
 # from variants.dqn.dqn_medium8_mlp_task_variant import variant, gen_network
-from variants.dqn.dqn_medium8_mlp_task_partial_variant import variant, gen_network
+from variants.dqn.dqn_mlp_goal_partial_variant import variant, gen_network
+
+
 # from variants.dqn_lifetime.dqn_medium8_mlp_task_partial_variant import variant, gen_network
 
 
@@ -57,7 +59,7 @@ def experiment(variant):
     eval_path_collector = collector_class(
         eval_env,
         eval_policy,
-        render=True
+        # render=True
     )
     expl_path_collector = collector_class(
         expl_env,

@@ -110,9 +110,8 @@ if __name__ == "__main__":
                 N=10,
                 oracle_dataset=True,
                 use_cached=False,
-                num_channels=3*num_images,
+                num_channels=3 * num_images,
             ),
-
 
             algo_kwargs=dict(
                 start_skew_epoch=12000,

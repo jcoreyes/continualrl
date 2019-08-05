@@ -114,7 +114,7 @@ class SACDiscreteTrainer(TorchTrainer):
             self.qf1(obs),
             self.qf2(obs),
         )
-        policy_loss = (torch.exp(log_pis) * (alpha*log_pis - q_new_actions)).sum(dim=1).mean()
+        policy_loss = (torch.exp(log_pis) * (alpha * log_pis - q_new_actions)).sum(dim=1).mean()
 
         """
         QF Loss
@@ -231,4 +231,3 @@ class SACDiscreteTrainer(TorchTrainer):
             target_qf1=self.qf1,
             target_qf2=self.qf2,
         )
-
