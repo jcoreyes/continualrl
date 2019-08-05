@@ -2,10 +2,11 @@ from gym.envs.registration import register as gym_register
 
 env_list = []
 
+
 def register(
-    id,
-    entry_point,
-    reward_threshold=0.95
+        id,
+        entry_point,
+        reward_threshold=0.95
 ):
     assert id.startswith("MiniGrid-")
     assert id not in env_list

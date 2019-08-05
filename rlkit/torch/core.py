@@ -58,4 +58,3 @@ def np_to_pytorch_batch(np_batch):
         for k, x in _filter_batch(np_batch)
         if x.dtype != np.dtype('O')  # ignore object (e.g. dictionaries)
     }
-

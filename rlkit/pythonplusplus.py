@@ -26,7 +26,7 @@ def clip_magnitude(value, magnitude):
 
 def is_numeric(x):
     return not isinstance(x, bool) and (
-        isinstance(x, int) or isinstance(x, float)
+            isinstance(x, int) or isinstance(x, float)
     )
 
 
@@ -275,8 +275,8 @@ def filter_recursive(x_or_iterable):
         for sub_elem in x_or_iterable:
             filtered_sub_elem = filter_recursive(sub_elem)
             if filtered_sub_elem is not None and not (
-                        isinstance(filtered_sub_elem, list) and
-                            len(filtered_sub_elem) == 0
+                    isinstance(filtered_sub_elem, list) and
+                    len(filtered_sub_elem) == 0
             ):
                 new_items.append(filtered_sub_elem)
         return new_items

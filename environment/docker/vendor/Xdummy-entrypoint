@@ -17,4 +17,3 @@ else:
 sys.stdout.flush()
 sys.stderr.flush()
 os.execvpe(sys.argv[0], sys.argv, os.environ)
-

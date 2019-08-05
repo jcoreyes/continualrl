@@ -74,7 +74,7 @@ class FoodEnvEasy(FoodEnvBase):
 
     def extra_reset(self):
         if self.her:
-            self.goal_obs_her = np.random.randint(1, self.grid_size-1, size=(2,))
+            self.goal_obs_her = np.random.randint(1, self.grid_size - 1, size=(2,))
             print(self.goal_obs_her)
 
     def place_items(self):
@@ -169,6 +169,7 @@ class FoodEnvEasyFood6Cap2000DecayLifespan30FullObs(FoodEnvEasy):
     def __init__(self):
         super().__init__(food_rate=6, health_cap=2000, food_rate_decay=0.005,
                          lifespan=30, fully_observed=True)
+
 
 register(
     id='MiniGrid-Food-8x8-Empty-FullObs-HER-v1',

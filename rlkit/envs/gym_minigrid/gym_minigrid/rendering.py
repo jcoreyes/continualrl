@@ -5,6 +5,7 @@ from PyQt5.QtCore import QPoint, QSize, QRect
 from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget, QTextEdit
 from PyQt5.QtWidgets import QHBoxLayout, QVBoxLayout, QLabel, QFrame
 
+
 class Window(QMainWindow):
     """
     Simple application window to render the environment into
@@ -114,6 +115,7 @@ class Window(QMainWindow):
         if keyName == None:
             return
         self.keyDownCb(keyName)
+
 
 class Renderer:
     def __init__(self, width, height, ownWindow=False):

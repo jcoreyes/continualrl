@@ -8,6 +8,7 @@ class GaussianStrategy(RawExplorationStrategy):
 
     Based on the rllab implementation.
     """
+
     def __init__(self, action_space, max_sigma=1.0, min_sigma=None,
                  decay_period=1000000):
         assert len(action_space.shape) == 1
@@ -20,8 +21,8 @@ class GaussianStrategy(RawExplorationStrategy):
 
     def get_action_from_raw_action(self, action, t=None, **kwargs):
         sigma = (
-            self._max_sigma - (self._max_sigma - self._min_sigma) *
-            min(1.0, t * 1.0 / self._decay_period)
+                self._max_sigma - (self._max_sigma - self._min_sigma) *
+                min(1.0, t * 1.0 / self._decay_period)
         )
         return np.clip(
             action + np.random.normal(size=len(action)) * sigma,

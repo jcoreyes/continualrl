@@ -90,7 +90,6 @@ def experiment(variant):
     algorithm.train()
 
 
-
 if __name__ == "__main__":
     variant = dict(
         algorithm='HER-SAC',

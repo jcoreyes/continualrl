@@ -2,6 +2,7 @@ from gym_minigrid.minigrid import Ball
 from gym_minigrid.roomgrid import RoomGrid
 from gym_minigrid.register import register
 
+
 class Unlock(RoomGrid):
     """
     Unlock a door
@@ -13,7 +14,7 @@ class Unlock(RoomGrid):
             num_rows=1,
             num_cols=2,
             room_size=room_size,
-            max_steps=8*room_size**2,
+            max_steps=8 * room_size ** 2,
             seed=seed
         )
 
@@ -39,6 +40,7 @@ class Unlock(RoomGrid):
                 done = True
 
         return obs, reward, done, info
+
 
 register(
     id='MiniGrid-Unlock-v0',

@@ -7,6 +7,7 @@ from rlkit.data_management.replay_buffer import ReplayBuffer
 from rlkit.samplers.data_collector import PathCollector
 import numpy as np
 
+
 class LifetimeRLAlgorithm(BaseRLAlgorithm, metaclass=abc.ABCMeta):
     def __init__(
             self,
@@ -62,7 +63,8 @@ class LifetimeRLAlgorithm(BaseRLAlgorithm, metaclass=abc.ABCMeta):
         num_loops = 0
         while not done:
             num_loops += 1
-            print('Steps: %d, health: %d' % (num_loops * self.num_expl_steps_per_train_loop, self.exploration_env.health))
+            print(
+                'Steps: %d, health: %d' % (num_loops * self.num_expl_steps_per_train_loop, self.exploration_env.health))
             new_expl_path = self.expl_data_collector.collect_new_paths(
                 self.max_path_length,
                 self.num_expl_steps_per_train_loop,
@@ -94,4 +96,4 @@ class LifetimeRLAlgorithm(BaseRLAlgorithm, metaclass=abc.ABCMeta):
             # )
 
             print('Ending epoch')
-            self._end_epoch(num_loops-1, incl_eval=False)
+            self._end_epoch(num_loops - 1, incl_eval=False)

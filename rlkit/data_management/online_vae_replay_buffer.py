@@ -203,14 +203,14 @@ class OnlineVaeRelabelingBuffer(SharedObsDictRelabelingBuffer):
                             **self.priority_function_kwargs
                         ).reshape(-1, 1)
                     )
-            obs_sum+= self._obs[self.observation_key][idxs].sum(axis=0)
-            obs_square_sum+= np.power(self._obs[self.observation_key][idxs], 2).sum(axis=0)
+            obs_sum += self._obs[self.observation_key][idxs].sum(axis=0)
+            obs_square_sum += np.power(self._obs[self.observation_key][idxs], 2).sum(axis=0)
 
             cur_idx = next_idx
             next_idx += batch_size
             next_idx = min(next_idx, self._size)
-        self.vae.dist_mu = obs_sum/self._size
-        self.vae.dist_std = np.sqrt(obs_square_sum/self._size - np.power(self.vae.dist_mu, 2))
+        self.vae.dist_mu = obs_sum / self._size
+        self.vae.dist_std = np.sqrt(obs_square_sum / self._size - np.power(self.vae.dist_mu, 2))
 
         if self._prioritize_vae_samples:
             """
@@ -232,9 +232,9 @@ class OnlineVaeRelabelingBuffer(SharedObsDictRelabelingBuffer):
 
     def sample_weighted_indices(self, batch_size):
         if (
-            self._prioritize_vae_samples and
-            self._vae_sample_probs is not None and
-            self.skew
+                self._prioritize_vae_samples and
+                self._vae_sample_probs is not None and
+                self.skew
         ):
             indices = np.random.choice(
                 len(self._vae_sample_probs),
@@ -242,8 +242,8 @@ class OnlineVaeRelabelingBuffer(SharedObsDictRelabelingBuffer):
                 p=self._vae_sample_probs,
             )
             assert (
-                np.max(self._vae_sample_probs) <= 1 and
-                np.min(self._vae_sample_probs) >= 0
+                    np.max(self._vae_sample_probs) <= 1 and
+                    np.min(self._vae_sample_probs) >= 0
             )
         else:
             indices = self._sample_indices(batch_size)
@@ -274,8 +274,8 @@ class OnlineVaeRelabelingBuffer(SharedObsDictRelabelingBuffer):
         )
         next_latent_obs = self._next_obs[self.achieved_goal_key][weighted_idxs]
         return {
-            self.decoded_desired_goal_key:  next_image_obs,
-            self.desired_goal_key:          next_latent_obs
+            self.decoded_desired_goal_key: next_image_obs,
+            self.desired_goal_key: next_latent_obs
         }
 
     def random_vae_training_data(self, batch_size, epoch):

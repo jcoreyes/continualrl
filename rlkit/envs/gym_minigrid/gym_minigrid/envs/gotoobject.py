@@ -1,6 +1,7 @@
 from gym_minigrid.minigrid import *
 from gym_minigrid.register import register
 
+
 class GoToObjectEnv(MiniGridEnv):
     """
     Environment in which the agent is instructed to go to a given object
@@ -8,15 +9,15 @@ class GoToObjectEnv(MiniGridEnv):
     """
 
     def __init__(
-        self,
-        size=6,
-        numObjs=2
+            self,
+            size=6,
+            numObjs=2
     ):
         self.numObjs = numObjs
 
         super().__init__(
             grid_size=size,
-            max_steps=5*size**2,
+            max_steps=5 * size ** 2,
             # Set this to True for maximum speed
             see_through_walls=True
         )
@@ -63,7 +64,7 @@ class GoToObjectEnv(MiniGridEnv):
 
         descStr = '%s %s' % (self.target_color, self.targetType)
         self.mission = 'go to the %s' % descStr
-        #print(self.mission)
+        # print(self.mission)
 
     def step(self, action):
         obs, reward, done, info = MiniGridEnv.step(self, action)
@@ -83,9 +84,11 @@ class GoToObjectEnv(MiniGridEnv):
 
         return obs, reward, done, info
 
+
 class GotoEnv8x8N2(GoToObjectEnv):
     def __init__(self):
         super().__init__(size=8, numObjs=2)
+
 
 register(
     id='MiniGrid-GoToObject-6x6-N2-v0',

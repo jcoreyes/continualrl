@@ -279,13 +279,13 @@ def setup_logger(
 
     if git_infos is not None:
         for (
-            directory, code_diff, code_diff_staged, commit_hash, branch_name
+                directory, code_diff, code_diff_staged, commit_hash, branch_name
         ) in git_infos:
             if directory[-1] == '/':
                 directory = directory[:-1]
             diff_file_name = directory[1:].replace("/", "-") + ".patch"
             diff_staged_file_name = (
-                directory[1:].replace("/", "-") + "_staged.patch"
+                    directory[1:].replace("/", "-") + "_staged.patch"
             )
             if code_diff is not None and len(code_diff) > 0:
                 with open(osp.join(log_dir, diff_file_name), "w") as f:
@@ -385,6 +385,7 @@ def query_yes_no(question, default="yes"):
             sys.stdout.write("Please respond with 'yes' or 'no' "
                              "(or 'y' or 'n').\n")
 
+
 """
 Below is doodad-specific code
 """
@@ -395,6 +396,7 @@ first_sss_launch = True
 try:
     import doodad.mount as mount
     from doodad.utils import REPO_DIR
+
     CODE_MOUNTS = [
         mount.MountLocal(local_dir=REPO_DIR, pythonpath=True),
     ]
@@ -626,7 +628,6 @@ def run_experiment(
     else:
         singularity_image = None
 
-
     """
     Get the mode
     """
@@ -652,7 +653,7 @@ def run_experiment(
     """
     if mode == 'local':
         # TODO suvansh changed
-        dmode = doodad.mode.Local()#skip_wait=skip_wait)
+        dmode = doodad.mode.Local()  # skip_wait=skip_wait)
     elif mode == 'local_docker':
         dmode = doodad.mode.LocalDocker(
             image=docker_image,

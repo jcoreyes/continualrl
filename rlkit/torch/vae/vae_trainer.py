@@ -29,12 +29,13 @@ def relative_probs_from_log_probs(log_probs):
     assert not np.any(probs <= 0), 'choose a smaller power'
     return probs
 
+
 def compute_log_p_log_q_log_d(
-    model,
-    data,
-    decoder_distribution='bernoulli',
-    num_latents_to_sample=1,
-    sampling_method='importance_sampling'
+        model,
+        data,
+        decoder_distribution='bernoulli',
+        num_latents_to_sample=1,
+        sampling_method='importance_sampling'
 ):
     assert data.dtype == np.float64, 'images should be normalized'
     imgs = ptu.from_numpy(data)
@@ -77,13 +78,14 @@ def compute_log_p_log_q_log_d(
         log_d[:, i] = log_d_x_given_z
     return log_p, log_q, log_d
 
+
 def compute_p_x_np_to_np(
-    model,
-    data,
-    power,
-    decoder_distribution='bernoulli',
-    num_latents_to_sample=1,
-    sampling_method='importance_sampling'
+        model,
+        data,
+        power,
+        decoder_distribution='bernoulli',
+        num_latents_to_sample=1,
+        sampling_method='importance_sampling'
 ):
     assert data.dtype == np.float64, 'images should be normalized'
     assert power >= -1 and power <= 0, 'power for skew-fit should belong to [-1, 0]'
@@ -158,9 +160,9 @@ class ConvVAETrainer(object):
         self.lr = lr
         params = list(self.model.parameters())
         self.optimizer = optim.Adam(params,
-            lr=self.lr,
-            weight_decay=weight_decay,
-        )
+                                    lr=self.lr,
+                                    weight_decay=weight_decay,
+                                    )
         self.train_dataset, self.test_dataset = train_dataset, test_dataset
         assert self.train_dataset.dtype == np.uint8
         assert self.test_dataset.dtype == np.uint8

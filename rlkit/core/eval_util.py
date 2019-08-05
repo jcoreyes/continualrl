@@ -74,6 +74,7 @@ def get_average_time_and_num_solve(paths):
                 return step_num, True
             step_num += 1
         return step_num, False
+
     step_nums, solveds = list(zip(*[get_earliest_solve(path) for path in paths]))
     num_solves = sum(solveds)
     avg_time = np.mean(step_nums)

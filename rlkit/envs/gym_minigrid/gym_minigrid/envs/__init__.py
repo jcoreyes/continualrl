@@ -23,3 +23,5 @@ from rlkit.envs.gym_minigrid.gym_minigrid.envs.getfood_easy import *
 from rlkit.envs.gym_minigrid.gym_minigrid.envs.getfood_medium import *
 from rlkit.envs.gym_minigrid.gym_minigrid.envs.getfood_medium_1inventory import *
 from rlkit.envs.gym_minigrid.gym_minigrid.envs.getfood_hard import *
+from rlkit.envs.gym_minigrid.gym_minigrid.envs.getfood_hard_1inventory import *
+from rlkit.envs.gym_minigrid.gym_minigrid.envs.umaze import *

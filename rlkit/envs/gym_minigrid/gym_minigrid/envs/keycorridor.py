@@ -1,6 +1,7 @@
 from gym_minigrid.roomgrid import RoomGrid
 from gym_minigrid.register import register
 
+
 class KeyCorridor(RoomGrid):
     """
     A ball is behind a locked door, the key is placed in a
@@ -8,18 +9,18 @@ class KeyCorridor(RoomGrid):
     """
 
     def __init__(
-        self,
-        num_rows=3,
-        obj_type="ball",
-        room_size=6,
-        seed=None
+            self,
+            num_rows=3,
+            obj_type="ball",
+            room_size=6,
+            seed=None
     ):
         self.obj_type = obj_type
 
         super().__init__(
             room_size=room_size,
             num_rows=num_rows,
-            max_steps=30*room_size**2,
+            max_steps=30 * room_size ** 2,
             seed=seed,
         )
 
@@ -58,6 +59,7 @@ class KeyCorridor(RoomGrid):
 
         return obs, reward, done, info
 
+
 class KeyCorridorS3R1(KeyCorridor):
     def __init__(self, seed=None):
         super().__init__(
@@ -65,6 +67,7 @@ class KeyCorridorS3R1(KeyCorridor):
             num_rows=1,
             seed=seed
         )
+
 
 class KeyCorridorS3R2(KeyCorridor):
     def __init__(self, seed=None):
@@ -74,6 +77,7 @@ class KeyCorridorS3R2(KeyCorridor):
             seed=seed
         )
 
+
 class KeyCorridorS3R3(KeyCorridor):
     def __init__(self, seed=None):
         super().__init__(
@@ -81,6 +85,7 @@ class KeyCorridorS3R3(KeyCorridor):
             num_rows=3,
             seed=seed
         )
+
 
 class KeyCorridorS4R3(KeyCorridor):
     def __init__(self, seed=None):
@@ -90,6 +95,7 @@ class KeyCorridorS4R3(KeyCorridor):
             seed=seed
         )
 
+
 class KeyCorridorS5R3(KeyCorridor):
     def __init__(self, seed=None):
         super().__init__(
@@ -98,6 +104,7 @@ class KeyCorridorS5R3(KeyCorridor):
             seed=seed
         )
 
+
 class KeyCorridorS6R3(KeyCorridor):
     def __init__(self, seed=None):
         super().__init__(
@@ -105,6 +112,7 @@ class KeyCorridorS6R3(KeyCorridor):
             num_rows=3,
             seed=seed
         )
+
 
 register(
     id='MiniGrid-KeyCorridorS3R1-v0',

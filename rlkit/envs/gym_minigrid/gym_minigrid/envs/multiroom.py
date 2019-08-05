@@ -1,17 +1,19 @@
 from gym_minigrid.minigrid import *
 from gym_minigrid.register import register
 
+
 class Room:
     def __init__(self,
-        top,
-        size,
-        entryDoorPos,
-        exitDoorPos
-    ):
+                 top,
+                 size,
+                 entryDoorPos,
+                 exitDoorPos
+                 ):
         self.top = top
         self.size = size
         self.entryDoorPos = entryDoorPos
         self.exitDoorPos = exitDoorPos
+
 
 class MultiRoomEnv(MiniGridEnv):
     """
@@ -19,10 +21,10 @@ class MultiRoomEnv(MiniGridEnv):
     """
 
     def __init__(self,
-        minNumRooms,
-        maxNumRooms,
-        maxRoomSize=10
-    ):
+                 minNumRooms,
+                 maxNumRooms,
+                 maxRoomSize=10
+                 ):
         assert minNumRooms > 0
         assert maxNumRooms >= minNumRooms
         assert maxRoomSize >= 4
@@ -42,7 +44,7 @@ class MultiRoomEnv(MiniGridEnv):
         roomList = []
 
         # Choose a random number of rooms to generate
-        numRooms = self._rand_int(self.minNumRooms, self.maxNumRooms+1)
+        numRooms = self._rand_int(self.minNumRooms, self.maxNumRooms + 1)
 
         while len(roomList) < numRooms:
             curRoomList = []
@@ -105,7 +107,7 @@ class MultiRoomEnv(MiniGridEnv):
                 self.grid.set(*room.entryDoorPos, entryDoor)
                 prevDoorColor = doorColor
 
-                prevRoom = roomList[idx-1]
+                prevRoom = roomList[idx - 1]
                 prevRoom.exitDoorPos = room.entryDoorPos
 
         # Randomize the starting agent position and direction
@@ -117,17 +119,17 @@ class MultiRoomEnv(MiniGridEnv):
         self.mission = 'traverse the rooms to get to the goal'
 
     def _placeRoom(
-        self,
-        numLeft,
-        roomList,
-        minSz,
-        maxSz,
-        entryDoorWall,
-        entryDoorPos
+            self,
+            numLeft,
+            roomList,
+            minSz,
+            maxSz,
+            entryDoorWall,
+            entryDoorPos
     ):
         # Choose the room size randomly
-        sizeX = self._rand_int(minSz, maxSz+1)
-        sizeY = self._rand_int(minSz, maxSz+1)
+        sizeX = self._rand_int(minSz, maxSz + 1)
+        sizeY = self._rand_int(minSz, maxSz + 1)
 
         # The first room will be at the door position
         if len(roomList) == 0:
@@ -236,6 +238,7 @@ class MultiRoomEnv(MiniGridEnv):
 
         return True
 
+
 class MultiRoomEnvN2S4(MultiRoomEnv):
     def __init__(self):
         super().__init__(
@@ -243,6 +246,7 @@ class MultiRoomEnvN2S4(MultiRoomEnv):
             maxNumRooms=2,
             maxRoomSize=4
         )
+
 
 class MultiRoomEnvN4S5(MultiRoomEnv):
     def __init__(self):
@@ -252,12 +256,14 @@ class MultiRoomEnvN4S5(MultiRoomEnv):
             maxRoomSize=5
         )
 
+
 class MultiRoomEnvN6(MultiRoomEnv):
     def __init__(self):
         super().__init__(
             minNumRooms=6,
             maxNumRooms=6
         )
+
 
 register(
     id='MiniGrid-MultiRoom-N2-S4-v0',

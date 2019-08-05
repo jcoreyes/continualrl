@@ -76,7 +76,6 @@ REGION_TO_GPU_AWS_AVAIL_ZONE = {
 # This really shouldn't matter and in theory could be whatever
 OUTPUT_DIR_FOR_DOODAD_TARGET = '/tmp/doodad-output/'
 
-
 """
 Slurm Settings
 """
@@ -99,7 +98,6 @@ SLURM_GPU_CONFIG = dict(
     n_tasks=1,
     n_gpus=1,
 )
-
 
 """
 Slurm Script Settings
