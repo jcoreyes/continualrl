@@ -1,0 +1,1 @@
+python examples/minecraft/dqn_test.py --env MineRLNavigateDense-v0 --always-keys forward sprint attack --exclude-keys back left right sneak place --frame-stack 4 --frame-skip 4

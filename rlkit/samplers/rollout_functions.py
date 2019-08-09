@@ -143,6 +143,8 @@ def rollout(
     actions = np.array(actions)
     if len(actions.shape) == 1:
         actions = np.expand_dims(actions, 1)
+    if type(observations[0]) is not np.array:
+        observations = [x.__array__() for x in observations]
     observations = np.array(observations)
     if len(observations.shape) == 1:
         observations = np.expand_dims(observations, 1)

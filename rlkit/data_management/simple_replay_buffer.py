@@ -41,11 +41,11 @@ class SimpleReplayBuffer(ReplayBuffer):
 
     def add_sample(self, observation, action, reward, next_observation,
                    terminal, env_info, **kwargs):
-        self._observations[self._top] = observation
+        self._observations[self._top] = observation.flatten()
         self._actions[self._top] = action
         self._rewards[self._top] = reward
         self._terminals[self._top] = terminal
-        self._next_obs[self._top] = next_observation
+        self._next_obs[self._top] = next_observation.flatten()
 
         for key in self._env_info_keys:
             self._env_infos[key][self._top] = env_info[key]
