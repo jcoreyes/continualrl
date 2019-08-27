@@ -25,3 +25,4 @@ from rlkit.envs.gym_minigrid.gym_minigrid.envs.getfood_medium_1inventory import 
 from rlkit.envs.gym_minigrid.gym_minigrid.envs.getfood_hard import *
 from rlkit.envs.gym_minigrid.gym_minigrid.envs.getfood_hard_1inventory import *
 from rlkit.envs.gym_minigrid.gym_minigrid.envs.umaze import *
+from rlkit.envs.gym_minigrid.gym_minigrid.envs.cont_envs.seasons import *

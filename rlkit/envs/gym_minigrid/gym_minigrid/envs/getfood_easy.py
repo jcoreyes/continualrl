@@ -16,13 +16,19 @@ class FoodEnvEasy(FoodEnvBase):
                  food_rate_decay=0.0,
                  lifespan=0,
                  her=False,
+                 navigate=False,
                  **kwargs):
         self.init_resources = init_resources or {}
         self.food_rate_decay = food_rate_decay
         self.lifespan = lifespan
         self.her = her
+        self.navigate = navigate
 
         super().__init__(**kwargs)
+
+        if self.navigate:
+            self.goal = self.place_obj(None)
+            print(self.goal)
 
         if self.obs_vision:
             shape = (12481,)
@@ -39,14 +45,20 @@ class FoodEnvEasy(FoodEnvBase):
             dtype='uint8'
         )
 
-        if self.her:
+        if self.her or self.navigate:
             # position obs
             obs_space = spaces.Box(low=0, high=self.grid_size, shape=(2,), dtype='uint8')
-            self.observation_space = spaces.Dict({
-                'observation': obs_space,
-                'achieved_goal': obs_space,
-                'desired_goal': obs_space
-            })
+            goal_space = spaces.Box(low=-self.grid_size, high=self.grid_size, shape=(2,), dtype='float16')
+            if self.her:
+                self.observation_space = spaces.Dict({
+                    'observation': obs_space,
+                    'achieved_goal': obs_space,
+                    'desired_goal': obs_space
+                })
+            else:
+                # navigate
+                self.observation_space = obs_space
+                self.goal_space = goal_space
 
     def extra_step(self, action, matched):
         self.food_rate += self.food_rate_decay
@@ -83,10 +95,20 @@ class FoodEnvEasy(FoodEnvBase):
 
     def step(self, action):
         obs, rwd, done, info = super().step(action)
+        pos = np.array(self.agent_pos)
         if self.her:
-            obs = {'observation': self.agent_pos, 'desired_goal': self.goal_obs_her, 'achieved_goal': self.agent_pos}
+            obs = {'observation': pos, 'desired_goal': self.goal_obs_her, 'achieved_goal': pos}
             rwd = self.compute_reward(self.agent_pos, self.goal_obs_her, info)
+        elif self.navigate:
+            obs = pos
+            rwd = self.navigate_reward(obs)
+            if rwd:
+                self.goal = self.place_obj(None)
+                print(self.goal)
         return obs, rwd, done, info
+
+    def navigate_reward(self, obs):
+        return int(np.array_equal(obs, self.goal))
 
     def compute_reward(self, achieved_goal, desired_goal, info):
         assert self.her, "`compute_reward` function should only be used for HER"
@@ -96,10 +118,22 @@ class FoodEnvEasy(FoodEnvBase):
     def reset(self):
         # this is done first so that agent_pos is updated
         super_reset = super().reset()
+        pos = np.array(self.agent_pos)
         if self.her:
-            return {'observation': self.agent_pos, 'desired_goal': self.goal_obs_her, 'achieved_goal': self.agent_pos}
+            return {'observation': pos, 'desired_goal': self.goal_obs_her, 'achieved_goal': pos}
+        if self.navigate:
+            return pos
         else:
             return super_reset
+
+    def decay_health(self):
+        if self.navigate:
+            return
+        super().decay_health()
+
+
+class FoodEnvEasyCap50(FoodEnvEasy):
+    pass
 
 
 class FoodEnvEmptyFullObsHER(FoodEnvEasy):
@@ -107,8 +141,9 @@ class FoodEnvEmptyFullObsHER(FoodEnvEasy):
         super().__init__(fully_observed=True, her=True, food_rate=0)
 
 
-class FoodEnvEasyCap50(FoodEnvEasy):
-    pass
+class FoodEnvEmptyFullObsNavigate(FoodEnvEasy):
+    def __init__(self):
+        super().__init__(fully_observed=True, navigate=True, food_rate=0)
 
 
 class FoodEnvEasyCap50Vision(FoodEnvEasy):
@@ -172,14 +207,20 @@ class FoodEnvEasyFood6Cap2000DecayLifespan30FullObs(FoodEnvEasy):
 
 
 register(
+    id='MiniGrid-Food-8x8-Easy-Cap50-v1',
+    entry_point='rlkit.envs.gym_minigrid.gym_minigrid.envs:FoodEnvEasyCap50'
+)
+
+register(
     id='MiniGrid-Food-8x8-Empty-FullObs-HER-v1',
     entry_point='rlkit.envs.gym_minigrid.gym_minigrid.envs:FoodEnvEmptyFullObsHER'
 )
 
 register(
-    id='MiniGrid-Food-8x8-Easy-Cap50-v1',
-    entry_point='rlkit.envs.gym_minigrid.gym_minigrid.envs:FoodEnvEasyCap50'
+    id='MiniGrid-Food-8x8-Empty-FullObs-Navigate-v1',
+    entry_point='rlkit.envs.gym_minigrid.gym_minigrid.envs:FoodEnvEmptyFullObsNavigate'
 )
+
 
 register(
     id='MiniGrid-Food-8x8-Easy-Cap50-Vision-v1',

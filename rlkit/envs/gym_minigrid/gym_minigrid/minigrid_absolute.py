@@ -83,7 +83,11 @@ OBJECT_TO_IDX = {
     'wood': 8,
     'bigfood': 9,
     'house': 10,
-    'monster': 11
+    'monster': 11,
+    'water': 12,
+    'seed': 13,
+    'plant': 14,
+    'sun': 15,
 }
 
 IDX_TO_OBJECT = dict(zip(OBJECT_TO_IDX.values(), OBJECT_TO_IDX.keys()))
@@ -687,6 +691,85 @@ class House(WorldObj):
         ])
 
 
+class Sun(WorldObj):
+    def __init__(self, color='yellow', lifespan=0):
+        super().__init__('sun', color, lifespan=lifespan)
+
+    def can_overlap(self):
+        return True
+
+    def can_mine(self, env):
+        return True
+
+    def render(self, r):
+        self._set_color(r)
+        r.drawCircle(CELL_PIXELS * 0.5, CELL_PIXELS * 0.5, 10)
+
+
+class Seed(WorldObj):
+    def __init__(self, color='brown', lifespan=0):
+        super().__init__('seed', color, lifespan=lifespan)
+
+    def can_overlap(self):
+        return True
+
+    def can_mine(self, env):
+        return True
+
+    def render(self, r):
+        self._set_color(r)
+        r.drawCircle(CELL_PIXELS * 0.5, CELL_PIXELS * 0.5, 10)
+
+
+class Plant(WorldObj):
+    def __init__(self, color='green', lifespan=0):
+        super().__init__('plant', color, lifespan=lifespan)
+
+    def can_overlap(self):
+        return True
+
+    def can_mine(self, env):
+        return True
+
+    def render(self, r):
+        self._set_color(r)
+        r.drawPolygon([
+            (CELL_PIXELS * 0.6, CELL_PIXELS * 0.3),
+            (CELL_PIXELS * 0.6, CELL_PIXELS * 0.4),
+            (CELL_PIXELS * 0.8, CELL_PIXELS * 0.4),
+            (CELL_PIXELS * 0.8, CELL_PIXELS * 0.6),
+            (CELL_PIXELS * 0.6, CELL_PIXELS * 0.6),
+            (CELL_PIXELS * 0.6, CELL_PIXELS * 0.8),
+            (CELL_PIXELS * 0.4, CELL_PIXELS * 0.8),
+            (CELL_PIXELS * 0.4, CELL_PIXELS * 0.6),
+            (CELL_PIXELS * 0.2, CELL_PIXELS * 0.6),
+            (CELL_PIXELS * 0.2, CELL_PIXELS * 0.4),
+            (CELL_PIXELS * 0.4, CELL_PIXELS * 0.4),
+            (CELL_PIXELS * 0.4, CELL_PIXELS * 0.3)
+        ])
+
+
+class Water(WorldObj):
+    def __init__(self, color='blue', lifespan=0):
+        super().__init__('water', color, lifespan=lifespan)
+
+    def can_overlap(self):
+        return True
+
+    def can_mine(self, env):
+        return True
+
+    def render(self, r):
+        self._set_color(r)
+        r.drawPolygon([
+            (CELL_PIXELS * 0.5, CELL_PIXELS * 0.3),
+            (CELL_PIXELS * 0.7, CELL_PIXELS * 0.6),
+            (CELL_PIXELS * 0.6, CELL_PIXELS * 0.8),
+            (CELL_PIXELS * 0.4, CELL_PIXELS * 0.8),
+            (CELL_PIXELS * 0.3, CELL_PIXELS * 0.6)
+        ])
+
+
 class GridAbsolute:
     """
     Represent a grid and operations on it
@@ -907,6 +990,7 @@ class GridAbsolute:
         assert not hasattr(env, 'monsters') or onehot, "Must use onehot representation for env with monsters"
 
         array = np.zeros(shape=(self.width, self.height, 1), dtype='uint8')
+        obj_to_idx = getattr(env, 'object_to_idx', OBJECT_TO_IDX)
 
         for j in range(0, self.height):
             for i in range(0, self.width):
@@ -916,19 +1000,22 @@ class GridAbsolute:
                 if v == None:
                     continue
 
-                array[i, j, 0] = OBJECT_TO_IDX[v.type]
+                try:
+                    array[i, j, 0] = obj_to_idx[v.type]
+                except:
+                    import pdb; pdb.set_trace()
             # array[i, j, 1] = COLOR_TO_IDX[v.color]
 
         # make the output torch-ready!
         array = array.transpose(2, 0, 1)
         if onehot:
-            array = np.concatenate([np.eye(len(env.object_to_idx))[ch].transpose(2, 0, 1) for ch in array])
+            array = np.concatenate([np.eye(len(obj_to_idx))[ch].transpose(2, 0, 1) for ch in array])
             if hasattr(env, 'monsters'):
                 for mon in env.monsters:
                     diff = mon.cur_pos - env.agent_pos
-                    rel_pos = diff + AGENT_VIEW_SIZE // 2
-                    if (np.abs(diff) <= AGENT_VIEW_SIZE // 2).all():
-                        array[env.object_to_idx[mon.type], rel_pos[0], rel_pos[1]] = 1
+                    rel_pos = diff + self.agent_view_size // 2
+                    if (np.abs(diff) <= self.agent_view_size // 2).all():
+                        array[obj_to_idx[mon.type], rel_pos[0], rel_pos[1]] = 1
         return array
 
     @staticmethod
@@ -1063,8 +1150,15 @@ class MiniGridAbsoluteEnv(gym.Env):
             grid_size=16,
             max_steps=100,
             see_through_walls=False,
+            agent_view_size=5,
             seed=1337
     ):
+        # Number of cells (width and height) in the agent view
+        self.agent_view_size = agent_view_size
+
+        # Size of the array given as an observation to the agent
+        self.obs_array_size = (self.agent_view_size, self.agent_view_size, 2)
+
         # Action enumeration for this environment
         if not hasattr(self, 'actions'):
             self.actions = MiniGridAbsoluteEnv.Actions
@@ -1075,7 +1169,7 @@ class MiniGridAbsoluteEnv(gym.Env):
         self.multid_observation_space = spaces.Box(
             low=0,
             high=255,
-            shape=(OBS_ARRAY_SIZE[-1], *OBS_ARRAY_SIZE[:-1]),
+            shape=(self.obs_array_size[-1], *self.obs_array_size[:-1]),
             dtype='uint8'
         )
         self.obs_len = int(np.prod(self.multid_observation_space.shape))
@@ -1083,7 +1177,7 @@ class MiniGridAbsoluteEnv(gym.Env):
         self.observation_space = spaces.Box(
             low=0,
             high=255,
-            shape=OBS_ARRAY_SIZE,
+            shape=self.obs_array_size,
             dtype='uint8'
         )
 
@@ -1419,7 +1513,7 @@ class MiniGridAbsoluteEnv(gym.Env):
         rx, ry = DIR_TO_VEC['east']
 
         # Compute the absolute coordinates of the top-left view corner
-        hs = AGENT_VIEW_SIZE // 2
+        hs = self.agent_view_size // 2
         tx = ax + (dx * hs) - (rx * hs)
         ty = ay + (dy * hs) - (ry * hs)
 
@@ -1439,11 +1533,11 @@ class MiniGridAbsoluteEnv(gym.Env):
         Note: the bottom extent indices are not included in the set
         """
 
-        topX = self.agent_pos[0] - AGENT_VIEW_SIZE // 2
-        topY = self.agent_pos[1] - AGENT_VIEW_SIZE // 2
+        topX = self.agent_pos[0] - self.agent_view_size // 2
+        topY = self.agent_pos[1] - self.agent_view_size // 2
 
-        botX = topX + AGENT_VIEW_SIZE
-        botY = topY + AGENT_VIEW_SIZE
+        botX = topX + self.agent_view_size
+        botY = topY + self.agent_view_size
 
         return (topX, topY, botX, botY)
 
@@ -1454,7 +1548,7 @@ class MiniGridAbsoluteEnv(gym.Env):
 
         vx, vy = self.get_view_coords(x, y)
 
-        if vx < 0 or vy < 0 or vx >= AGENT_VIEW_SIZE or vy >= AGENT_VIEW_SIZE:
+        if vx < 0 or vy < 0 or vx >= self.agent_view_size or vy >= self.agent_view_size:
             return False
 
         obs = self.gen_obs()
@@ -1551,12 +1645,12 @@ class MiniGridAbsoluteEnv(gym.Env):
 
         topX, topY, botX, botY = self.get_view_exts()
 
-        grid = self.grid.slice(topX, topY, AGENT_VIEW_SIZE, AGENT_VIEW_SIZE)
+        grid = self.grid.slice(topX, topY, self.agent_view_size, self.agent_view_size)
 
         # Process occluders and visibility
         # Note that this incurs some performance cost
         if not self.see_through_walls:
-            vis_mask = grid.process_vis(agent_pos=(AGENT_VIEW_SIZE // 2, AGENT_VIEW_SIZE // 2))
+            vis_mask = grid.process_vis(agent_pos=(self.agent_view_size // 2, self.agent_view_size // 2))
         else:
             vis_mask = np.ones(shape=(grid.width, grid.height), dtype=np.bool)
 
@@ -1592,8 +1686,8 @@ class MiniGridAbsoluteEnv(gym.Env):
 
         if self.obs_render is None:
             self.obs_render = Renderer(
-                AGENT_VIEW_SIZE * tile_pixels,
-                AGENT_VIEW_SIZE * tile_pixels
+                self.agent_view_size * tile_pixels,
+                self.agent_view_size * tile_pixels
             )
 
         r = self.obs_render
@@ -1609,8 +1703,8 @@ class MiniGridAbsoluteEnv(gym.Env):
         r.push()
         r.scale(ratio, ratio)
         r.translate(
-            CELL_PIXELS * (0.5 + AGENT_VIEW_SIZE // 2),
-            CELL_PIXELS * (0.5 + AGENT_VIEW_SIZE // 2)
+            CELL_PIXELS * (0.5 + self.agent_view_size // 2),
+            CELL_PIXELS * (0.5 + self.agent_view_size // 2)
         )
         r.rotate(3 * 90)
         r.setLineColor(255, 0, 0)
@@ -1739,12 +1833,12 @@ class MiniGridAbsoluteEnv(gym.Env):
         # of the agent's view area
         f_vec = DIR_TO_VEC['north']
         r_vec = DIR_TO_VEC['east']
-        top_left = self.agent_pos + f_vec * (AGENT_VIEW_SIZE // 2) - r_vec * (AGENT_VIEW_SIZE // 2)
+        top_left = self.agent_pos + f_vec * (self.agent_view_size // 2) - r_vec * (self.agent_view_size // 2)
 
         if not getattr(self, 'fully_observed', False):
             # For each cell in the visibility mask
-            for vis_j in range(0, AGENT_VIEW_SIZE):
-                for vis_i in range(0, AGENT_VIEW_SIZE):
+            for vis_j in range(0, self.agent_view_size):
+                for vis_i in range(0, self.agent_view_size):
                     # If this cell is not visible, don't highlight it
                     if not vis_mask[vis_i, vis_j]:
                         continue
@@ -1794,4 +1888,8 @@ TYPE_TO_CLASS_ABS = {
     'bigfood': BigFood,
     'house': House,
     'monster': Monster,
+    'water': Water,
+    'plant': Plant,
+    'seed': Seed,
+    'sun': Sun
 }

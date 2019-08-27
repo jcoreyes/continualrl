@@ -5,7 +5,10 @@ https://github.com/rll/rllab
 """
 from enum import Enum
 from contextlib import contextmanager
+import torch
+
 import numpy as np
+import matplotlib.pyplot as plt
 import os
 import os.path as osp
 import sys
@@ -300,5 +303,65 @@ class Logger(object):
             else:
                 raise NotImplementedError
 
+    def save_viz(self, epoch, params):
+        def trim(arr):
+            return arr[1:-1, 1:-1]
+
+        def get_obs(env):
+            img = env.get_img(onehot=env.one_hot_obs)
+            full_img = env.get_full_img(scale=1 if env.fully_observed else 1 / 8, onehot=env.one_hot_obs)
+
+            if env.fully_observed:
+                obs = np.concatenate((full_img.flatten(), np.array(env.agent_pos)))
+            elif env.only_partial_obs:
+                obs = img.flatten()
+            else:
+                obs = np.concatenate((img.flatten(), full_img.flatten()))
+            return obs
+
+        qfs = params['trainer/qf']
+        qfs.eval()
+        env = params['exploration/env']
+        visit_count = env.visit_count.copy()
+
+        # loop over the grid to produce each possible state, and collect q-values
+        device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+        # q function
+        qs = np.zeros((len(qfs), env.grid_size, env.grid_size, len(env.actions)))
+        for i in range(1, env.grid_size - 1):
+            for j in range(1, env.grid_size - 1):
+                if env.grid.get(i, j) is None:
+                    env.agent_pos = np.array([i, j])
+                    obs = get_obs(env)
+                    obs = torch.from_numpy(obs).detach().float().to(device)
+                    for idx, qf in enumerate(qfs):
+                        q = qf(obs)
+                        # swap i and j due to backwards minigrid coords
+                        qs[idx, j, i] = q.cpu().detach()
+        # value function
+        vs = np.amax(qs, axis=3)
+
+        variance_map = np.var(vs, axis=0)
+        exp_q = np.exp(qs)
+        # sum over ensemble
+        sum_q = exp_q.sum(0)
+        log_q = np.log(sum_q)
+        # max over actions
+        lse_map = np.amax(log_q, axis=2)
+
+        # trim border
+        visit_count = trim(visit_count)
+        variance_map = trim(variance_map)
+        lse_map = trim(lse_map)
+
+        # make plot
+        fig, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(10, 15))
+        ax1.set_title('LogSumExp value function')
+        im1 = ax1.imshow(lse_map)
+        ax2.set_title('Variance of ensemble')
+        im2 = ax2.imshow(variance_map)
+        ax3.set_title('Visitation counts')
+        im3 = ax3.imshow(visit_count)
+        fig.savefig(osp.join(self._snapshot_dir, 'map_itr_%d.png' % epoch))
 
 logger = Logger()

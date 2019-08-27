@@ -48,3 +48,14 @@ class EpsilonGreedyDecay(EpsilonGreedySchedule):
 
     def schedule(self, t):
         return max(self.max_eps - self.rate * t, self.min_eps)
+
+
+class HIROEpsilonGreedyDecay(EpsilonGreedyDecay):
+    def get_action(self, t, policy, *args, **kwargs):
+        action, info = policy.get_action(*args, **kwargs)
+        if info['new_goal']:
+            # actual action taken
+            return self.get_action_from_raw_action(action, t=t), info
+        else:
+            # simply goal transition, don't add noise to this
+            return action, info

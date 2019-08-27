@@ -23,6 +23,8 @@ class BatchRLAlgorithm(BaseRLAlgorithm, metaclass=abc.ABCMeta):
             num_trains_per_train_loop,
             num_train_loops_per_epoch=1,
             min_num_steps_before_training=0,
+            viz_maps=False,
+            **kwargs
     ):
         super().__init__(
             trainer,
@@ -31,6 +33,8 @@ class BatchRLAlgorithm(BaseRLAlgorithm, metaclass=abc.ABCMeta):
             exploration_data_collector,
             evaluation_data_collector,
             replay_buffer,
+            viz_maps,
+            **kwargs
         )
         self.batch_size = batch_size
         self.max_path_length = max_path_length
@@ -40,6 +44,7 @@ class BatchRLAlgorithm(BaseRLAlgorithm, metaclass=abc.ABCMeta):
         self.num_train_loops_per_epoch = num_train_loops_per_epoch
         self.num_expl_steps_per_train_loop = num_expl_steps_per_train_loop
         self.min_num_steps_before_training = min_num_steps_before_training
+        self.viz_maps = viz_maps
 
     def _train(self):
         if self.min_num_steps_before_training > 0:

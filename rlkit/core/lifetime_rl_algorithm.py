@@ -63,8 +63,9 @@ class LifetimeRLAlgorithm(BaseRLAlgorithm, metaclass=abc.ABCMeta):
         num_loops = 0
         while not done:
             num_loops += 1
-            print(
-                'Steps: %d, health: %d' % (num_loops * self.num_expl_steps_per_train_loop, self.exploration_env.health))
+            if hasattr(self.exploration_env, 'health'):
+                print(
+                    'Steps: %d, health: %d' % (num_loops * self.num_expl_steps_per_train_loop, self.exploration_env.health))
             new_expl_path = self.expl_data_collector.collect_new_paths(
                 self.max_path_length,
                 self.num_expl_steps_per_train_loop,

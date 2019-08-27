@@ -72,7 +72,8 @@ class DQNEnsembleTrainer(TorchTrainer):
             Save some statistics for eval using just one batch.
             """
             if self._need_to_update_eval_statistics:
-                self._need_to_update_eval_statistics = False
+                if ensemble_idx == self.ensemble_size - 1:
+                    self._need_to_update_eval_statistics = False
                 self.eval_statistics['QF %d  Loss' % ensemble_idx] = np.mean(ptu.get_numpy(qf_loss))
                 self.eval_statistics.update(create_stats_ordered_dict(
                     'Y %d Predictions' % ensemble_idx,
