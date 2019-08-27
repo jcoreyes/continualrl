@@ -3,6 +3,7 @@ Run DQN on grid world.
 """
 
 import gym
+from gym_minigrid.envs.cont_envs.seasons import Seasons
 from rlkit.samplers.data_collector.path_collector import LifetimeMdpPathCollector
 from rlkit.torch.dqn.double_dqn import DoubleDQNTrainer
 from rlkit.torch.sac.policies import SoftmaxQPolicy
@@ -20,22 +21,25 @@ from rlkit.launchers.launcher_util import setup_logger, run_experiment
 from rlkit.samplers.data_collector import MdpPathCollector
 from rlkit.torch.torch_rl_algorithm import TorchBatchRLAlgorithm, TorchLifetimeRLAlgorithm
 
-# from variants.dqn.dqn_medium8_mlp_task_variant import variant, gen_network
-from variants.dqn.dqn_mlp_goal_partial_variant import variant, gen_network
-
-
-# from variants.dqn_lifetime.dqn_medium8_mlp_task_partial_variant import variant, gen_network
+# from variants.dqn.dqn_medium_mlp_task_partial_variant import variant, gen_network
+# from variants.dqn.dqn_mlp_goal_partial_variant import variant, gen_network
+from variants.dqn_lifetime.dqn_medium8_mlp_task_partial_variant import variant, gen_network
+# from variants.dqn_lifetime.dqn_mlp_goal_partial_variant import variant, gen_network
 
 
 def schedule(t):
+    print(t)
     return max(1 - 5e-4 * t, 0.05)
 
 
 def experiment(variant):
     from rlkit.envs.gym_minigrid.gym_minigrid import envs
 
-    expl_env = gym.make(variant['env_name'])
-    eval_env = gym.make(variant['env_name'])
+    # expl_env = gym.make(variant['env_name'])
+    # eval_env = gym.make(variant['env_name'])
+    expl_env = Seasons(
+
+    )
     obs_dim = expl_env.observation_space.low.size
     action_dim = eval_env.action_space.n
     layer_size = variant['layer_size']
@@ -48,7 +52,7 @@ def experiment(variant):
     eval_policy = ArgmaxDiscretePolicy(qf)
     # eval_policy = SoftmaxQPolicy(qf)
     expl_policy = PolicyWrappedWithExplorationStrategy(
-        EpsilonGreedyDecay(expl_env.action_space, 2e-4, 1, 0.1),
+        EpsilonGreedyDecay(expl_env.action_space, 1e-4, 1, 0.1),
         eval_policy,
     )
     # expl_policy = PolicyWrappedWithExplorationStrategy(
@@ -64,7 +68,7 @@ def experiment(variant):
     expl_path_collector = collector_class(
         expl_env,
         expl_policy,
-        render=lifetime
+        # render=lifetime
     )
     trainer = DoubleDQNTrainer(
         qf=qf,

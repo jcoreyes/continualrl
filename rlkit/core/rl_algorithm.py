@@ -1,6 +1,9 @@
 import abc
 from collections import OrderedDict
+import torch
 
+import numpy as np
+import matplotlib.pyplot as plt
 import gtimer as gt
 
 from rlkit.core import logger, eval_util
@@ -30,6 +33,8 @@ class BaseRLAlgorithm(object, metaclass=abc.ABCMeta):
             exploration_data_collector: DataCollector,
             evaluation_data_collector: DataCollector,
             replay_buffer: ReplayBuffer,
+            viz_maps=False,
+            viz_gap=50
     ):
         self.trainer = trainer
         self.expl_env = exploration_env
@@ -37,6 +42,8 @@ class BaseRLAlgorithm(object, metaclass=abc.ABCMeta):
         self.expl_data_collector = exploration_data_collector
         self.eval_data_collector = evaluation_data_collector
         self.replay_buffer = replay_buffer
+        self.viz_maps = viz_maps
+        self.viz_gap = viz_gap
         self._start_epoch = 0
 
         self.post_epoch_funcs = []
@@ -53,6 +60,8 @@ class BaseRLAlgorithm(object, metaclass=abc.ABCMeta):
 
     def _end_epoch(self, epoch, incl_eval=True):
         snapshot = self._get_snapshot()
+        if self.viz_maps and epoch % self.viz_gap == 0:
+            logger.save_viz(epoch, snapshot)
         logger.save_itr_params(epoch, snapshot)
         gt.stamp('saving', unique=False)
         self._log_stats(epoch, incl_eval=incl_eval)

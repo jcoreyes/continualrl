@@ -15,6 +15,7 @@ class SimpleReplayBuffer(ReplayBuffer):
             env_info_sizes,
             dtype='int32'
     ):
+        self.dtype = dtype
         self._observation_dim = observation_dim
         self._action_dim = action_dim
         self._max_replay_buffer_size = max_replay_buffer_size

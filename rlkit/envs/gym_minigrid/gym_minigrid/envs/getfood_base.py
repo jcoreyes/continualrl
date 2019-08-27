@@ -121,7 +121,6 @@ class FoodEnvBase(MiniGridAbsoluteEnv):
         # dead.
         if self.dead():
             done = True
-
         if self.fully_observed:
             if incl_health:
                 obs = np.concatenate((full_img.flatten(), np.array([self.health]), np.array(self.agent_pos)))
@@ -150,7 +149,6 @@ class FoodEnvBase(MiniGridAbsoluteEnv):
         # 	# ignore second channel since redundant (due to one-to-one mapping btwn color and obj type for now)
         # 	img = np.concatenate([np.eye(len(self.object_to_idx))[ch].transpose(2, 0, 1) for ch in img[:1]])
         # 	full_img = np.concatenate([np.eye(len(self.object_to_idx))[ch].transpose(2, 0, 1) for ch in full_img[:1]])
-
         if self.fully_observed:
             if incl_health:
                 obs = np.concatenate((full_img.flatten(), np.array([self.health]), np.array(self.agent_pos)))
@@ -208,6 +206,33 @@ class FoodEnvBase(MiniGridAbsoluteEnv):
     def add_health(self, num):
         # clip health between 0 and cap after adjustment
         self.health = max(0, min(self.health_cap, self.health + num))
+
+    def count_type(self, type):
+        count = 0
+        for i in range(self.grid_size):
+            for j in range(self.grid_size):
+                cell = self.grid.get(i, j)
+                if type is None and cell is None or cell is not None and cell.type == type:
+                    count += 1
+        return count
+
+    def count_all_types(self):
+        counts = {}
+        for i in range(self.grid_size):
+            for j in range(self.grid_size):
+                cell = self.grid.get(i, j)
+                type = cell.type if cell is not None else ''
+                counts[type] = counts.get(type, 0) + 1
+        return counts
+
+    def exists_type(self, type):
+        """ Check if object of type TYPE exists in current grid. """
+        for i in range(1, self.grid_size - 1):
+            for j in range(1, self.grid_size - 1):
+                obj = self.grid.get(i, j)
+                if obj and obj.type == type:
+                    return True
+        return False
 
     def dead(self):
         return self.can_die and self.health <= 0

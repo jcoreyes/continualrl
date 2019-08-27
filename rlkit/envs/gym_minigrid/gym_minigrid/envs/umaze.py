@@ -4,7 +4,7 @@ from rlkit.envs.gym_minigrid.gym_minigrid.register import register
 from gym import spaces
 import numpy as np
 
-from rlkit.envs.gym_minigrid.gym_minigrid.minigrid_absolute import MiniGridAbsoluteEnv, Food, GridAbsolute, CELL_PIXELS
+from rlkit.envs.gym_minigrid.gym_minigrid.minigrid_absolute import MiniGridAbsoluteEnv, GridAbsolute, CELL_PIXELS
 
 
 class UMaze(MiniGridAbsoluteEnv):
@@ -37,6 +37,9 @@ class UMaze(MiniGridAbsoluteEnv):
         self.one_hot_obs = one_hot_obs
         self.goal_pos = goal_pos or np.array([grid_size - 2, 1])
 
+        # visitation count
+        self.visit_count = np.zeros((grid_size, grid_size))
+
         self.object_to_idx = {
             'empty': 0,
             'wall': 1,
@@ -55,12 +58,33 @@ class UMaze(MiniGridAbsoluteEnv):
             **kwargs
         )
 
+        if self.fully_observed:
+            # 2 for pos
+            obs_dim = self.grid_size * self.grid_size * len(self.object_to_idx) + 2
+        elif self.only_partial_obs:
+            obs_dim = self.agent_view_size * self.agent_view_size * len(self.object_to_idx)
+        else:
+            obs_dim = self.grid_size * self.grid_size * len(self.object_to_idx) + 2 \
+                      + self.agent_view_size * self.agent_view_size * len(self.object_to_idx)
+        shape = (obs_dim,)
+        self.observation_space = spaces.Box(
+            low=0,
+            high=255,
+            shape=shape,
+            dtype='uint8'
+        )
+
     def _reward(self):
         if self.reward_type == 'sparse':
-            rwd = int(np.allclose(self.goal_pos, self.agent_pos))
+            rwd = int(self.solved())
+        elif self.reward_type == 'dense':
+            rwd = -np.linalg.norm(self.goal_pos - self.agent_pos, ord=1)
         else:
             assert False, "Reward type not matched"
         return rwd
+
+    def solved(self):
+        return np.allclose(self.goal_pos, self.agent_pos)
 
     def _gen_grid(self, width, height):
         # Create an empty grid
@@ -70,7 +94,7 @@ class UMaze(MiniGridAbsoluteEnv):
         self.grid.wall_rect(0, 0, width, height)
 
         # generate the middle wall
-        self.grid.wall_rect(self.grid_size // 2 - 1, 0, 2, height - (self.grid_size - 2) // 2)
+        self.grid.wall_rect(self.grid_size // 2 - 1, 0, 2, height - self.grid_size // 2)
 
         # Place the agent
         if self.agent_start_pos is not None:
@@ -81,12 +105,15 @@ class UMaze(MiniGridAbsoluteEnv):
         self.mission = None
 
     def step(self, action, incl_health=True):
-        done = False
         super().step(action, override=True)
         img = self.get_img(onehot=self.one_hot_obs)
         full_img = self.get_full_img(scale=1 if self.fully_observed else 1 / 8, onehot=self.one_hot_obs)
 
         rwd = self._reward()
+        done = self.solved()
+
+        # update visitation count. transposed so that np array visually corresponds to grid
+        self.visit_count[self.agent_pos[1], self.agent_pos[0]] += 1
 
         if self.fully_observed:
             obs = np.concatenate((full_img.flatten(), np.array(self.agent_pos)))
@@ -136,12 +163,42 @@ class UMaze(MiniGridAbsoluteEnv):
         self.__dict__.update(d)
 
 
-class UMaze10(UMaze):
+class UMazeSparsePartial10(UMaze):
     def __init__(self):
-        super().__init__(only_partial_obs=True)
+        super().__init__(only_partial_obs=True, reward_type='sparse')
+
+
+class UMazeDensePartial10(UMaze):
+    def __init__(self):
+        super().__init__(only_partial_obs=True, reward_type='dense')
+
+
+class UMazeSparseFull10(UMaze):
+    def __init__(self):
+        super().__init__(fully_observed=True, reward_type='sparse')
+
+
+class UMazeDenseFull10(UMaze):
+    def __init__(self):
+        super().__init__(fully_observed=True, reward_type='dense')
 
 
 register(
-    id='MiniGrid-UMaze-10x10-v1',
-    entry_point='rlkit.envs.gym_minigrid.gym_minigrid.envs:UMaze10'
+    id='MiniGrid-UMaze-10x10-Sparse-Partial-v1',
+    entry_point='rlkit.envs.gym_minigrid.gym_minigrid.envs:UMazeSparsePartial10'
+)
+
+register(
+    id='MiniGrid-UMaze-10x10-Dense-Partial-v1',
+    entry_point='rlkit.envs.gym_minigrid.gym_minigrid.envs:UMazeDensePartial10'
+)
+
+register(
+    id='MiniGrid-UMaze-10x10-Sparse-Full-v1',
+    entry_point='rlkit.envs.gym_minigrid.gym_minigrid.envs:UMazeSparseFull10'
+)
+
+register(
+    id='MiniGrid-UMaze-10x10-Dense-Full-v1',
+    entry_point='rlkit.envs.gym_minigrid.gym_minigrid.envs:UMazeDenseFull10'
 )

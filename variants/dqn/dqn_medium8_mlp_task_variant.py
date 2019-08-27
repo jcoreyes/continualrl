@@ -34,10 +34,10 @@ variant = dict(
         hidden_sizes=[16, 16],
     ),
     full_img_network_kwargs=dict(
-        # (8 * 2) x 8 x 8
-        input_size=1024,
+        # 8 x 8 x 8
+        input_size=512,
         output_size=64,
-        hidden_sizes=[256, 256]
+        hidden_sizes=[128, 128]
     )
 )
 

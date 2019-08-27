@@ -44,9 +44,11 @@ class FoodEnvMedium1Inv(FoodEnvBase):
             init_resources=None,
             gen_resources=True,
             resource_prob=None,
+            resource_prob_decay=None,
             make_rtype='sparse',
             rtype='default',
-            goal_count=None,
+            goals=None,
+            goal_period=300,
             lifespan=0,
             task=None,
             rnd=False,
@@ -57,8 +59,8 @@ class FoodEnvMedium1Inv(FoodEnvBase):
             end_on_task_completion=True,
             **kwargs
     ):
-        assert rtype != 'goal' or goal_count is not None, 'If using goal, must set one using `goal_count`.'
-        assert rtype != 'goal' or not task, 'Can\'t set task if using goal.'
+        assert 'goal' not in rtype or goals is not None, 'If using goal, must set one using `goals`.'
+        assert 'goal' not in rtype or not task, 'Can\'t set task if using goal.'
 
         self.init_resources = init_resources or {}
         self.food_rate_decay = food_rate_decay
@@ -71,6 +73,7 @@ class FoodEnvMedium1Inv(FoodEnvBase):
         self.ingredients = {v: k for k, v in self.interactions.items()}
         self.gen_resources = gen_resources
         self.resource_prob = resource_prob
+        self.resource_prob_decay = resource_prob_decay
         self.seed_val = seed_val
         self.fixed_reset = fixed_reset
         self.object_to_idx = {
@@ -95,12 +98,19 @@ class FoodEnvMedium1Inv(FoodEnvBase):
             self.onetime_reward_sequence = [False for _ in range(len(self.make_sequence))]
             self.make_rtype = make_rtype
 
-        self.goal_count = goal_count
+        # how many of each obj the goal is
+        self.goals = goals
+        # temp goal (replaced by reset)
+        self.goal = np.zeros((1, len(self.object_to_idx)), dtype=np.uint8)
+        # how long the agent has to solve the goal
+        self.goal_period = goal_period
+        # idx of curr goal. if rtype 'goal' idx is always 0 since only 1 goal. if rtype 'goal_lifelong' then many goals
+        self.goal_idx = 0
         self.rtype = rtype
-        if self.rtype == 'goal':
+        if 'goal' in self.rtype:
             self.inventory = np.zeros((1, len(self.object_to_idx)), dtype=np.uint8)
             self.goal = self.inventory.copy()
-            for type, count in self.goal_count.items():
+            for type, count in self.goals[self.goal_idx].items():
                 self.goal[0, self.object_to_idx[type]] = count
 
         self.max_make_idx = -1
@@ -109,10 +119,15 @@ class FoodEnvMedium1Inv(FoodEnvBase):
         self.made_obj_type = None
         # obj type made in the last step, if any
         self.just_made_obj_type = None
+        # obj type most recently placed on, if any
         self.last_placed_on = None
+        # obj type placed on in the last step, if any
+        self.just_placed_on = None
         # used for task 'make_lifelong'
         self.num_solves = 0
         self.end_on_task_completion = end_on_task_completion
+        if (self.task and 'lifelong' in self.task[0]):# or self.rtype == 'goal_lifelong':
+            self.end_on_task_completion = False
 
         # Exploration!
         assert not (cbe and rnd), "can't have both CBE and RND"
@@ -167,7 +182,7 @@ class FoodEnvMedium1Inv(FoodEnvBase):
         if self.task:
             # exclude pantry and health
             shape = (shape[0] - 401,)
-        elif self.rtype == 'goal':
+        elif 'goal' in self.rtype:
             # exclude pantry and health, but add in goal
             shape = (shape[0] - 401 + 64,)
 
@@ -198,12 +213,18 @@ class FoodEnvMedium1Inv(FoodEnvBase):
         return make_sequence
 
     def place_items(self):
+        counts = self.count_all_types()
         if self.gen_resources:
             if self.resource_prob:
                 for type, prob in self.resource_prob.items():
                     if type in self.init_resources and not self.exists_type(type):
                         # replenish resource if gone and was initially provided
                         place_prob = 1
+                    elif self.resource_prob_decay and type in self.resource_prob_decay:
+                        place_prob = max(0, prob - self.resource_prob_decay[type] * self.step_count)
+                    elif counts[type] > (self.grid_size - 2) ** 2 // max(8, len(self.resource_prob)):
+                        # don't add more if it's already taking up over 1/8 of the space (lower threshold if >10 diff obj types being generated)
+                        place_prob = 0
                     else:
                         place_prob = prob
                     self.place_prob(TYPE_TO_CLASS_ABS[type](lifespan=self.lifespan), place_prob)
@@ -282,6 +303,7 @@ class FoodEnvMedium1Inv(FoodEnvBase):
                 return
             else:
                 self.last_placed_on = agent_cell
+                self.just_placed_on = agent_cell
                 # replace existing obj with new obj
                 new_obj = TYPE_TO_CLASS_ABS[new_type]()
                 self.grid.set(*self.agent_pos, new_obj)
@@ -312,13 +334,14 @@ class FoodEnvMedium1Inv(FoodEnvBase):
 
     def step(self, action):
         self.just_made_obj_type = None
-        incl_health = self.task is None and self.rtype != 'goal'
+        self.just_placed_on = None
+        incl_health = self.task is None and 'goal' not in self.rtype
         obs, reward, done, info = super().step(action, incl_health=incl_health)
         pantry_obs = self.gen_pantry_obs()
         shelf_obs = self.gen_shelf_obs()
 
         """ Generate obs """
-        if not self.task and self.rtype != 'goal':
+        if not self.task and ('goal' not in self.rtype):
             extra_obs = np.concatenate((pantry_obs.flatten(), shelf_obs.flatten()))
             extra_obs_count_string = np.concatenate((pantry_obs.sum(axis=0), shelf_obs.sum(axis=0))).tostring()
         else:
@@ -327,10 +350,11 @@ class FoodEnvMedium1Inv(FoodEnvBase):
             extra_obs = np.repeat(extra_obs, 8)
             extra_obs_count_string = shelf_obs.sum(axis=0).tostring()
         obs = np.concatenate((obs, extra_obs))
-        if self.rtype == 'goal':
+        if 'goal' in self.rtype:
             obs = np.concatenate((obs, np.repeat(self.goal, 8)))
-            if self.carrying and self.carrying.type in self.goal_count and \
-                    self.inventory[0, self.object_to_idx[self.carrying.type]] <= self.goal_count[self.carrying.type]:
+            # if carrying an object that is part of the goal
+            if self.carrying and self.carrying.type in self.goals[self.goal_idx] and \
+                    self.inventory[0, self.object_to_idx[self.carrying.type]] <= self.goals[self.goal_idx][self.carrying.type]:
                 self.inventory[0, self.object_to_idx[self.carrying.type]] += 1
                 self.carrying = None
 
@@ -340,18 +364,20 @@ class FoodEnvMedium1Inv(FoodEnvBase):
             reward = self.get_make_reward()
             if self.task[0] == 'make':
                 info.update({'progress': (self.max_make_idx + 1) / len(self.make_sequence)})
-        elif self.rtype == 'goal':
+        elif 'goal' in self.rtype:
             reward = self.get_goal_reward()
         else:
             reward = int(solved)
+        # necessary because part of the solve condition is updated in `get_goal_reward` (bad practice :()
+        solved = self.solved_task()
 
         """ Generate info """
-        if solved:
+        if (self.task and self.task[0] == 'make_lifelong') or self.rtype == 'goal_lifelong':
+            info.update({'num_solves': self.num_solves})
+        elif solved:
             if self.end_on_task_completion:
                 done = True
             info.update({'solved': True})
-        elif self.task and self.task[0] == 'make_lifelong':
-            info.update({'num_solves': self.num_solves})
         else:
             info.update({'solved': False})
 
@@ -379,9 +405,9 @@ class FoodEnvMedium1Inv(FoodEnvBase):
     def reset(self):
         if self.fixed_reset:
             self.seed(self.seed_val)
-        incl_health = self.task is None and self.rtype != 'goal'
+        incl_health = self.task is None and 'goal' not in self.rtype
         obs = super().reset(incl_health=incl_health)
-        if self.rtype == 'goal':
+        if 'goal' in self.rtype:
             extra_obs = np.repeat(self.gen_shelf_obs(), 8)
             goal_obs = np.repeat(self.goal, 8)
             obs = np.concatenate((obs, extra_obs.flatten(), goal_obs.flatten()))
@@ -397,6 +423,10 @@ class FoodEnvMedium1Inv(FoodEnvBase):
         self.last_idx = -1
         self.obs_count = {}
         self.inventory = self.gen_shelf_obs()
+        if 'goal' in self.rtype:
+            self.steps_since_goal = 0
+            self.goal_idx = -1
+            self.goal = self.get_next_goal()
         return obs
 
     def solved_task(self):
@@ -406,17 +436,22 @@ class FoodEnvMedium1Inv(FoodEnvBase):
                 return np.array_equal(pos, self.agent_pos)
             elif self.task[0] == 'pickup':
                 return self.carrying is not None and (self.carrying.type == self.task[1])
-            elif self.task[0] == 'make':
+            elif 'make' in self.task[0]:
                 return self.carrying is not None and self.carrying.type == self.task[1]
         elif self.rtype == 'goal':
             deficit = np.maximum(self.goal - self.inventory, 0)
             return (deficit == 0).all()
+        elif self.rtype == 'goal_lifelong':
+            return (self.goal == 0).all()
         return False
 
     def get_make_reward(self):
         reward = 0
         if self.make_rtype == 'sparse':
             reward = POS_RWD * int(self.solved_task())
+            if reward and 'lifelong' in self.task[0]:
+                self.carrying = None
+                self.num_solves += 1
         elif self.make_rtype in ['dense', 'waypoint']:
             carry_idx = self.make_sequence.index(
                 self.carrying.type) if self.carrying and self.carrying.type in self.make_sequence else -1
@@ -453,11 +488,14 @@ class FoodEnvMedium1Inv(FoodEnvBase):
         elif self.make_rtype == 'one-time':
             carry_idx = self.make_sequence.index(
                 self.carrying.type) if self.carrying and self.carrying.type in self.make_sequence else -1
+            just_place_idx = self.make_sequence.index(
+                self.just_placed_on.type) if self.just_placed_on and self.just_placed_on.type in self.make_sequence else -1
             just_made_idx = self.make_sequence.index(
                 self.just_made_obj_type) if self.just_made_obj_type in self.make_sequence else -1
-            max_idx = max(carry_idx, just_made_idx)
+            max_idx = max(carry_idx, just_place_idx)
             if carry_idx == len(self.make_sequence) - 1:
-                reward = POS_RWD
+                # exponent reasoning: 3rd obj in list should yield 100, 5th yields 10000, etc.
+                reward = POS_RWD ** (carry_idx // 2)
                 self.onetime_reward_sequence = [False for _ in range(len(self.make_sequence))]
                 self.num_solves += 1
                 # remove the created goal object
@@ -467,12 +505,13 @@ class FoodEnvMedium1Inv(FoodEnvBase):
                     # otherwise messes with progress metric
                     self.max_make_idx = -1
             elif max_idx != -1 and not self.onetime_reward_sequence[max_idx]:
-                reward = MED_RWD
+                # exponent reasoning: 3rd obj in list should yield 100, 5th yields 10000, etc.
+                reward = POS_RWD ** (max_idx // 2)
                 self.onetime_reward_sequence[max_idx] = True
             elif max_idx > self.max_make_idx:
                 self.max_make_idx = max_idx
             elif max_idx < self.last_idx:
-                reward = NEG_RWD
+                reward = -np.abs(NEG_RWD ** (self.last_idx // 2 + 1))
             # only do this if it didn't just solve the task
             if carry_idx != len(self.make_sequence) - 1:
                 self.last_idx = max_idx
@@ -483,6 +522,20 @@ class FoodEnvMedium1Inv(FoodEnvBase):
     def get_goal_reward(self):
         deficit = np.maximum(self.goal - self.inventory, 0)
         reward = -np.linalg.norm(deficit, ord=1)
+        if self.rtype == 'goal':
+            if reward == 0:
+                reward += POS_RWD
+        elif self.rtype == 'goal_lifelong':
+            if reward == 0 or self.steps_since_goal and self.steps_since_goal % self.goal_period == 0:
+                if reward == 0:
+                    self.num_solves += 1
+                    reward = POS_RWD
+                self.steps_since_goal = 0
+                self.inventory = np.zeros((1, len(self.object_to_idx)), dtype=np.uint8)
+                self.goal = self.get_next_goal()
+                if (self.goal == 0).all():
+                    # done with all goals
+                    reward = POS_RWD ** 2
         return reward
 
     def get_closest_obj_pos(self, type=None):
@@ -522,17 +575,18 @@ class FoodEnvMedium1Inv(FoodEnvBase):
                 test_pos += np.array([1, -1])
         return None
 
-    def exists_type(self, type):
-        """ Check if object of type TYPE exists in current grid. """
-        for i in range(1, self.grid_size - 1):
-            for j in range(1, self.grid_size - 1):
-                obj = self.grid.get(i, j)
-                if obj and obj.type == type:
-                    return True
-        return False
+    def get_next_goal(self):
+        goal = np.zeros_like(self.goal)
+        self.goal_idx += 1
+        if self.goal_idx >= len(self.goals):
+            return goal
+        for type, count in self.goals[self.goal_idx].items():
+            goal[0, self.object_to_idx[type]] = count
+        return goal
+
 
     def decay_health(self):
-        if self.task and self.task[0] == 'make_lifelong':
+        if (self.task and self.task[0] == 'make_lifelong') or ('goal' in self.rtype):
             return
         super().decay_health()
 
@@ -752,11 +806,56 @@ class FoodEnvMedium1Inv2TierDenseRewardPartialFixedNoEnd8(FoodEnvMedium1Inv):
                          })
 
 
+class FoodEnvMedium1Inv2TierSparseRewardPartial8Lifespan200(FoodEnvMedium1Inv):
+    def __init__(self):
+        super().__init__(grid_size=8, health_cap=1000, gen_resources=True, fully_observed=False,
+                         task='make_lifelong axe',
+                         make_rtype='sparse', only_partial_obs=True, lifespan=200,
+                         init_resources={
+                             'metal': 4,
+                             'energy': 4
+                         },
+                         resource_prob={
+                             'metal': 0.04,
+                             'energy': 0.04
+                         })
+
+
 class FoodEnvMedium1Inv2TierOneTimeRewardPartial8Lifespan100(FoodEnvMedium1Inv):
     def __init__(self):
         super().__init__(grid_size=8, health_cap=1000, gen_resources=True, fully_observed=False,
                          task='make_lifelong axe',
                          make_rtype='one-time', only_partial_obs=True, lifespan=100,
+                         init_resources={
+                             'metal': 4,
+                             'energy': 4
+                         },
+                         resource_prob={
+                             'metal': 0.04,
+                             'energy': 0.04
+                         })
+
+
+class FoodEnvMedium1Inv2TierOneTimeRewardPartial12Lifespan300(FoodEnvMedium1Inv):
+    def __init__(self):
+        super().__init__(grid_size=12, health_cap=1000, gen_resources=True, fully_observed=False,
+                         task='make_lifelong axe',
+                         make_rtype='one-time', only_partial_obs=True, lifespan=300,
+                         init_resources={
+                             'metal': 4,
+                             'energy': 4
+                         },
+                         resource_prob={
+                             'metal': 0.04,
+                             'energy': 0.04
+                         })
+
+
+class FoodEnvMedium1Inv2TierOneTimeRewardPartial16Lifespan500(FoodEnvMedium1Inv):
+    def __init__(self):
+        super().__init__(grid_size=16, health_cap=1000, gen_resources=True, fully_observed=False,
+                         task='make_lifelong axe',
+                         make_rtype='one-time', only_partial_obs=True, lifespan=500,
                          init_resources={
                              'metal': 4,
                              'energy': 4
@@ -807,6 +906,84 @@ class FoodEnvMedium1Inv2TierOneTimeRewardPartial16Lifespan400(FoodEnvMedium1Inv)
                          })
 
 
+class FoodEnvMedium1Inv3TierSparseRewardPartial8Lifespan500(FoodEnvMedium1Inv):
+    def __init__(self):
+        super().__init__(grid_size=8, health_cap=1000, gen_resources=True, fully_observed=False,
+                         task='make_lifelong wood', woodfood=False,
+                         make_rtype='sparse', only_partial_obs=True, lifespan=500,
+                         init_resources={
+                             'metal': 4,
+                             'energy': 4,
+                             'tree': 2
+                         },
+                         resource_prob={
+                             'metal': 0.04,
+                             'energy': 0.04,
+                             'tree': 0.02
+                         })
+
+
+class FoodEnvMedium1Inv3TierOneTimeRewardPartial8Lifespan500(FoodEnvMedium1Inv):
+    def __init__(self):
+        super().__init__(grid_size=8, health_cap=1000, gen_resources=True, fully_observed=False,
+                         task='make_lifelong wood', woodfood=False,
+                         make_rtype='one-time', only_partial_obs=True, lifespan=500,
+                         init_resources={
+                             'metal': 4,
+                             'energy': 4,
+                             'tree': 2
+                         },
+                         resource_prob={
+                             'metal': 0.04,
+                             'energy': 0.04,
+                             'tree': 0.02
+                         })
+
+
+class FoodEnvMedium1Inv3TierSparseRewardPartial8IntermediateLifespan500(FoodEnvMedium1Inv):
+    def __init__(self):
+        super().__init__(grid_size=8, health_cap=1000, gen_resources=True, fully_observed=False,
+                         task='make_lifelong wood', woodfood=False,
+                         make_rtype='sparse', only_partial_obs=True, lifespan=500,
+                         init_resources={
+                             'metal': 4,
+                             'energy': 4,
+                             'tree': 2,
+                             'axe': 2
+                         },
+                         resource_prob={
+                             'metal': 0.04,
+                             'energy': 0.04,
+                             'tree': 0.02,
+                             'axe': 0.02
+                         },
+                         resource_prob_decay={
+                             'axe': 1e-6
+                         })
+
+
+class FoodEnvMedium1Inv3TierOneTimeRewardPartial8IntermediateLifespan500(FoodEnvMedium1Inv):
+    def __init__(self):
+        super().__init__(grid_size=8, health_cap=1000, gen_resources=True, fully_observed=False,
+                         task='make_lifelong wood', woodfood=False,
+                         make_rtype='one-time', only_partial_obs=True, lifespan=500,
+                         init_resources={
+                             'metal': 4,
+                             'energy': 4,
+                             'tree': 2,
+                             'axe': 2
+                         },
+                         resource_prob={
+                             'metal': 0.04,
+                             'energy': 0.04,
+                             'tree': 0.02,
+                             'axe': 0.02
+                         },
+                         resource_prob_decay={
+                             'axe': 1e-6
+                         })
+
+
 class FoodEnvMedium1Inv3TierDenseReward8(FoodEnvMedium1Inv):
     def __init__(self):
         super().__init__(grid_size=8, health_cap=1000, gen_resources=False, fully_observed=True, task='make wood',
@@ -846,9 +1023,9 @@ class FoodEnvMedium1Inv1TierGoalFixed8(FoodEnvMedium1Inv):
     def __init__(self):
         super().__init__(grid_size=8, health_cap=1000, gen_resources=False, fully_observed=False, rtype='goal',
                          fixed_reset=True, only_partial_obs=True,
-                         goal_count={
+                         goals=[{
                              'energy': 3
-                         },
+                         }],
                          init_resources={
                              'energy': 6
                          })
@@ -858,8 +1035,44 @@ class FoodEnvMedium1Inv2TierGoalFixed8(FoodEnvMedium1Inv):
     def __init__(self):
         super().__init__(grid_size=8, health_cap=1000, gen_resources=False, fully_observed=False, rtype='goal',
                          fixed_reset=True, only_partial_obs=True,
-                         goal_count={
+                         goals=[{
                              'axe': 2
+                         }],
+                         init_resources={
+                             'energy': 4,
+                             'metal': 4
+                         })
+
+
+class FoodEnvMedium1Inv2TierGoalRandom8(FoodEnvMedium1Inv):
+    def __init__(self):
+        super().__init__(grid_size=8, health_cap=1000, gen_resources=False, fully_observed=False, rtype='goal',
+                         fixed_reset=False, only_partial_obs=True,
+                         goals=[{
+                             'axe': 2
+                         }],
+                         init_resources={
+                             'energy': 4,
+                             'metal': 4
+                         })
+
+
+class FoodEnvMedium1InvGoalRandom8(FoodEnvMedium1Inv):
+    def __init__(self):
+        super().__init__(grid_size=8, health_cap=1000, gen_resources=True, fully_observed=False, rtype='goal_lifelong',
+                         fixed_reset=False, only_partial_obs=True, lifespan=100,
+                         goals=[{
+                             'energy': 2
+                         }] * 5 + [{
+                             'metal': 2
+                         }] * 5 + [{
+                             'axe': 1
+                         }] * 10 + [{
+                             'axe': 2
+                         }] * 1000,
+                         resource_prob={
+                             'metal': 0.04,
+                             'energy': 0.04,
                          },
                          init_resources={
                              'energy': 4,
@@ -983,8 +1196,23 @@ register(
 )
 
 register(
+    id='MiniGrid-Food-8x8-Medium-1Inv-2Tier-Sparse-Partial-Lifespan200-v1',
+    entry_point='rlkit.envs.gym_minigrid.gym_minigrid.envs:FoodEnvMedium1Inv2TierSparseRewardPartial8Lifespan200'
+)
+
+register(
     id='MiniGrid-Food-8x8-Medium-1Inv-2Tier-OneTime-Partial-Lifespan100-v1',
     entry_point='rlkit.envs.gym_minigrid.gym_minigrid.envs:FoodEnvMedium1Inv2TierOneTimeRewardPartial8Lifespan100'
+)
+
+register(
+    id='MiniGrid-Food-12x12-Medium-1Inv-2Tier-OneTime-Partial-Lifespan300-v1',
+    entry_point='rlkit.envs.gym_minigrid.gym_minigrid.envs:FoodEnvMedium1Inv2TierOneTimeRewardPartial12Lifespan300'
+)
+
+register(
+    id='MiniGrid-Food-16x16-Medium-1Inv-2Tier-OneTime-Partial-Lifespan500-v1',
+    entry_point='rlkit.envs.gym_minigrid.gym_minigrid.envs:FoodEnvMedium1Inv2TierOneTimeRewardPartial16Lifespan500'
 )
 
 register(
@@ -1001,6 +1229,27 @@ register(
     id='MiniGrid-Food-16x16-Medium-1Inv-2Tier-OneTime-Partial-Lifespan400-v1',
     entry_point='rlkit.envs.gym_minigrid.gym_minigrid.envs:FoodEnvMedium1Inv2TierOneTimeRewardPartial16Lifespan400'
 )
+
+register(
+    id='MiniGrid-Food-8x8-Medium-1Inv-3Tier-Sparse-Partial-Lifespan500-v1',
+    entry_point='rlkit.envs.gym_minigrid.gym_minigrid.envs:FoodEnvMedium1Inv3TierSparseRewardPartial8Lifespan500'
+)
+
+register(
+    id='MiniGrid-Food-8x8-Medium-1Inv-3Tier-OneTime-Partial-Lifespan500-v1',
+    entry_point='rlkit.envs.gym_minigrid.gym_minigrid.envs:FoodEnvMedium1Inv3TierOneTimeRewardPartial8Lifespan500'
+)
+
+register(
+    id='MiniGrid-Food-8x8-Medium-1Inv-3Tier-Sparse-Partial-Intermediate-Lifespan500-v1',
+    entry_point='rlkit.envs.gym_minigrid.gym_minigrid.envs:FoodEnvMedium1Inv3TierSparseRewardPartial8IntermediateLifespan500'
+)
+
+register(
+    id='MiniGrid-Food-8x8-Medium-1Inv-3Tier-OneTime-Partial-Intermediate-Lifespan500-v1',
+    entry_point='rlkit.envs.gym_minigrid.gym_minigrid.envs:FoodEnvMedium1Inv3TierOneTimeRewardPartial8IntermediateLifespan500'
+)
+
 
 register(
     id='MiniGrid-Food-8x8-Medium-1Inv-3Tier-Dense-v1',
@@ -1025,4 +1274,14 @@ register(
 register(
     id='MiniGrid-Food-8x8-Medium-1Inv-2Tier-Goal-Fixed-v1',
     entry_point='rlkit.envs.gym_minigrid.gym_minigrid.envs:FoodEnvMedium1Inv2TierGoalFixed8'
+)
+
+register(
+    id='MiniGrid-Food-8x8-Medium-1Inv-2Tier-Goal-Random-v1',
+    entry_point='rlkit.envs.gym_minigrid.gym_minigrid.envs:FoodEnvMedium1Inv2TierGoalRandom8'
+)
+
+register(
+    id='MiniGrid-Food-8x8-Medium-1Inv-GoalLifetime-Random-v1',
+    entry_point='rlkit.envs.gym_minigrid.gym_minigrid.envs:FoodEnvMedium1InvGoalRandom8'
 )

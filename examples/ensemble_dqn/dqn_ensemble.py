@@ -3,13 +3,13 @@ Run DQN on grid world.
 """
 
 import gym
-from rlkit.policies.ensemble import EnsembleArgmaxDiscretePolicy
+from rlkit.policies.ensemble import EnsembleArgmaxDiscretePolicy, EnsembleLSEDiscretePolicy
 from rlkit.torch.dqn.dqn_ensemble import DQNEnsembleTrainer
 from torch import nn as nn
 
 from rlkit.exploration_strategies.base import \
     PolicyWrappedWithExplorationStrategy
-from rlkit.exploration_strategies.epsilon_greedy import EpsilonGreedy
+from rlkit.exploration_strategies.epsilon_greedy import EpsilonGreedy, EpsilonGreedyDecay
 from rlkit.policies.argmax import ArgmaxDiscretePolicy
 from rlkit.torch.dqn.dqn import DQNTrainer
 from rlkit.torch.networks import Mlp
@@ -24,10 +24,13 @@ import torch.nn as nn
 
 def experiment(variant):
     from rlkit.envs.gym_minigrid.gym_minigrid import envs
-    expl_env = gym.make('MiniGrid-UMaze-10x10-v1')
-    eval_env = gym.make('MiniGrid-UMaze-10x10-v1')
+    # env_name = 'HalfCheetah-v2'
+    env_name = 'MiniGrid-UMaze-10x10-Dense-Full-v1'
+    expl_env = gym.make(env_name)
+    eval_env = gym.make(env_name)
     obs_dim = expl_env.observation_space.low.size
     action_dim = eval_env.action_space.n
+    # action_dim = eval_env.action_space.low.size
     ensemble_size = 5
 
     qfs = nn.ModuleList([Mlp(
@@ -45,15 +48,17 @@ def experiment(variant):
         for _ in range(ensemble_size)])
 
     qf_criterion = nn.MSELoss()
-    eval_policy = EnsembleArgmaxDiscretePolicy(qfs)
+    eval_policy = EnsembleLSEDiscretePolicy(qfs)
 
     expl_policy = PolicyWrappedWithExplorationStrategy(
-        EpsilonGreedy(expl_env.action_space),
+        # EpsilonGreedy(expl_env.action_space),
+        EpsilonGreedyDecay(expl_env.action_space, 1e-4, 1, 0.1),
         eval_policy,
     )
     eval_path_collector = MdpPathCollector(
         eval_env,
         eval_policy,
+        render=True
     )
     expl_path_collector = MdpPathCollector(
         expl_env,
@@ -90,13 +95,15 @@ if __name__ == "__main__":
         layer_size=256,
         replay_buffer_size=int(1E6),
         algorithm_kwargs=dict(
-            num_epochs=3000,
+            num_epochs=200,
             num_eval_steps_per_epoch=5000,
             num_trains_per_train_loop=1000,
             num_expl_steps_per_train_loop=1000,
             min_num_steps_before_training=1000,
             max_path_length=1000,
             batch_size=256,
+            viz_maps=True,
+            viz_gap=5
         ),
         trainer_kwargs=dict(
             discount=0.99,
