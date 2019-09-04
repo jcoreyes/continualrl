@@ -21,8 +21,8 @@ from rlkit.launchers.launcher_util import setup_logger, run_experiment
 from rlkit.samplers.data_collector import MdpPathCollector
 from rlkit.torch.torch_rl_algorithm import TorchBatchRLAlgorithm, TorchLifetimeRLAlgorithm
 
-from variants.dqn.dqn_medium_mlp_task_partial_variant import variant as algo_variant, gen_network
-# from variants.dqn_lifetime.dqn_medium8_mlp_task_partial_variant import variant as algo_variant, gen_network
+# from variants.dqn.dqn_medium_mlp_task_partial_variant import variant as algo_variant, gen_network
+from variants.dqn_lifetime.dqn_medium8_mlp_task_partial_variant import variant as algo_variant, gen_network
 
 
 def schedule(t):
@@ -67,13 +67,14 @@ def experiment(variant):
     eval_path_collector = collector_class(
         eval_env,
         eval_policy,
+        # uncomment below to visualize reset exps
         # render=True
     )
     expl_path_collector = collector_class(
         expl_env,
         expl_policy,
+        # uncomment below to visualize resetfree exps
         # render=lifetime
-        # render=True
     )
     trainer = DoubleDQNTrainer(
         qf=qf,
@@ -101,15 +102,21 @@ def experiment(variant):
 
 if __name__ == "__main__":
     from variants.exps.dynamic_static_reset_free.env_search_space import env_search_space
-    from variants.envs.axe_reset import env_variant
+    from variants.envs.axe_reset_free import env_variant
+    """
+    NOTE: Things to check for running exps:
+    1. Mode (local vs ec2)
+    2. algo_variant, env_variant, env_search_space
+    3. use_gpu 
+    """
 
     exp_prefix = 'tool-dqn-prob-time-sweep'
 
     n_seeds = 1
-    mode = 'ec2'
+    mode = 'local'
 
     # Comment below to run sweep, uncomment to run default variant
-    env_search_space = {}
+    # env_search_space = {}
 
     env_sweeper = hyp.DeterministicHyperparameterSweeper(
         env_search_space, default_parameters=env_variant,
@@ -125,7 +132,7 @@ if __name__ == "__main__":
                 exp_prefix=exp_prefix,
                 mode=mode,
                 variant=variant,
-                use_gpu=False,
+                use_gpu=True,
                 region='us-west-2',
                 num_exps_per_instance=3
             )
