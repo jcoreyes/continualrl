@@ -2,7 +2,7 @@ from collections import deque, OrderedDict
 
 from rlkit.envs.vae_wrapper import VAEWrappedEnv
 from rlkit.core.eval_util import create_stats_ordered_dict
-from rlkit.samplers.rollout_functions import rollout, multitask_rollout, hierarchical_rollout
+from rlkit.samplers.rollout_functions import rollout, multitask_rollout, hierarchical_rollout, rollout_config
 from rlkit.samplers.data_collector.base import PathCollector
 
 
@@ -85,6 +85,41 @@ class MdpPathCollector(PathCollector):
             #env=self._env,
             policy=self._policy,
         )
+
+
+class MdpPathCollectorConfig(MdpPathCollector):
+    """ For resets to be able to retain env config by collecting seeds. """
+    def collect_new_paths(
+            self,
+            max_path_length,
+            num_steps,
+            discard_incomplete_paths
+    ):
+        paths = []
+        num_steps_collected = 0
+        seed = None
+        while num_steps_collected < num_steps:
+            max_path_length_this_loop = min(  # Do not go over num_steps
+                max_path_length,
+                num_steps - num_steps_collected,
+            )
+            path, seed = rollout_config(
+                self._env,
+                self._policy,
+                max_path_length=max_path_length_this_loop,
+                render=self._render,# and len(paths) == 0,
+                seed=seed
+            )
+            path_len = len(path['actions'])
+            num_steps_collected += path_len
+            paths.append(path)
+            if path['env_infos'][-1]['solved']:
+                # path terminated due to solve, so we can change env config
+                seed = None
+        self._num_paths_total += len(paths)
+        self._num_steps_total += num_steps_collected
+        self._epoch_paths.extend(paths)
+        return paths
 
 
 class LifetimeMdpPathCollector(PathCollector):

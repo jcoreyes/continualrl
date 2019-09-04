@@ -321,6 +321,100 @@ def rollout(
     return (ret, env, next_o) if return_env_obs else ret
 
 
+def rollout_config(
+        env,
+        agent,
+        max_path_length=np.inf,
+        render=False,
+        render_kwargs=None,
+        return_env_obs=False,
+        continuing=False,
+        obs=None,
+        seed=None
+):
+    """
+    The following value for the following keys will be a 2D array, with the
+    first dimension corresponding to the time dimension.
+     - observations
+     - actions
+     - rewards
+     - next_observations
+     - terminals
+
+    The next two elements will be lists of dictionaries, with the index into
+    the list being the index into the time
+     - agent_infos
+     - env_infos
+
+    If `return_env_obs` is True, then return the env and last obs as well.
+    If `continuing` is True, then roll out without resetting env. `obs` must then be the most recent obs from the env
+    """
+    assert not (continuing and (obs is None or seed is None)), \
+        'if continuing, then must provide the most recent obs and seed from the env'
+
+    if render_kwargs is None:
+        render_kwargs = {}
+    observations = []
+    actions = []
+    rewards = []
+    terminals = []
+    agent_infos = []
+    env_infos = []
+    if continuing:
+        o = obs
+    else:
+        o, seed = env.reset(seed=seed, return_seed=True)
+        agent.reset()
+    next_o = None
+    path_length = 0
+    if render:
+        env.render(**render_kwargs)
+        time.sleep(0.25)
+    while path_length < max_path_length:
+        a, agent_info = agent.get_action(o)
+        # if render:
+        #     print(a)
+        next_o, r, d, env_info = env.step(a)
+        observations.append(o)
+        rewards.append(r)
+        terminals.append(d)
+        actions.append(a)
+        agent_infos.append(agent_info)
+        env_infos.append(env_info)
+        path_length += 1
+        o = next_o
+        if render:
+            env.render(**render_kwargs)
+            time.sleep(0.1)
+        if d:
+            break
+    actions = np.array(actions)
+    if len(actions.shape) == 1:
+        actions = np.expand_dims(actions, 1)
+    if type(observations[0]) is not np.array:
+        observations = [x.__array__() for x in observations]
+    observations = np.array(observations)
+    if len(observations.shape) == 1:
+        observations = np.expand_dims(observations, 1)
+        next_o = np.array([next_o])
+    next_observations = np.vstack(
+        (
+            observations[1:, :],
+            np.expand_dims(next_o, 0)
+        )
+    )
+    ret = dict(
+        observations=observations,
+        actions=actions,
+        rewards=np.array(rewards).reshape(-1, 1),
+        next_observations=next_observations,
+        terminals=np.array(terminals).reshape(-1, 1),
+        agent_infos=agent_infos,
+        env_infos=env_infos,
+    )
+    return (ret, env, next_o, seed) if return_env_obs else (ret, seed)
+
+
 def env_shape_rollout(
         env,
         eval_env,

@@ -8,7 +8,7 @@ from contextlib import contextmanager
 import torch
 
 import numpy as np
-import matplotlib.pyplot as plt
+# import matplotlib.pyplot as plt
 import os
 import os.path as osp
 import sys
@@ -354,14 +354,14 @@ class Logger(object):
         variance_map = trim(variance_map)
         lse_map = trim(lse_map)
 
-        # make plot
-        fig, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(10, 15))
-        ax1.set_title('LogSumExp value function')
-        im1 = ax1.imshow(lse_map)
-        ax2.set_title('Variance of ensemble')
-        im2 = ax2.imshow(variance_map)
-        ax3.set_title('Visitation counts')
-        im3 = ax3.imshow(visit_count)
-        fig.savefig(osp.join(self._snapshot_dir, 'map_itr_%d.png' % epoch))
+        # # make plot
+        # fig, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(10, 15))
+        # ax1.set_title('LogSumExp value function')
+        # im1 = ax1.imshow(lse_map)
+        # ax2.set_title('Variance of ensemble')
+        # im2 = ax2.imshow(variance_map)
+        # ax3.set_title('Visitation counts')
+        # im3 = ax3.imshow(visit_count)
+        # fig.savefig(osp.join(self._snapshot_dir, 'map_itr_%d.png' % epoch))
 
 logger = Logger()

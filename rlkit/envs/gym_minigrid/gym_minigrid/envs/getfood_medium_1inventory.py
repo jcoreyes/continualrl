@@ -217,7 +217,7 @@ class FoodEnvMedium1Inv(FoodEnvBase):
         if self.gen_resources:
             if self.resource_prob:
                 for type, prob in self.resource_prob.items():
-                    if type in self.init_resources and not self.exists_type(type):
+                    if type in self.init_resources and not counts[type]:
                         # replenish resource if gone and was initially provided
                         place_prob = 1
                     elif self.resource_prob_decay and type in self.resource_prob_decay:
@@ -372,9 +372,8 @@ class FoodEnvMedium1Inv(FoodEnvBase):
         solved = self.solved_task()
 
         """ Generate info """
-        if (self.task and self.task[0] == 'make_lifelong') or self.rtype == 'goal_lifelong':
-            info.update({'num_solves': self.num_solves})
-        elif solved:
+        info.update({'num_solves': self.num_solves})
+        if solved:
             if self.end_on_task_completion:
                 done = True
             info.update({'solved': True})
@@ -468,6 +467,7 @@ class FoodEnvMedium1Inv(FoodEnvBase):
             if idx == len(self.make_sequence) - 1:
                 reward = POS_RWD
                 self.max_make_idx = idx
+                self.num_solves += 1
             elif idx == self.max_make_idx + 1:
                 reward = MED_RWD
                 self.max_make_idx = idx
@@ -1178,6 +1178,51 @@ register(
 register(
     id='MiniGrid-Food-8x8-Medium-1Inv-2Tier-Dense-Partial-Random-v1',
     entry_point='rlkit.envs.gym_minigrid.gym_minigrid.envs:FoodEnvMedium1Inv2TierDenseRewardPartialRandom8'
+)
+
+register(
+    id='MiniGrid-Food-8x8-Medium-1Inv-2Tier-Dense-Partial-Random-1Resource-v1',
+    entry_point='rlkit.envs.gym_minigrid.gym_minigrid.envs:FoodEnvMedium1Inv',
+    kwargs=dict(
+        grid_size=8,
+        # start agent at random pos
+        agent_start_pos=None,
+        health_cap=1000,
+        gen_resources=False,
+        fully_observed=False,
+        task='make axe',
+        make_rtype='dense',
+        fixed_reset=False,
+        only_partial_obs=True,
+        init_resources={
+            'metal': 1,
+            'energy': 1
+        }
+    )
+)
+
+register(
+    id='MiniGrid-Food-8x8-Medium-1Inv-2Tier-Dense-Partial-Lifespan200-1Resource-v1',
+    entry_point='rlkit.envs.gym_minigrid.gym_minigrid.envs:FoodEnvMedium1Inv',
+    kwargs=dict(
+        grid_size=8,
+        health_cap=1000,
+        fully_observed=False,
+        task='make_lifelong axe',
+        make_rtype='one-time',
+        fixed_reset=False,
+        only_partial_obs=True,
+        init_resources={
+            'metal': 1,
+            'energy': 1
+        },
+        resource_prob={
+            'metal': 0,
+            'energy': 0
+        },
+        gen_resources=True,
+        lifespan=200
+    )
 )
 
 register(
