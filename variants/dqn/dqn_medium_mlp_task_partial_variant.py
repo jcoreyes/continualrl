@@ -1,3 +1,5 @@
+import math
+
 from rlkit.policies.network_food import FoodNetworkEasy, FoodNetworkMediumFullObs, \
     FoodNetworkMediumPartialObsTask
 from rlkit.pythonplusplus import identity
@@ -6,10 +8,11 @@ from rlkit.torch.networks import FlattenMlp, Mlp
 from torch.nn import functional as F
 
 variant = dict(
-    # env_name="MiniGrid-Food-8x8-Medium-1Inv-2Tier-Dense-Partial-Fixed-v1",
+    # env_name="MiniGrid-Food-8x8-Medium-1Inv-2Tier-Dense-Partial-Random-v1",
+    env_name="MiniGrid-Food-8x8-Medium-1Inv-2Tier-Dense-Partial-Random-1Resource-v1",
     # env_name="MiniGrid-Food-8x8-Medium-1Inv-2Tier-OneTime-Partial-v1",
     # env_name="MiniGrid-Food-8x8-Medium-1Inv-3Tier-OneTime-Partial-Lifespan500-v1",
-    env_name="MiniGrid-Food-8x8-Medium-1Inv-3Tier-Sparse-Partial-Intermediate-Lifespan500-v1",
+    # env_name="MiniGrid-Food-8x8-Medium-1Inv-3Tier-Sparse-Partial-Intermediate-Lifespan500-v1",
     algorithm="DQN",
     version="normal",
     layer_size=16,
@@ -18,9 +21,9 @@ variant = dict(
         num_epochs=1500,
         num_eval_steps_per_epoch=5000,
         num_trains_per_train_loop=1000,
-        num_expl_steps_per_train_loop=1000,
-        min_num_steps_before_training=1000,
-        max_path_length=300,
+        num_expl_steps_per_train_loop=1200,
+        min_num_steps_before_training=1200,
+        max_path_length=math.inf,
         batch_size=512,
     ),
     trainer_kwargs=dict(
