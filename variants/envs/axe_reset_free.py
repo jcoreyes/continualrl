@@ -10,8 +10,8 @@ env_variant = dict(
     fixed_reset=False,
     only_partial_obs=True,
     init_resources={
-        'metal': 5,
-        'energy': 5
+        'metal': 1,
+        'energy': 1
     },
     resource_prob={
         'metal': 0,
