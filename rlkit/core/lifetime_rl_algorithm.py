@@ -85,7 +85,7 @@ class LifetimeRLAlgorithm(BaseRLAlgorithm, metaclass=abc.ABCMeta):
                 self.trainer.train(train_data)
             gt.stamp('training', unique=False)
             self.training_mode(False)
-            done = np.any(new_expl_path['terminals'])
+            done = num_loops >= self.num_epochs
 
             # total_infos = {}
             # for info in new_expl_path['env_infos']:
