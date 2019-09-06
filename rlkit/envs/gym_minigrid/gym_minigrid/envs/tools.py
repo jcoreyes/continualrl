@@ -47,6 +47,7 @@ class ToolsEnv(FoodEnvBase):
             fixed_expected_resources=False,
             resource_prob=None,
             resource_prob_decay=None,
+            resource_prob_min=None,
             make_rtype='sparse',
             rtype='default',
             lifespans=None,
@@ -80,14 +81,18 @@ class ToolsEnv(FoodEnvBase):
         self.ingredients = {v: k for k, v in self.interactions.items()}
         self.gen_resources = gen_resources
         self.resource_prob = resource_prob or {}
-        self.resource_prob_decay = resource_prob_decay
+        self.resource_prob_decay = resource_prob_decay or {}
+        self.resource_prob_min = resource_prob_min or {}
         self.include_health = include_health
         self.replenish_empty_resources = replenish_empty_resources
         self.time_horizon = time_horizon
         # adjust lifespans if needed:
         if fixed_expected_resources:
             for type, num in self.init_resources.items():
-                self.lifespans[type] = int(num / self.resource_prob[type])
+                if not self.resource_prob.get(type, 0):
+                    self.lifespans[type] = self.default_lifespan
+                else:
+                    self.lifespans[type] = int(num / self.resource_prob[type])
 
         self.seed_val = seed_val
         self.fixed_reset = fixed_reset
@@ -214,15 +219,14 @@ class ToolsEnv(FoodEnvBase):
         if self.gen_resources:
             if self.resource_prob:
                 for type, prob in self.resource_prob.items():
-                    place_prob = prob
+                    place_prob = max(self.resource_prob_min.get(type, 0),
+                                     prob - self.resource_prob_decay.get(type, 0) * self.step_count)
                     if type in self.init_resources and not counts.get(type, 0):
                         # replenish resource if gone and was initially provided
                         if self.replenish_empty_resources:
                             place_prob = 1
-                    elif self.resource_prob_decay and type in self.resource_prob_decay:
-                        place_prob = max(0, prob - self.resource_prob_decay[type] * self.step_count)
-                    elif counts.get(type, 0) > (self.grid_size - 2) ** 2 // max(8, len(self.resource_prob)):
-                        # don't add more if it's already taking up over 1/8 of the space (lower threshold if >10 diff obj types being generated)
+                    if counts.get(type, 0) > (self.grid_size - 2) ** 2 // max(8, len(self.resource_prob)):
+                        # don't add more if it's already taking up over 1/8 of the space (lower threshold if >8 diff obj types being generated)
                         place_prob = 0
                     self.place_prob(TYPE_TO_CLASS_ABS[type](lifespan=self.lifespans.get(type, self.default_lifespan)),
                                     place_prob)
