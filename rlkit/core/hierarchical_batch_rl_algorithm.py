@@ -188,13 +188,13 @@ class HierarchicalBatchRLAlgorithm(BaseRLAlgorithm, metaclass=abc.ABCMeta):
         self._start_epoch = start_epoch
         self._train()
 
-    def _end_epoch(self, epoch, incl_eval=True):
+    def _end_epoch(self, epoch, incl_expl=True):
         snapshot = self._get_snapshot()
         if self.viz_maps and epoch % self.viz_gap == 0:
             logger.save_viz(epoch, snapshot)
         logger.save_itr_params(epoch, snapshot)
         gt.stamp('saving', unique=False)
-        self._log_stats(epoch, incl_eval=incl_eval)
+        self._log_stats(epoch, incl_expl=incl_expl)
 
         self.expl_data_collector.end_epoch(epoch)
         self.eval_data_collector.end_epoch(epoch)
@@ -219,7 +219,7 @@ class HierarchicalBatchRLAlgorithm(BaseRLAlgorithm, metaclass=abc.ABCMeta):
             snapshot['high_replay_buffer/' + k] = v
         return snapshot
 
-    def _log_stats(self, epoch, incl_eval=True):
+    def _log_stats(self, epoch, incl_expl=True):
         logger.log("Epoch {} finished".format(epoch), with_timestamp=True)
 
         """
@@ -239,58 +239,58 @@ class HierarchicalBatchRLAlgorithm(BaseRLAlgorithm, metaclass=abc.ABCMeta):
         """
         logger.record_dict(self.trainer.get_diagnostics(), prefix='trainer/')
 
-        """
-        Exploration
-        """
-        logger.record_dict(
-            self.expl_data_collector.get_diagnostics(),
-            prefix='exploration/'
-        )
-        low_expl_paths, high_expl_paths = self.expl_data_collector.get_epoch_paths()
-        if hasattr(self.expl_env, 'get_diagnostics'):
+        if incl_expl:
+            """
+            Exploration
+            """
             logger.record_dict(
-                self.expl_env.get_diagnostics(low_expl_paths),
-                prefix='exploration/low/',
+                self.expl_data_collector.get_diagnostics(),
+                prefix='exploration/'
+            )
+            low_expl_paths, high_expl_paths = self.expl_data_collector.get_epoch_paths()
+            if hasattr(self.expl_env, 'get_diagnostics'):
+                logger.record_dict(
+                    self.expl_env.get_diagnostics(low_expl_paths),
+                    prefix='exploration/low/',
+                )
+                logger.record_dict(
+                    self.expl_env.get_diagnostics(high_expl_paths),
+                    prefix='exploration/high/',
+                )
+            logger.record_dict(
+                eval_util.get_generic_path_information(low_expl_paths),
+                prefix="exploration/low/",
             )
             logger.record_dict(
-                self.expl_env.get_diagnostics(high_expl_paths),
-                prefix='exploration/high/',
+                eval_util.get_generic_path_information(high_expl_paths),
+                prefix="exploration/high/",
             )
-        logger.record_dict(
-            eval_util.get_generic_path_information(low_expl_paths),
-            prefix="exploration/low/",
-        )
-        logger.record_dict(
-            eval_util.get_generic_path_information(high_expl_paths),
-            prefix="exploration/high/",
-        )
 
-        if incl_eval:
-            """
-            Evaluation
-            """
+        """
+        Evaluation
+        """
+        logger.record_dict(
+            self.eval_data_collector.get_diagnostics(),
+            prefix='evaluation/',
+        )
+        low_eval_paths, high_eval_paths = self.eval_data_collector.get_epoch_paths()
+        if hasattr(self.eval_env, 'get_diagnostics'):
             logger.record_dict(
-                self.eval_data_collector.get_diagnostics(),
-                prefix='evaluation/',
-            )
-            low_eval_paths, high_eval_paths = self.eval_data_collector.get_epoch_paths()
-            if hasattr(self.eval_env, 'get_diagnostics'):
-                logger.record_dict(
-                    self.eval_env.get_diagnostics(low_eval_paths),
-                    prefix='evaluation/low/',
-                )
-                logger.record_dict(
-                    self.eval_env.get_diagnostics(high_eval_paths),
-                    prefix='evaluation/high/',
-                )
-            logger.record_dict(
-                eval_util.get_generic_path_information(low_eval_paths),
-                prefix="evaluation/low/",
+                self.eval_env.get_diagnostics(low_eval_paths),
+                prefix='evaluation/low/',
             )
             logger.record_dict(
-                eval_util.get_generic_path_information(high_eval_paths),
-                prefix="evaluation/high/",
+                self.eval_env.get_diagnostics(high_eval_paths),
+                prefix='evaluation/high/',
             )
+        logger.record_dict(
+            eval_util.get_generic_path_information(low_eval_paths),
+            prefix="evaluation/low/",
+        )
+        logger.record_dict(
+            eval_util.get_generic_path_information(high_eval_paths),
+            prefix="evaluation/high/",
+        )
 
         """
         Misc

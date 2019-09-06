@@ -55,18 +55,17 @@ class ToolsEnv(FoodEnvBase):
             task=None,
             rnd=False,
             cbe=False,
-            woodfood=True,
             seed_val=1,
             fixed_reset=False,
             end_on_task_completion=True,
             can_die=False,
             include_health=False,
-            replenish_empty_resources=False,
+            replenish_empty_resources=None,
             # nonzero for reset case, 0 for reset free
             time_horizon=0,
             **kwargs
     ):
-        assert task is not None, 'Must specify task of form "make wood", "navigate 3 5", "pickup axe", etc.'
+        assert task is not None, 'Must specify task of form "make berry", "navigate 3 5", "pickup axe", etc.'
         assert resource_prob is not None, 'Must specify resource generation probabilities'
 
         self.init_resources = init_resources or {}
@@ -74,9 +73,9 @@ class ToolsEnv(FoodEnvBase):
         self.default_lifespan = default_lifespan
         self.food_rate_decay = food_rate_decay
         self.interactions = {
-            ('energy', 'metal'): 'axe',
-            # edible wood, used for health points
-            ('axe', 'tree'): 'woodfood' if woodfood else 'wood',
+            # the 2 ingredients must be in alphabetical order
+            ('metal', 'wood'): 'axe',
+            ('axe', 'tree'): 'berry',
         }
         self.ingredients = {v: k for k, v in self.interactions.items()}
         self.gen_resources = gen_resources
@@ -84,7 +83,7 @@ class ToolsEnv(FoodEnvBase):
         self.resource_prob_decay = resource_prob_decay or {}
         self.resource_prob_min = resource_prob_min or {}
         self.include_health = include_health
-        self.replenish_empty_resources = replenish_empty_resources
+        self.replenish_empty_resources = replenish_empty_resources or []
         self.time_horizon = time_horizon
         # adjust lifespans if needed:
         if fixed_expected_resources:
@@ -100,19 +99,16 @@ class ToolsEnv(FoodEnvBase):
             'empty': 0,
             'wall': 1,
             'food': 2,
-            'tree': 3,
+            'wood': 3,
             'metal': 4,
-            'energy': 5,
+            'tree': 5,
             'axe': 6,
+            'berry': 7
         }
-        if woodfood:
-            self.object_to_idx.update({'woodfood': 7})
-        else:
-            self.object_to_idx.update({'wood': 7})
 
         # TASK stuff
         self.task = task
-        self.task = task.split()  # e.g. 'pickup axe', 'navigate 3 5', 'make wood', 'make_lifelong axe'
+        self.task = task.split()  # e.g. 'pickup axe', 'navigate 3 5', 'make berry', 'make_lifelong axe'
         self.make_sequence = self.get_make_sequence()
         self.onetime_reward_sequence = [False for _ in range(len(self.make_sequence))]
         self.make_rtype = make_rtype
@@ -215,27 +211,20 @@ class ToolsEnv(FoodEnvBase):
         return make_sequence
 
     def place_items(self):
+        if not self.gen_resources:
+            return
         counts = self.count_all_types()
-        if self.gen_resources:
-            if self.resource_prob:
-                for type, prob in self.resource_prob.items():
-                    place_prob = max(self.resource_prob_min.get(type, 0),
-                                     prob - self.resource_prob_decay.get(type, 0) * self.step_count)
-                    if type in self.init_resources and not counts.get(type, 0):
-                        # replenish resource if gone and was initially provided
-                        if self.replenish_empty_resources:
-                            place_prob = 1
-                    if counts.get(type, 0) > (self.grid_size - 2) ** 2 // max(8, len(self.resource_prob)):
-                        # don't add more if it's already taking up over 1/8 of the space (lower threshold if >8 diff obj types being generated)
-                        place_prob = 0
-                    self.place_prob(TYPE_TO_CLASS_ABS[type](lifespan=self.lifespans.get(type, self.default_lifespan)),
-                                    place_prob)
-            else:
-                self.place_prob(Food(lifespan=self.default_lifespan),
-                                1 / (self.food_rate + self.step_count * self.food_rate_decay))
-                self.place_prob(Metal(lifespan=self.default_lifespan), 1 / (2 * self.food_rate))
-                self.place_prob(Energy(lifespan=self.default_lifespan), 1 / (2 * self.food_rate))
-                self.place_prob(Tree(lifespan=self.default_lifespan), 1 / (3 * self.food_rate))
+        for type, prob in self.resource_prob.items():
+            place_prob = max(self.resource_prob_min.get(type, 0),
+                             prob - self.resource_prob_decay.get(type, 0) * self.step_count)
+            if type in self.init_resources and not counts.get(type, 0) and type in self.replenish_empty_resources:
+                # replenish resource if gone and was initially provided
+                place_prob = 1
+            if counts.get(type, 0) > (self.grid_size - 2) ** 2 // max(8, len(self.resource_prob)):
+                # don't add more if it's already taking up over 1/8 of the space (lower threshold if >8 diff obj types being generated)
+                place_prob = 0
+            self.place_prob(TYPE_TO_CLASS_ABS[type](lifespan=self.lifespans.get(type, self.default_lifespan)),
+                            place_prob)
 
     def extra_gen_grid(self):
         for type, count in self.init_resources.items():

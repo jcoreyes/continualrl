@@ -1,5 +1,7 @@
 import abc
 from collections import OrderedDict
+import pickle
+
 import torch
 
 import numpy as np
@@ -34,7 +36,11 @@ class BaseRLAlgorithm(object, metaclass=abc.ABCMeta):
             evaluation_data_collector: DataCollector,
             replay_buffer: ReplayBuffer,
             viz_maps=False,
-            viz_gap=50
+            viz_gap=50,
+            # suvansh: validation tasks for continual proj
+            validation_envs_pkl=None,
+            validation_period=10,
+            validation_rollout_length=50
     ):
         self.trainer = trainer
         self.expl_env = exploration_env
@@ -44,6 +50,13 @@ class BaseRLAlgorithm(object, metaclass=abc.ABCMeta):
         self.replay_buffer = replay_buffer
         self.viz_maps = viz_maps
         self.viz_gap = viz_gap
+        if validation_envs_pkl is not None:
+            self.validation = True
+            self.validation_envs = pickle.load(validation_envs_pkl)
+            self.validation_period = validation_period
+            self.validation_rollout_length = validation_rollout_length
+        else:
+            self.validation = False
         self._start_epoch = 0
 
         self.post_epoch_funcs = []
@@ -58,13 +71,16 @@ class BaseRLAlgorithm(object, metaclass=abc.ABCMeta):
         """
         raise NotImplementedError('_train must implemented by inherited class')
 
-    def _end_epoch(self, epoch, incl_eval=True):
+    def _end_epoch(self, epoch, incl_expl=True):
         snapshot = self._get_snapshot()
         if self.viz_maps and epoch % self.viz_gap == 0:
             logger.save_viz(epoch, snapshot)
+        if self.validation:
+            stats = self.validate(snapshot)
+            logger.save_stats(stats)
         logger.save_itr_params(epoch, snapshot)
         gt.stamp('saving', unique=False)
-        self._log_stats(epoch, incl_eval=incl_eval)
+        self._log_stats(epoch, incl_expl=incl_expl)
 
         self.expl_data_collector.end_epoch(epoch)
         self.eval_data_collector.end_epoch(epoch)
@@ -73,6 +89,12 @@ class BaseRLAlgorithm(object, metaclass=abc.ABCMeta):
 
         for post_epoch_func in self.post_epoch_funcs:
             post_epoch_func(self, epoch)
+
+    def validate(self, snapshot):
+        policy = snapshot['evaluation/policy']
+        for env in self.validation_envs:
+            # TODO rollout POLICY on ENV and collect STATS
+            pass
 
     def _get_snapshot(self):
         snapshot = {}
@@ -86,7 +108,7 @@ class BaseRLAlgorithm(object, metaclass=abc.ABCMeta):
             snapshot['replay_buffer/' + k] = v
         return snapshot
 
-    def _log_stats(self, epoch, incl_eval=True):
+    def _log_stats(self, epoch, incl_expl=True):
         logger.log("Epoch {} finished".format(epoch), with_timestamp=True)
 
         """
@@ -102,42 +124,42 @@ class BaseRLAlgorithm(object, metaclass=abc.ABCMeta):
         """
         logger.record_dict(self.trainer.get_diagnostics(), prefix='trainer/')
 
-        """
-        Exploration
-        """
-        logger.record_dict(
-            self.expl_data_collector.get_diagnostics(),
-            prefix='exploration/'
-        )
-        expl_paths = self.expl_data_collector.get_epoch_paths()
-        if hasattr(self.expl_env, 'get_diagnostics'):
-            logger.record_dict(
-                self.expl_env.get_diagnostics(expl_paths),
-                prefix='exploration/',
-            )
-        logger.record_dict(
-            eval_util.get_generic_path_information(expl_paths),
-            prefix="exploration/",
-        )
-
-        if incl_eval:
+        if incl_expl:
             """
-            Evaluation
+            Exploration
             """
             logger.record_dict(
-                self.eval_data_collector.get_diagnostics(),
-                prefix='evaluation/',
+                self.expl_data_collector.get_diagnostics(),
+                prefix='exploration/'
             )
-            eval_paths = self.eval_data_collector.get_epoch_paths()
-            if hasattr(self.eval_env, 'get_diagnostics'):
+            expl_paths = self.expl_data_collector.get_epoch_paths()
+            if hasattr(self.expl_env, 'get_diagnostics'):
                 logger.record_dict(
-                    self.eval_env.get_diagnostics(eval_paths),
-                    prefix='evaluation/',
+                    self.expl_env.get_diagnostics(expl_paths),
+                    prefix='exploration/',
                 )
             logger.record_dict(
-                eval_util.get_generic_path_information(eval_paths),
-                prefix="evaluation/",
+                eval_util.get_generic_path_information(expl_paths),
+                prefix="exploration/",
             )
+
+        """
+        Evaluation
+        """
+        logger.record_dict(
+            self.eval_data_collector.get_diagnostics(),
+            prefix='evaluation/',
+        )
+        eval_paths = self.eval_data_collector.get_epoch_paths()
+        if hasattr(self.eval_env, 'get_diagnostics'):
+            logger.record_dict(
+                self.eval_env.get_diagnostics(eval_paths),
+                prefix='evaluation/',
+            )
+        logger.record_dict(
+            eval_util.get_generic_path_information(eval_paths),
+            prefix="evaluation/",
+        )
 
         """
         Misc
