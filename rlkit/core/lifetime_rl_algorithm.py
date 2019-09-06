@@ -19,13 +19,15 @@ class LifetimeRLAlgorithm(BaseRLAlgorithm, metaclass=abc.ABCMeta):
             replay_buffer: ReplayBuffer,
             batch_size,
             max_path_length,
-            # TODO below two params unnec?
             num_epochs,
+            # param not used but kept for consistency
             num_eval_steps_per_epoch,
+            # this is really eval steps since eval = expl
             num_expl_steps_per_train_loop,
             num_trains_per_train_loop,
             num_train_loops_per_epoch=1,
             min_num_steps_before_training=0,
+            **kwargs
     ):
         super().__init__(
             trainer,
@@ -34,39 +36,39 @@ class LifetimeRLAlgorithm(BaseRLAlgorithm, metaclass=abc.ABCMeta):
             exploration_data_collector,
             evaluation_data_collector,
             replay_buffer,
+            **kwargs
         )
         self.batch_size = batch_size
         self.max_path_length = max_path_length
         self.num_epochs = num_epochs
-        self.num_eval_steps_per_epoch = num_eval_steps_per_epoch
         self.num_trains_per_train_loop = num_trains_per_train_loop
         self.num_train_loops_per_epoch = num_train_loops_per_epoch
         self.num_expl_steps_per_train_loop = num_expl_steps_per_train_loop
         self.min_num_steps_before_training = min_num_steps_before_training
-        self.exploration_env = exploration_env
+        self.evaluation_env = evaluation_env
 
     def _train(self):
         if self.min_num_steps_before_training > 0:
-            init_expl_path = self.expl_data_collector.collect_new_paths(
+            init_eval_path = self.eval_data_collector.collect_new_paths(
                 self.max_path_length,
                 self.min_num_steps_before_training,
                 discard_incomplete_paths=False,
                 continuing=False
             )
-            self.replay_buffer.add_paths([init_expl_path])
-            self.expl_data_collector.end_epoch(-1)
+            self.replay_buffer.add_paths([init_eval_path])
+            self.eval_data_collector.end_epoch(-1)
 
-            if np.any(init_expl_path['terminals']):
+            if np.any(init_eval_path['terminals']):
                 return
 
         done = False
         num_loops = 0
         while not done:
             num_loops += 1
-            if hasattr(self.exploration_env, 'health'):
+            if hasattr(self.evaluation_env, 'health'):
                 print(
-                    'Steps: %d, health: %d' % (num_loops * self.num_expl_steps_per_train_loop, self.exploration_env.health))
-            new_expl_path = self.expl_data_collector.collect_new_paths(
+                    'Steps: %d, health: %d' % (num_loops * self.num_expl_steps_per_train_loop, self.evaluation_env.health))
+            new_eval_path = self.eval_data_collector.collect_new_paths(
                 self.max_path_length,
                 self.num_expl_steps_per_train_loop,
                 discard_incomplete_paths=False,
@@ -75,7 +77,7 @@ class LifetimeRLAlgorithm(BaseRLAlgorithm, metaclass=abc.ABCMeta):
 
             gt.stamp('exploration sampling', unique=False)
 
-            self.replay_buffer.add_paths([new_expl_path])
+            self.replay_buffer.add_paths([new_eval_path])
             gt.stamp('data storing', unique=False)
 
             self.training_mode(True)
@@ -87,14 +89,5 @@ class LifetimeRLAlgorithm(BaseRLAlgorithm, metaclass=abc.ABCMeta):
             self.training_mode(False)
             done = num_loops >= self.num_epochs
 
-            # total_infos = {}
-            # for info in new_expl_path['env_infos']:
-            #     for k, v in info.items():
-            #         total_infos[k] = total_infos.get(k, 0) + v
-            # logger.record_dict(
-            #     total_infos,
-            #     prefix='mined/'
-            # )
-
             print('Ending epoch')
-            self._end_epoch(num_loops - 1, incl_eval=False)
+            self._end_epoch(num_loops - 1, incl_expl=False)

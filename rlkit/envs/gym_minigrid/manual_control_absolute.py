@@ -40,23 +40,23 @@ def main():
         # start agent at random pos
         agent_start_pos=None,
         health_cap=1000,
-        gen_resources=False,
+        gen_resources=True,
         fully_observed=False,
         task='make axe',
-        make_rtype='one-time',
-        fixed_reset=True,
+        make_rtype='sparse',
+        fixed_reset=False,
         only_partial_obs=True,
         init_resources={
             'metal': 1,
-            'energy': 1
+            'wood': 1
         },
         resource_prob={
-            'metal': 0.01,
-            'energy': 0.01
+            'metal': 0,
+            'wood': 0
         },
-        fixed_expected_resources=False,
-        end_on_task_completion=False,
-        time_horizon=250
+        fixed_expected_resources=True,
+        end_on_task_completion=True,
+        time_horizon=50,
     )
     pkl = options.qf
     if pkl is not None:

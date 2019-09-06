@@ -88,6 +88,7 @@ OBJECT_TO_IDX = {
     'seed': 13,
     'plant': 14,
     'sun': 15,
+    'berry': 16
 }
 
 IDX_TO_OBJECT = dict(zip(OBJECT_TO_IDX.values(), OBJECT_TO_IDX.keys()))
@@ -768,6 +769,21 @@ class Water(WorldObj):
             (CELL_PIXELS * 0.4, CELL_PIXELS * 0.8),
             (CELL_PIXELS * 0.3, CELL_PIXELS * 0.6)
         ])
+
+
+class Berry(WorldObj):
+    def __init__(self, color='purple', lifespan=0):
+        super().__init__('berry', color, lifespan=lifespan)
+
+    def can_overlap(self):
+        return True
+
+    def can_mine(self, env):
+        return True
+
+    def render(self, r):
+        self._set_color(r)
+        r.drawCircle(CELL_PIXELS * 0.5, CELL_PIXELS * 0.5, 10)
 
 
 class GridAbsolute:
@@ -1891,5 +1907,6 @@ TYPE_TO_CLASS_ABS = {
     'water': Water,
     'plant': Plant,
     'seed': Seed,
-    'sun': Sun
+    'sun': Sun,
+    'berry': Berry
 }
