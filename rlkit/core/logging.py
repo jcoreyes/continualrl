@@ -303,6 +303,10 @@ class Logger(object):
             else:
                 raise NotImplementedError
 
+    def save_stats(self, epoch, stats):
+        file_name = osp.join(self._snapshot_dir, 'stats_%d.pkl' % epoch)
+        pickle.dump(stats, open(file_name, "wb"))
+
     def save_viz(self, epoch, params):
         def trim(arr):
             return arr[1:-1, 1:-1]

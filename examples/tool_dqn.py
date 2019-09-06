@@ -113,7 +113,7 @@ if __name__ == "__main__":
     exp_prefix = 'tool-dqn-prob-time-sweep'
 
     n_seeds = 1
-    mode = 'local'
+    mode = 'ec2'
 
     # Comment below to run sweep, uncomment to run default variant
     # env_search_space = {}
@@ -132,7 +132,9 @@ if __name__ == "__main__":
                 exp_prefix=exp_prefix,
                 mode=mode,
                 variant=variant,
-                use_gpu=True,
+                use_gpu=False,
                 region='us-west-2',
-                num_exps_per_instance=3
+                num_exps_per_instance=3,
+                snapshot_mode='gap',
+                snapshot_gap=5
             )

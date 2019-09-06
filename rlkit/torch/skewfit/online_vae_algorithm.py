@@ -54,9 +54,9 @@ class OnlineVaeAlgorithm(TorchBatchRLAlgorithm):
         gt.stamp('vae training')
         super()._end_epoch(epoch)
 
-    def _log_stats(self, epoch, incl_eval=True):
+    def _log_stats(self, epoch, incl_expl=True):
         self._log_vae_stats()
-        super()._log_stats(epoch, incl_eval=incl_eval)
+        super()._log_stats(epoch, incl_expl=incl_expl)
 
     def to(self, device):
         self.vae.to(device)
