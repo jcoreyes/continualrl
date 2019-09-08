@@ -73,7 +73,7 @@ def experiment(variant):
     eval_path_collector = collector_class(
         eval_env,
         eval_policy,
-        render=True
+        # render=True
     )
     expl_path_collector = collector_class(
         expl_env,
@@ -118,7 +118,7 @@ if __name__ == "__main__":
     """
     exp_prefix = 'tool-dqn-env-shaping-distance-increase'
     n_seeds = 1
-    mode = 'local'
+    mode = 'ec2'
     use_gpu = False
 
 
@@ -151,11 +151,11 @@ if __name__ == "__main__":
             {'metal': 0.005, 'wood': 0.005},
             {'metal': 0.01, 'wood': 0.01},
             {'metal': 0.02, 'wood': 0.02},
-            {'metal': 0.05, 'wood': 0.05}
         ],
         init_resources=[
             {'metal': 1, 'wood': 1},
             {'metal': 2, 'wood': 2},
+            {'metal': 4, 'wood': 4},
         ],
         replenish_empty_resources=[
             ['metal', 'wood'],
