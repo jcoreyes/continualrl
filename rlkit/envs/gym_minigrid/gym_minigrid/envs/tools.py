@@ -84,7 +84,7 @@ class ToolsEnv(FoodEnvBase):
         self.resource_prob_decay = resource_prob_decay or {}
         self.resource_prob_min = resource_prob_min or {}
 
-        # function mapping step count to radius of resource placement
+        # tuple of (bump, schedule), giving place_radius at time t = (t + bump) // schedule
         self.place_schedule = place_schedule
         # store whether the place_schedule has reached full grid radius yet, at which point it'll stop calling each time
         self.full_grid = False
@@ -218,6 +218,11 @@ class ToolsEnv(FoodEnvBase):
         add_ingredients(goal_obj, make_sequence)
         return make_sequence
 
+    def place_radius(self):
+        assert self.place_schedule is not None, \
+            '`place_schedule` must be specified as (bump, period), giving radius(t) = (t + bump) // period'
+        return (self.step_count + self.place_schedule[0]) // self.place_schedule[1]
+
     def place_items(self):
         if not self.gen_resources:
             return
@@ -232,7 +237,7 @@ class ToolsEnv(FoodEnvBase):
                 # don't add more if it's already taking up over 1/8 of the space (lower threshold if >8 diff obj types being generated)
                 place_prob = 0
             if self.place_schedule and not self.full_grid:
-                diam = self.place_schedule(self.step_count)
+                diam = self.place_radius()
                 if diam >= 2 * self.grid_size:
                     self.full_grid = True
                 self.place_prob(TYPE_TO_CLASS_ABS[type](lifespan=self.lifespans.get(type, self.default_lifespan)),
@@ -307,7 +312,7 @@ class ToolsEnv(FoodEnvBase):
                 self.last_placed_on = agent_cell
                 self.just_placed_on = agent_cell
                 # replace existing obj with new obj
-                new_obj = TYPE_TO_CLASS_ABS[new_type](lifespan=self.lifespans.get(type, self.default_lifespan))
+                new_obj = TYPE_TO_CLASS_ABS[new_type](lifespan=self.lifespans.get(new_type, self.default_lifespan))
                 self.grid.set(*self.agent_pos, new_obj)
                 self.made_obj_type = new_obj.type
                 self.just_made_obj_type = new_obj.type
