@@ -73,11 +73,11 @@ def experiment(variant):
     eval_path_collector = collector_class(
         eval_env,
         eval_policy,
-        # render=True
+        render=True
     )
     expl_path_collector = collector_class(
         expl_env,
-        expl_policy,
+        expl_policy
     )
     trainer = DoubleDQNTrainer(
         qf=qf,
@@ -110,36 +110,29 @@ if __name__ == "__main__":
     2. algo_variant, env_variant, env_search_space
     3. use_gpu 
     """
-    exp_prefix = 'tool-dqn-env-shaping-intermediate-12x12-gen'
+    exp_prefix = 'tool-dqn-env-shaping-frequency-decrease'
     n_seeds = 1
-    mode = 'ec2'
+    mode = 'local'
     use_gpu = False
 
 
     env_variant = dict(
-        grid_size=12,
+        grid_size=8,
         agent_start_pos=None,
         health_cap=1000,
         gen_resources=True,
         fully_observed=False,
-        task='make_lifelong berry',
+        task='make_lifelong axe',
         make_rtype='sparse',
         fixed_reset=False,
         only_partial_obs=True,
         init_resources={
-            'metal': 5,
-            'wood': 5,
-            'tree': 5,
-            'axe': 5
+            'metal': 1,
+            'wood': 1,
         },
         resource_prob={
-            'metal': 0.04,
-            'wood': 0.04,
-            'tree': 0.02,
-            'axe': 0.02
-        },
-        resource_prob_decay={
-            'axe': 1e-6
+            'metal': 0.08,
+            'wood': 0.08,
         },
         fixed_expected_resources=True,
         end_on_task_completion=False,
@@ -149,36 +142,41 @@ if __name__ == "__main__":
     env_search_space = {k: [v] for k, v in env_search_space.items()}
     env_search_space.update(
         resource_prob=[
-            {'metal': 0.01, 'wood': 0.01, 'tree': 0.005, 'axe': 0.005},
-            {'metal': 0.02, 'wood': 0.02, 'tree': 0.01, 'axe': 0.01}
+            {'metal': 0.005, 'wood': 0.005},
+            {'metal': 0.01, 'wood': 0.01},
+            {'metal': 0.02, 'wood': 0.02},
+            {'metal': 0.05, 'wood': 0.05}
         ],
-        resource_prob_decay=[
-            {'axe': 1e-6},
-            {'axe': 2e-7},
-            {}
+        init_resources=[
+            {'metal': 1, 'wood': 1},
+            {'metal': 2, 'wood': 2},
         ],
         replenish_empty_resources=[
-            ['metal', 'wood', 'tree'],
+            ['metal', 'wood'],
             []
+        ],
+        place_schedule=[
+            lambda s: (s + 1000) // 500,
+            lambda s: (s + 2000) // 1000
         ]
     )
 
     algo_variant = dict(
         algorithm="DQN Lifetime",
-        version="intermediate resources - axe",
+        version="frequency decrease",
         lifetime=True,
         layer_size=16,
         replay_buffer_size=int(5E5),
         algorithm_kwargs=dict(
             num_epochs=2000,
-            num_eval_steps_per_epoch=500,
+            num_eval_steps_per_epoch=6000,
             num_trains_per_train_loop=500,
             num_expl_steps_per_train_loop=500,
             min_num_steps_before_training=200,
             max_path_length=math.inf,
             batch_size=256,
-            validation_envs_pkl=join(get_repo_dir(), 'examples/continual/env_shaping/intermediate_resources/validation_envs/dynamic_static_validation_envs_12x12_2019_09_08_06_27_40.pkl'),
-            validation_rollout_length=200
+            validation_envs_pkl=join(get_repo_dir(), 'examples/continual/env_shaping/distance_increasing/validation_envs/dynamic_static_validation_envs_2019_09_08_08_23_47.pkl'),
+            validation_rollout_length=100
         ),
         trainer_kwargs=dict(
             discount=0.99,

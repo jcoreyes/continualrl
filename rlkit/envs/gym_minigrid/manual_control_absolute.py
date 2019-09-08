@@ -51,12 +51,12 @@ def main():
             'wood': 1
         },
         resource_prob={
-            'metal': 0,
-            'wood': 0
+            'metal': 0.01,
+            'wood': 0.01
         },
         fixed_expected_resources=True,
         end_on_task_completion=True,
-        time_horizon=50,
+        time_horizon=100,
     )
     pkl = options.qf
     if pkl is not None:

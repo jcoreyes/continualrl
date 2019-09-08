@@ -2,6 +2,8 @@
 Run DQN on grid world.
 """
 import math
+from os.path import join
+from rlkit.core.logging import get_repo_dir
 
 import gym
 import copy
@@ -71,7 +73,7 @@ def experiment(variant):
     eval_path_collector = collector_class(
         eval_env,
         eval_policy,
-        # render=True
+        render=True
     )
     expl_path_collector = collector_class(
         expl_env,
@@ -111,8 +113,7 @@ if __name__ == "__main__":
     exp_prefix = 'tool-dqn-dynamic-static-reset'
     n_seeds = 1
     mode = 'local'
-    use_gpu = True
-
+    use_gpu = False
 
     env_variant = dict(
         grid_size=8,
@@ -135,29 +136,30 @@ if __name__ == "__main__":
         },
         fixed_expected_resources=True,
         end_on_task_completion=False,
+        replenish_empty_resources=['metal', 'wood'],
         time_horizon=250
     )
     env_search_space = copy.deepcopy(env_variant)
     env_search_space = {k: [v] for k, v in env_search_space.items()}
     env_search_space.update(
-        resource_prob=[
-            {'metal': 0, 'wood': 0},
-            {'metal': 0.005, 'wood': 0.005},
-            {'metal': 0.01, 'wood': 0.01},
-            {'metal': 0.02, 'wood': 0.02},
-            {'metal': 0.05, 'wood': 0.05}
-        ],
-        init_resources=[
-            {'metal': 1, 'wood': 1},
-            {'metal': 2, 'wood': 2}
-        ],
-        replenish_empty_resources=[
-            ['metal', 'wood'],
-            []
-        ],
-        time_horizon=[
-            100, 200
-        ]
+        # resource_prob=[
+        #     {'metal': 0, 'wood': 0},
+        #     {'metal': 0.005, 'wood': 0.005},
+        #     {'metal': 0.01, 'wood': 0.01},
+        #     {'metal': 0.02, 'wood': 0.02},
+        #     {'metal': 0.05, 'wood': 0.05}
+        # ],
+        # init_resources=[
+        #     {'metal': 1, 'wood': 1},
+        #     {'metal': 2, 'wood': 2}
+        # ],
+        # replenish_empty_resources=[
+        #     ['metal', 'wood'],
+        #     []
+        # ],
+        # time_horizon=[
+        #     100, 200
+        # ]
     )
 
     algo_variant = dict(
@@ -166,14 +168,15 @@ if __name__ == "__main__":
         layer_size=16,
         replay_buffer_size=int(5E5),
         algorithm_kwargs=dict(
-            num_epochs=1500,
-            num_eval_steps_per_epoch=6000,
-            num_trains_per_train_loop=1000,
-            num_expl_steps_per_train_loop=1000,
+            num_epochs=2000,
+            # TODO number of eval steps per epoch should match expl steps maybe?
+            num_eval_steps_per_epoch=500,
+            num_trains_per_train_loop=500,
+            num_expl_steps_per_train_loop=500,
             min_num_steps_before_training=200,
             max_path_length=math.inf,
-            batch_size=512,
-            validation_envs_pkl='dynamic_static_validation_envs_2019_09_06_12_55_25.pkl'
+            batch_size=256,
+            validation_envs_pkl=join(get_repo_dir(), 'examples/continual/dynamic_static/validation_envs/dynamic_static_validation_envs_2019_09_06_12_55_25.pkl')
         ),
         trainer_kwargs=dict(
             discount=0.99,

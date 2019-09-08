@@ -1471,6 +1471,7 @@ class MiniGridAbsoluteEnv(gym.Env):
                 self._rand_int(top[0], top[0] + size[0]),
                 self._rand_int(top[1], top[1] + size[1])
             ))
+            pos = np.clip(pos, 0, self.grid_size-1)
 
             # Don't place the object on top of another object
             if self.grid.get(*pos) != None:

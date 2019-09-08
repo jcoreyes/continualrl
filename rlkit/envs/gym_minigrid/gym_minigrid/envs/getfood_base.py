@@ -196,9 +196,9 @@ class FoodEnvBase(MiniGridAbsoluteEnv):
     def extra_gen_grid(self):
         pass
 
-    def place_prob(self, obj, prob):
+    def place_prob(self, obj, prob, top=None, size=None):
         if np.random.binomial(1, prob):
-            self.place_obj(obj)
+            self.place_obj(obj, top, size)
 
     def decay_health(self):
         self.add_health(-1)
