@@ -103,6 +103,12 @@ def experiment(variant):
     algorithm.train()
 
 
+def get_place_schedule(bump, period):
+    def place_schedule(s):
+        return (s + bump) // period
+    return place_schedule
+
+
 if __name__ == "__main__":
     """
     NOTE: Things to check for running exps:
@@ -112,7 +118,7 @@ if __name__ == "__main__":
     """
     exp_prefix = 'tool-dqn-env-shaping-distance-increase'
     n_seeds = 1
-    mode = 'ec2'
+    mode = 'local'
     use_gpu = False
 
 
@@ -156,8 +162,9 @@ if __name__ == "__main__":
             []
         ],
         place_schedule=[
-            lambda s: (s + 1000) // 500,
-            lambda s: (s + 2000) // 1000
+            (1000, 500),
+            (2000, 1000),
+            (4000, 2000)
         ]
     )
 
