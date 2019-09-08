@@ -112,7 +112,7 @@ if __name__ == "__main__":
     """
     exp_prefix = 'tool-dqn-dynamic-static-reset'
     n_seeds = 1
-    mode = 'local'
+    mode = 'ec2'
     use_gpu = False
 
     env_variant = dict(
