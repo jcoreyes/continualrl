@@ -28,7 +28,8 @@ def gen_validation_envs(n, filename, **kwargs):
                 'metal': 0.01,
                 'wood': 0.01
             },
-            fixed_expected_resources=True,
+            fixed_expected_resources=False,
+            default_lifespan=200,
             end_on_task_completion=True,
             time_horizon=100,
             seed=seeds[idx]

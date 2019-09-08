@@ -48,6 +48,7 @@ class ToolsEnv(FoodEnvBase):
             resource_prob=None,
             resource_prob_decay=None,
             resource_prob_min=None,
+            place_schedule=None,
             make_rtype='sparse',
             rtype='default',
             lifespans=None,
@@ -82,16 +83,23 @@ class ToolsEnv(FoodEnvBase):
         self.resource_prob = resource_prob or {}
         self.resource_prob_decay = resource_prob_decay or {}
         self.resource_prob_min = resource_prob_min or {}
+
+        # function mapping step count to radius of resource placement
+        self.place_schedule = place_schedule
+        # store whether the place_schedule has reached full grid radius yet, at which point it'll stop calling each time
+        self.full_grid = False
+
         self.include_health = include_health
         self.replenish_empty_resources = replenish_empty_resources or []
         self.time_horizon = time_horizon
         # adjust lifespans if needed:
         if fixed_expected_resources:
             for type, num in self.init_resources.items():
-                if not self.resource_prob.get(type, 0):
-                    self.lifespans[type] = self.default_lifespan
-                else:
-                    self.lifespans[type] = int(num / self.resource_prob[type])
+                if type not in self.lifespans:
+                    if not self.resource_prob.get(type, 0):
+                        self.lifespans[type] = self.default_lifespan
+                    else:
+                        self.lifespans[type] = int(num / self.resource_prob[type])
 
         self.seed_val = seed_val
         self.fixed_reset = fixed_reset
@@ -223,8 +231,17 @@ class ToolsEnv(FoodEnvBase):
             if counts.get(type, 0) > (self.grid_size - 2) ** 2 // max(8, len(self.resource_prob)):
                 # don't add more if it's already taking up over 1/8 of the space (lower threshold if >8 diff obj types being generated)
                 place_prob = 0
-            self.place_prob(TYPE_TO_CLASS_ABS[type](lifespan=self.lifespans.get(type, self.default_lifespan)),
-                            place_prob)
+            if self.place_schedule and not self.full_grid:
+                diam = self.place_schedule(self.step_count)
+                if diam >= 2 * self.grid_size:
+                    self.full_grid = True
+                self.place_prob(TYPE_TO_CLASS_ABS[type](lifespan=self.lifespans.get(type, self.default_lifespan)),
+                                place_prob,
+                                top=(np.clip(self.agent_pos - diam // 2, 0, self.grid_size-1)),
+                                size=(diam, diam))
+            else:
+                self.place_prob(TYPE_TO_CLASS_ABS[type](lifespan=self.lifespans.get(type, self.default_lifespan)),
+                                place_prob)
 
     def extra_gen_grid(self):
         for type, count in self.init_resources.items():
@@ -290,7 +307,7 @@ class ToolsEnv(FoodEnvBase):
                 self.last_placed_on = agent_cell
                 self.just_placed_on = agent_cell
                 # replace existing obj with new obj
-                new_obj = TYPE_TO_CLASS_ABS[new_type]()
+                new_obj = TYPE_TO_CLASS_ABS[new_type](lifespan=self.lifespans.get(type, self.default_lifespan))
                 self.grid.set(*self.agent_pos, new_obj)
                 self.made_obj_type = new_obj.type
                 self.just_made_obj_type = new_obj.type
@@ -519,4 +536,5 @@ class ToolsEnv(FoodEnvBase):
         return None
 
     def decay_health(self):
-        super().decay_health()
+        if self.include_health:
+            super().decay_health()

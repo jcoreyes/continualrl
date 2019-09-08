@@ -368,4 +368,7 @@ class Logger(object):
         # im3 = ax3.imshow(visit_count)
         # fig.savefig(osp.join(self._snapshot_dir, 'map_itr_%d.png' % epoch))
 
+def get_repo_dir():
+    return osp.dirname(osp.dirname(osp.dirname(__file__)))
+
 logger = Logger()

@@ -2,6 +2,8 @@ import abc
 from collections import OrderedDict
 import pickle
 
+from gym_minigrid.minigrid_absolute import TYPE_TO_CLASS_ABS
+from rlkit.samplers.rollout_functions import rollout
 import torch
 
 import numpy as np
@@ -40,7 +42,7 @@ class BaseRLAlgorithm(object, metaclass=abc.ABCMeta):
             # suvansh: validation tasks for continual proj
             validation_envs_pkl=None,
             validation_period=10,
-            validation_rollout_length=50
+            validation_rollout_length=100
     ):
         self.trainer = trainer
         self.expl_env = exploration_env
@@ -52,7 +54,7 @@ class BaseRLAlgorithm(object, metaclass=abc.ABCMeta):
         self.viz_gap = viz_gap
         if validation_envs_pkl is not None:
             self.validation = True
-            self.validation_envs = pickle.load(validation_envs_pkl)
+            self.validation_envs_pkl = validation_envs_pkl
             self.validation_period = validation_period
             self.validation_rollout_length = validation_rollout_length
         else:
@@ -75,9 +77,9 @@ class BaseRLAlgorithm(object, metaclass=abc.ABCMeta):
         snapshot = self._get_snapshot()
         if self.viz_maps and epoch % self.viz_gap == 0:
             logger.save_viz(epoch, snapshot)
-        if self.validation:
+        if self.validation and epoch % self.validation_period == 0:
             stats = self.validate(snapshot)
-            logger.save_stats(stats)
+            logger.save_stats(epoch, stats)
         logger.save_itr_params(epoch, snapshot)
         gt.stamp('saving', unique=False)
         self._log_stats(epoch, incl_expl=incl_expl)
@@ -91,10 +93,35 @@ class BaseRLAlgorithm(object, metaclass=abc.ABCMeta):
             post_epoch_func(self, epoch)
 
     def validate(self, snapshot):
+        """
+        Collect list of stats for each validation env as dict of following format:
+            'pickup_wood': [0, 15, 20] means you picked up a wood object at timesteps 0, 15, and 20.
+        """
         policy = snapshot['evaluation/policy']
-        for env in self.validation_envs:
-            # TODO rollout POLICY on ENV and collect STATS
-            pass
+        validation_envs = pickle.load(open(self.validation_envs_pkl, 'rb'))
+        stats = [{} for _ in range(len(validation_envs['envs']))]
+        for env_idx, env in enumerate(validation_envs['envs']):
+            path = rollout(env, policy, self.validation_rollout_length)
+            for typ in env.object_to_idx.keys():
+                if typ in TYPE_TO_CLASS_ABS and TYPE_TO_CLASS_ABS[typ]().can_mine(env):
+                    key = 'pickup_%s' % typ
+                    last_val = 0
+                    pickup_idxs = []
+                    for t, env_info in enumerate(path['env_infos']):
+                        count = env_info[key] - last_val
+                        pickup_idxs.extend([t for _ in range(count)])
+                        last_val = env_info[key]
+                    stats[env_idx][key] = pickup_idxs
+            for typ in env.interactions.values():
+                key = 'made_%s' % typ
+                last_val = 0
+                made_idxs = []
+                for t, env_info in enumerate(path['env_infos']):
+                    count = env_info[key] - last_val
+                    made_idxs.extend([t for _ in range(count)])
+                    last_val = env_info[key]
+                stats[env_idx][key] = made_idxs
+        return stats
 
     def _get_snapshot(self):
         snapshot = {}
