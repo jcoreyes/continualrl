@@ -177,7 +177,7 @@ if __name__ == "__main__":
             min_num_steps_before_training=200,
             max_path_length=math.inf,
             batch_size=256,
-            validation_envs_pkl=join(get_repo_dir(), 'examples/continual/env_shaping/intermediate_resources/validation_envs/dynamic_static_validation_envs_12x12_2019_09_08_06_27_40.pkl'),
+            validation_envs_pkl=join(get_repo_dir(), 'examples/continual/env_shaping/intermediate_resources/validation_envs/dynamic_static_validation_envs_12x12_2019_09_08_08_44_31.pkl'),
             validation_rollout_length=200
         ),
         trainer_kwargs=dict(

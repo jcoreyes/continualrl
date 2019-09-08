@@ -73,11 +73,11 @@ def experiment(variant):
     eval_path_collector = collector_class(
         eval_env,
         eval_policy,
-        render=True
+        # render=True
     )
     expl_path_collector = collector_class(
         expl_env,
-        expl_policy,
+        expl_policy
     )
     trainer = DoubleDQNTrainer(
         qf=qf,
@@ -175,7 +175,7 @@ if __name__ == "__main__":
             min_num_steps_before_training=200,
             max_path_length=math.inf,
             batch_size=256,
-            validation_envs_pkl=join(get_repo_dir(), 'examples/continual/dynamic_static/validation_envs/dynamic_static_validation_envs_2019_09_06_12_55_25.pkl')
+            validation_envs_pkl=join(get_repo_dir(), 'examples/continual/dynamic_static/validation_envs/dynamic_static_validation_envs_2019_09_08_08_40_44.pkl')
         ),
         trainer_kwargs=dict(
             discount=0.99,
