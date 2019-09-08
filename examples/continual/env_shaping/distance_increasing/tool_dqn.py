@@ -110,9 +110,9 @@ if __name__ == "__main__":
     2. algo_variant, env_variant, env_search_space
     3. use_gpu 
     """
-    exp_prefix = 'tool-dqn-env-shaping-frequency-decrease'
+    exp_prefix = 'tool-dqn-env-shaping-distance-increase'
     n_seeds = 1
-    mode = 'local'
+    mode = 'ec2'
     use_gpu = False
 
 
@@ -163,7 +163,7 @@ if __name__ == "__main__":
 
     algo_variant = dict(
         algorithm="DQN Lifetime",
-        version="frequency decrease",
+        version="distance increase",
         lifetime=True,
         layer_size=16,
         replay_buffer_size=int(5E5),
