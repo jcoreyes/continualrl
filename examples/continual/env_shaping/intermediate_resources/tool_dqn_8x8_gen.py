@@ -2,10 +2,12 @@
 Run DQN on grid world.
 """
 import math
+from os.path import join
 
 import gym
 import copy
 from gym_minigrid.envs.tools import ToolsEnv
+from rlkit.core.logging import get_repo_dir
 from rlkit.samplers.data_collector.path_collector import LifetimeMdpPathCollector, MdpPathCollectorConfig
 from rlkit.torch.dqn.double_dqn import DoubleDQNTrainer
 from rlkit.torch.sac.policies import SoftmaxQPolicy
@@ -108,7 +110,7 @@ if __name__ == "__main__":
     2. algo_variant, env_variant, env_search_space
     3. use_gpu 
     """
-    exp_prefix = 'tool-dqn-env-shaping-intermediate'
+    exp_prefix = 'tool-dqn-env-shaping-intermediate-8x8-gen'
     n_seeds = 1
     mode = 'ec2'
     use_gpu = False
@@ -125,8 +127,8 @@ if __name__ == "__main__":
         fixed_reset=False,
         only_partial_obs=True,
         init_resources={
-            'metal': 4,
-            'wood': 4,
+            'metal': 2,
+            'wood': 2,
             'tree': 2,
             'axe': 2
         },
@@ -152,13 +154,9 @@ if __name__ == "__main__":
             {'metal': 0.02, 'wood': 0.02, 'tree': 0.01, 'axe': 0.01}
         ],
         resource_prob_decay=[
-            {'axe': 5e-6},
             {'axe': 1e-6},
+            {'axe': 2e-7},
             {}
-        ],
-        init_resources=[
-            {'metal': 2, 'wood': 2, 'axe': 0, 'tree': 1},
-            {'metal': 2, 'wood': 2, 'axe': 2, 'tree': 1}
         ],
         replenish_empty_resources=[
             ['metal', 'wood', 'tree'],
@@ -169,16 +167,19 @@ if __name__ == "__main__":
     algo_variant = dict(
         algorithm="DQN Lifetime",
         version="intermediate resources - axe",
+        lifetime=True,
         layer_size=16,
         replay_buffer_size=int(5E5),
         algorithm_kwargs=dict(
-            num_epochs=1500,
-            num_eval_steps_per_epoch=6000,
-            num_trains_per_train_loop=1000,
-            num_expl_steps_per_train_loop=1000,
+            num_epochs=2000,
+            num_eval_steps_per_epoch=500,
+            num_trains_per_train_loop=500,
+            num_expl_steps_per_train_loop=500,
             min_num_steps_before_training=200,
             max_path_length=math.inf,
-            batch_size=512,
+            batch_size=256,
+            validation_envs_pkl=join(get_repo_dir(), 'examples/continual/env_shaping/intermediate_resources/validation_envs/dynamic_static_validation_envs_8x8_2019_09_08_06_29_04.pkl'),
+            validation_rollout_length=200
         ),
         trainer_kwargs=dict(
             discount=0.99,

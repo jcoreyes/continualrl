@@ -16,21 +16,23 @@ def gen_validation_envs(n, filename, **kwargs):
             health_cap=1000,
             gen_resources=True,
             fully_observed=False,
-            task='make axe',
+            task='make berry',
             make_rtype='sparse',
             fixed_reset=False,
             only_partial_obs=True,
             init_resources={
-                'metal': 1,
-                'wood': 1
+                'metal': 2,
+                'wood': 2,
+                'tree': 2
             },
             resource_prob={
                 'metal': 0.01,
-                'wood': 0.01
+                'wood': 0.01,
+                'tree': 0.005
             },
             fixed_expected_resources=True,
             end_on_task_completion=True,
-            time_horizon=100,
+            time_horizon=200,
             seed=seeds[idx]
         )
         env_kwargs.update(**kwargs)
@@ -50,6 +52,6 @@ if __name__ == '__main__':
     validation_dir = os.path.join(cur_dir, 'validation_envs')
     os.makedirs(validation_dir, exist_ok=True)
 
-    filename = 'dynamic_static_validation_envs_%s.pkl' % timestamp
+    filename = 'dynamic_static_validation_envs_8x8_%s.pkl' % timestamp
 
     gen_validation_envs(100, os.path.join(validation_dir, filename))
