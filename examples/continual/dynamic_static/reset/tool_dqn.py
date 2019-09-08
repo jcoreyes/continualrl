@@ -142,24 +142,24 @@ if __name__ == "__main__":
     env_search_space = copy.deepcopy(env_variant)
     env_search_space = {k: [v] for k, v in env_search_space.items()}
     env_search_space.update(
-        # resource_prob=[
-        #     {'metal': 0, 'wood': 0},
-        #     {'metal': 0.005, 'wood': 0.005},
-        #     {'metal': 0.01, 'wood': 0.01},
-        #     {'metal': 0.02, 'wood': 0.02},
-        #     {'metal': 0.05, 'wood': 0.05}
-        # ],
-        # init_resources=[
-        #     {'metal': 1, 'wood': 1},
-        #     {'metal': 2, 'wood': 2}
-        # ],
-        # replenish_empty_resources=[
-        #     ['metal', 'wood'],
-        #     []
-        # ],
-        # time_horizon=[
-        #     100, 200
-        # ]
+        resource_prob=[
+            {'metal': 0, 'wood': 0},
+            {'metal': 0.005, 'wood': 0.005},
+            {'metal': 0.01, 'wood': 0.01},
+            {'metal': 0.02, 'wood': 0.02},
+            {'metal': 0.05, 'wood': 0.05}
+        ],
+        init_resources=[
+            {'metal': 1, 'wood': 1},
+            {'metal': 2, 'wood': 2}
+        ],
+        replenish_empty_resources=[
+            ['metal', 'wood'],
+            []
+        ],
+        time_horizon=[
+            100, 200
+        ]
     )
 
     algo_variant = dict(
@@ -169,8 +169,7 @@ if __name__ == "__main__":
         replay_buffer_size=int(5E5),
         algorithm_kwargs=dict(
             num_epochs=2000,
-            # TODO number of eval steps per epoch should match expl steps maybe?
-            num_eval_steps_per_epoch=500,
+            num_eval_steps_per_epoch=6000,
             num_trains_per_train_loop=500,
             num_expl_steps_per_train_loop=500,
             min_num_steps_before_training=200,

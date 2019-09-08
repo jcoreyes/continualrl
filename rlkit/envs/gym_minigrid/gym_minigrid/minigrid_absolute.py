@@ -1016,10 +1016,7 @@ class GridAbsolute:
                 if v == None:
                     continue
 
-                try:
-                    array[i, j, 0] = obj_to_idx[v.type]
-                except:
-                    import pdb; pdb.set_trace()
+                array[i, j, 0] = obj_to_idx[v.type]
             # array[i, j, 1] = COLOR_TO_IDX[v.color]
 
         # make the output torch-ready!
