@@ -67,7 +67,7 @@ class ToolsEnv(FoodEnvBase):
             **kwargs
     ):
         assert task is not None, 'Must specify task of form "make berry", "navigate 3 5", "pickup axe", etc.'
-        assert resource_prob is not None, 'Must specify resource generation probabilities'
+        # assert resource_prob is not None, 'Must specify resource generation probabilities'
 
         self.init_resources = init_resources or {}
         self.lifespans = lifespans or {}
@@ -172,7 +172,7 @@ class ToolsEnv(FoodEnvBase):
         # TODO some of these shapes are wrong. fix by running through each branch and getting empirical obs shape
         if self.only_partial_obs:
             shape = (265,)
-        if self.grid_size == 32:
+        elif self.grid_size == 32:
             if self.obs_vision:
                 shape = (58569,)
             else:
@@ -269,7 +269,7 @@ class ToolsEnv(FoodEnvBase):
             if agent_cell and agent_cell.can_mine(self):
                 mined = False
                 # check if food or other resource, which we're storing separately
-                if agent_cell.food_value() > 0:
+                if self.include_health and agent_cell.food_value() > 0:
                     self.add_health(agent_cell.food_value())
                     mined = True
                     self.just_eaten_type = agent_cell.type
@@ -437,24 +437,23 @@ class ToolsEnv(FoodEnvBase):
         elif self.make_rtype in ['dense', 'waypoint']:
             carry_idx = self.make_sequence.index(
                 self.carrying.type) if self.carrying and self.carrying.type in self.make_sequence else -1
-            place_idx = self.make_sequence.index(
-                self.last_placed_on.type) if self.last_placed_on and self.last_placed_on.type in self.make_sequence else -1
-            made_idx = self.make_sequence.index(
-                self.made_obj_type) - 1 if self.made_obj_type in self.make_sequence else -1
+            just_place_idx = self.make_sequence.index(
+                self.just_placed_on.type) if self.just_placed_on and self.just_placed_on.type in self.make_sequence else -1
             just_made_idx = self.make_sequence.index(
                 self.just_made_obj_type) if self.just_made_obj_type in self.make_sequence else -1
-            idx = max(carry_idx, place_idx)
-            true_idx = max(idx, made_idx, self.max_make_idx - 1)
+            idx = max(carry_idx, just_place_idx)
+            true_idx = max(idx, just_made_idx, self.max_make_idx - 1)
             cur_idx = max(carry_idx, just_made_idx)
             # print('carry: %d, place: %d, made: %d, j_made: %d, idx: %d, true: %d, cur: %d'
-            #       % (carry_idx, place_idx, made_idx, just_made_idx, idx, true_idx, cur_idx))
-            if idx == len(self.make_sequence) - 1:
+            #       % (carry_idx, just_place_idx, just_made_idx, just_made_idx, idx, true_idx, cur_idx))
+            if carry_idx == len(self.make_sequence) - 1:
                 reward = POS_RWD
-                self.max_make_idx = idx
+                self.max_make_idx = -1
                 self.num_solves += 1
-            elif made_idx > self.max_make_idx:
+                self.last_idx = -1
+            elif just_made_idx > self.max_make_idx:
                 reward = MED_RWD
-                self.max_make_idx = made_idx
+                self.max_make_idx = just_made_idx
             elif idx == self.max_make_idx + 1:
                 reward = MED_RWD
                 self.max_make_idx = idx
@@ -467,7 +466,8 @@ class ToolsEnv(FoodEnvBase):
                         dist = np.linalg.norm(next_pos - self.agent_pos, ord=1)
                         reward = -0.01 * dist
                 # else there is no obj of that type, so 0 reward
-            self.last_idx = cur_idx
+            if carry_idx != len(self.make_sequence) - 1:
+                self.last_idx = cur_idx
         elif self.make_rtype == 'one-time':
             carry_idx = self.make_sequence.index(
                 self.carrying.type) if self.carrying and self.carrying.type in self.make_sequence else -1
