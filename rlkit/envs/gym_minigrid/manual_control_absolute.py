@@ -36,27 +36,27 @@ def main():
     # Load the gym environment
     # env = gym.make(options.env_name)
     env = ToolsEnv(
-        grid_size=8,
-        # start agent at random pos
+        grid_size=32,
         agent_start_pos=None,
         health_cap=1000,
-        gen_resources=True,
+        gen_resources=False,
         fully_observed=False,
-        task='make axe',
-        make_rtype='sparse',
+        task='make_lifelong axe',
+        make_rtype='dense',
         fixed_reset=False,
         only_partial_obs=True,
         init_resources={
-            'metal': 1,
-            'wood': 1
+            'metal': 50,
+            'wood': 50,
         },
         resource_prob={
-            'metal': 0.01,
-            'wood': 0.01
+            'metal': 0,
+            'wood': 0,
         },
+        default_lifespan=0,
         fixed_expected_resources=True,
-        end_on_task_completion=True,
-        time_horizon=100,
+        end_on_task_completion=False,
+        time_horizon=0
     )
     pkl = options.qf
     if pkl is not None:
