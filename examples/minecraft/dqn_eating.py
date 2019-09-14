@@ -16,10 +16,11 @@ from rlkit.torch.dqn.double_dqn import DoubleDQNTrainer
 from rlkit.torch.torch_rl_algorithm import TorchBatchRLAlgorithm, TorchLifetimeRLAlgorithm
 from torch import nn as nn
 # from variants.dqn.dqn_medium8_mlp_task_variant import variant, gen_network
-from variants.minecraft.dqn_dense_navigate import variant, gen_network
+from variants.minecraft.dqn_dense_navigate import gen_network
 import minerl
 import argparse
 from rlkit.envs.minerl.env_wrappers import wrap_env
+from torch.nn import functional as F
 # from variants.dqn_lifetime.dqn_medium8_mlp_task_partial_variant import variant, gen_network
 
 def schedule(t):
@@ -35,17 +36,18 @@ def experiment(variant):
     eval_env = wrap_env(core_env, True, args)
 
     action_dim = expl_env.action_space.n
+    print("Action_dim:", action_dim)
 
-    lifetime = variant.get('lifetime', False)
+    lifetime = variant['algo_kwargs'] .get('lifetime', False)
 
-    qf = gen_network(variant, action_dim)
-    target_qf = gen_network(variant, action_dim)
+    qf = gen_network(variant['algo_kwargs'] , action_dim)
+    target_qf = gen_network(variant['algo_kwargs'] , action_dim)
 
     qf_criterion = nn.MSELoss()
     eval_policy = ArgmaxDiscretePolicy(qf)
     # eval_policy = SoftmaxQPolicy(qf)
     expl_policy = PolicyWrappedWithExplorationStrategy(
-        EpsilonGreedyDecay(expl_env.action_space, 2e-4, 1, 0.1),
+        EpsilonGreedyDecay(expl_env.action_space, 1e-4, 0.5, 0.05),
         eval_policy,
     )
     # expl_policy = PolicyWrappedWithExplorationStrategy(
@@ -67,10 +69,10 @@ def experiment(variant):
         qf=qf,
         target_qf=target_qf,
         qf_criterion=qf_criterion,
-        **variant['trainer_kwargs']
+        **variant['algo_kwargs'] ['trainer_kwargs']
     )
     replay_buffer = EnvReplayBuffer(
-        variant['replay_buffer_size'],
+        variant['algo_kwargs']['replay_buffer_size'],
         expl_env,
         dtype='int16'
     )
@@ -82,14 +84,14 @@ def experiment(variant):
         exploration_data_collector=expl_path_collector,
         evaluation_data_collector=eval_path_collector,
         replay_buffer=replay_buffer,
-        **variant['algorithm_kwargs']
+        **variant['algo_kwargs']['algorithm_kwargs']
     )
     algorithm.to(ptu.device)
     algorithm.train()
 
 
-# python examples/minecraft/dqn_test.py --env MineRLNavigateDense-v0 --always-keys forward sprint
-# attack --exclude-keys back left right sneak place --frame-stack 4 --frame-skip 4
+# python examples/minecraft/dqn_eating.py --env MineRLEating-v0
+# --exclude-keys back attack sprint sneak place jump left right --frame-stack 4 --frame-skip 4
 
 
 if __name__ == "__main__":
@@ -105,7 +107,9 @@ if __name__ == "__main__":
                             'MineRLNavigateDenseFixed-v0',
                             'MineRLObtainTest-v0',
                             # Added
-                            'MineRLEating-v0'
+                            'MineRLEating-v0',
+                            'MineRLMazeRunner-v0',
+                            'MineRLShapingTreechop-v0'
                         ],
                         help='MineRL environment identifier.')
     parser.add_argument('--gray-scale', action='store_true', default=False, help='Convert pov into gray scaled image.')
@@ -126,14 +130,61 @@ if __name__ == "__main__":
                         help='Exploration epsilon used during eval episodes.')
     args = vars(parser.parse_args())
 
-    exp_prefix = 'minecraft-navigate-dense'
+    exp_prefix = 'minecraft-eating'
 
     # setup_logger(exp_prefix, variant=variant)
     # ptu.set_gpu_mode(True)  # optionally set the GPU (default=False)
     # experiment(variant)
 
     mode = 'local'
+    variant = dict()
     variant['args'] = args
+
+    variant['algo_kwargs'] = dict(
+        algorithm="DQN",
+        lifetime=False,
+        version="normal",
+        replay_buffer_size=int(1E5),
+        algorithm_kwargs=dict(
+            # below two params don't matter
+            num_epochs=3000,
+            num_eval_steps_per_epoch=400,
+
+            num_trains_per_train_loop=400,
+            num_expl_steps_per_train_loop=400,
+            min_num_steps_before_training=1000,
+            max_path_length=400,
+            batch_size=32,
+        ),
+        trainer_kwargs=dict(
+            discount=0.99,
+            learning_rate=1E-4,
+            grad_clip_val=5
+        ),
+        # inventory_network_kwargs=dict(
+        #     # shelf: 8 (repeated x8)
+        #     input_size=64,
+        #     output_size=16,
+        #     hidden_sizes=[32],
+        # ),
+        img_conv_kwargs=dict(
+            input_width=64,
+            input_height=64,
+            # 16 channels if including compass, otherwise 12
+            input_channels=12,
+            output_size=512, # Computed manually
+            kernel_sizes=[8, 4, 3],
+            n_channels=[32, 64, 64],
+            strides=[4, 2, 1],
+            paddings=[0, 0, 0],
+            hidden_sizes=[512],
+            batch_norm_conv=False,
+            output_activation=F.relu,
+        ),
+        final_network_hidden_sizes=[512]
+    )
+
+
     run_experiment(
         experiment,
         exp_prefix=exp_prefix,
@@ -141,5 +192,5 @@ if __name__ == "__main__":
         variant=variant,
         use_gpu=True,
         region='us-west-2',
-        num_exps_per_instance=3
+        num_exps_per_instance=1
     )

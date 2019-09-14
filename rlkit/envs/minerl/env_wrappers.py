@@ -483,7 +483,7 @@ def wrap_env(env, test, args):
         env = FrameSkip(env, skip=args.frame_skip)
     if args.gray_scale:
         env = GrayScaleWrapper(env, dict_space_key='pov')
-    if args.env.startswith('MineRLNavigate'):
+    if args.env.startswith('MineRLNavigate') or args.env.startswith('MineRLEating'):
         env = PoVWithCompassAngleWrapper(env)
     else:
         env = ObtainPoVWrapper(env)
