@@ -7,7 +7,7 @@ import rlkit.torch.pytorch_util as ptu
 from rlkit.data_management.env_replay_buffer import EnvReplayBuffer
 from rlkit.exploration_strategies.base import \
     PolicyWrappedWithExplorationStrategy
-from rlkit.exploration_strategies.epsilon_greedy import EpsilonGreedyDecay
+from rlkit.exploration_strategies.epsilon_greedy import EpsilonGreedyDecay, EpsilonGreedy
 from rlkit.launchers.launcher_util import run_experiment
 from rlkit.policies.argmax import ArgmaxDiscretePolicy
 from rlkit.samplers.data_collector import MdpPathCollector
@@ -44,11 +44,14 @@ def experiment(variant):
     target_qf = gen_network(variant['algo_kwargs'] , action_dim)
 
     qf_criterion = nn.MSELoss()
-    eval_policy = ArgmaxDiscretePolicy(qf)
-    # eval_policy = SoftmaxQPolicy(qf)
+    eval_policy = PolicyWrappedWithExplorationStrategy(
+        EpsilonGreedy(expl_env.action_space, 0.001),
+        ArgmaxDiscretePolicy(qf)
+    )
+    #eval_policy = SoftmaxQPolicy(qf)
     expl_policy = PolicyWrappedWithExplorationStrategy(
-        EpsilonGreedyDecay(expl_env.action_space, 1e-4, 0.5, 0.05),
-        eval_policy,
+        EpsilonGreedyDecay(expl_env.action_space, 1.0/2e5, 1.0, 0.01),
+        ArgmaxDiscretePolicy(qf),
     )
     # expl_policy = PolicyWrappedWithExplorationStrategy(
     #     EpsilonGreedy(expl_env.action_space, 0.5),
@@ -58,7 +61,7 @@ def experiment(variant):
     eval_path_collector = collector_class(
         eval_env,
         eval_policy,
-        render=True
+        render=False
     )
     expl_path_collector = collector_class(
         expl_env,
@@ -74,7 +77,7 @@ def experiment(variant):
     replay_buffer = EnvReplayBuffer(
         variant['algo_kwargs']['replay_buffer_size'],
         expl_env,
-        dtype='int16'
+        dtype='uint8'
     )
     algo_class = TorchLifetimeRLAlgorithm if lifetime else TorchBatchRLAlgorithm
     algorithm = algo_class(
@@ -109,7 +112,8 @@ if __name__ == "__main__":
                             # Added
                             'MineRLEating-v0',
                             'MineRLMazeRunner-v0',
-                            'MineRLShapingTreechop-v0'
+                            'MineRLShapingTreechop-v0',
+                            'MineRLWoolGatheringTrain-v0'
                         ],
                         help='MineRL environment identifier.')
     parser.add_argument('--gray-scale', action='store_true', default=False, help='Convert pov into gray scaled image.')
@@ -148,13 +152,13 @@ if __name__ == "__main__":
         algorithm_kwargs=dict(
             # below two params don't matter
             num_epochs=3000,
-            num_eval_steps_per_epoch=400,
+            num_eval_steps_per_epoch=1000,
 
-            num_trains_per_train_loop=400,
-            num_expl_steps_per_train_loop=400,
-            min_num_steps_before_training=1000,
-            max_path_length=400,
-            batch_size=32,
+            num_trains_per_train_loop=500,
+            num_expl_steps_per_train_loop=1000,
+            min_num_steps_before_training=2000,
+            max_path_length=1000,
+            batch_size=64,
         ),
         trainer_kwargs=dict(
             discount=0.99,
