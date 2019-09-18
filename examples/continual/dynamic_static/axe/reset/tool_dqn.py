@@ -164,7 +164,7 @@ if __name__ == "__main__":
             min_num_steps_before_training=200,
             max_path_length=math.inf,
             batch_size=256,
-            validation_envs_pkl=join(get_repo_dir(), 'examples/continual/dynamic_static/axe/validation_envs/dynamic_static_validation_envs_2019_09_17_19_25_17.pkl')
+            validation_envs_pkl=join(get_repo_dir(), 'examples/continual/dynamic_static/axe/validation_envs/dynamic_static_validation_envs_2019_09_18_04_55_09.pkl')
         ),
         eps_decay_rate=1e-4,
         trainer_kwargs=dict(
