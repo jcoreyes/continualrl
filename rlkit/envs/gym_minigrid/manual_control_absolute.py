@@ -37,25 +37,27 @@ def main():
     # Load the gym environment
     # env = gym.make(options.env_name)
     env = DeerEnv(
-        grid_size=12,
+        grid_size=8,
+        # start agent at random pos
         agent_start_pos=None,
         health_cap=1000,
         gen_resources=True,
         fully_observed=False,
-        task='make_lifelong food',
+        task='make food',
         make_rtype='dense-fixed',
         fixed_reset=False,
         only_partial_obs=True,
         init_resources={
             'deer': 3,
-            'axe': 2,
+            'axe': 2
         },
         replenish_low_resources={
             'axe': 2
         },
+        deer_move_prob=0.2,
         fixed_expected_resources=True,
         end_on_task_completion=False,
-        time_horizon=0
+        time_horizon=250
     )
     # env = ToolsEnv(
     #     grid_size=16,
