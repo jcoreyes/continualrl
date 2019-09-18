@@ -1,4 +1,5 @@
 import random
+import numpy as np
 
 from rlkit.exploration_strategies.base import RawExplorationStrategy
 
@@ -35,6 +36,7 @@ class EpsilonGreedySchedule(RawExplorationStrategy):
         time = self.time
         self.time += 1
         if random.random() <= self.schedule(time):
+            return np.random.randint(self.action_space.n)
             return self.action_space.sample()
         return action
 

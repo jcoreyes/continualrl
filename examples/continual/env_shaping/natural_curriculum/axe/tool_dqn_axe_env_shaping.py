@@ -77,7 +77,7 @@ def experiment(variant):
     )
     expl_path_collector = collector_class(
         expl_env,
-        expl_policy,
+        expl_policy
     )
     trainer = DoubleDQNTrainer(
         qf=qf,
@@ -103,6 +103,12 @@ def experiment(variant):
     algorithm.train()
 
 
+def get_place_schedule(bump, period):
+    def place_schedule(s):
+        return (s + bump) // period
+    return place_schedule
+
+
 if __name__ == "__main__":
     """
     NOTE: Things to check for running exps:
@@ -110,76 +116,62 @@ if __name__ == "__main__":
     2. algo_variant, env_variant, env_search_space
     3. use_gpu 
     """
-    exp_prefix = 'tool-dqn-env-shaping-intermediate-8x8-nogen'
+    exp_prefix = 'tool-dqn-env-shaping-natural-curriculum-axe'
     n_seeds = 1
     mode = 'ec2'
     use_gpu = False
 
 
     env_variant = dict(
-        grid_size=8,
+        grid_size=16,
         agent_start_pos=None,
         health_cap=1000,
         gen_resources=True,
         fully_observed=False,
-        task='make_lifelong berry',
+        task='make_lifelong axe',
         make_rtype='sparse',
         fixed_reset=False,
         only_partial_obs=True,
         init_resources={
-            'metal': 2,
-            'wood': 2,
-            'tree': 2,
-            'axe': 2
+            'metal': 15,
+            'wood': 15,
         },
-        resource_prob={
-            'metal': 0.04,
-            'wood': 0.04,
-            'tree': 0.02
-        },
-        lifespans={
-            'axe': 0
-        },
+        default_lifespan=0,
         fixed_expected_resources=True,
-        end_on_task_completion=True,
-        time_horizon=200
+        end_on_task_completion=False,
+        time_horizon=0,
+        replenish_low_resources={
+            'metal': 15,
+            'wood': 15
+        }
     )
     env_search_space = copy.deepcopy(env_variant)
     env_search_space = {k: [v] for k, v in env_search_space.items()}
     env_search_space.update(
-        resource_prob=[
-            {'metal': 0.005, 'wood': 0.005, 'tree': 0.0025},
-            {'metal': 0.01, 'wood': 0.01, 'tree': 0.005},
-            {'metal': 0.02, 'wood': 0.02, 'tree': 0.01}
-        ],
         init_resources=[
-            {'metal': 2, 'wood': 2, 'axe': 6, 'tree': 2},
-            # baseline with no axes or axe generation
-            {'metal': 2, 'wood': 2, 'axe': 0, 'tree': 2}
+            {'metal': 15, 'wood': 15},
+            {'metal': 30, 'wood': 30},
+            {'metal': 45, 'wood': 45}
         ],
-        replenish_empty_resources=[
-            ['metal', 'wood', 'tree'],
-            []
-        ],
-
+        make_rtype=['sparse', 'dense-fixed']
     )
 
     algo_variant = dict(
         algorithm="DQN Lifetime",
-        version="intermediate resources - axe",
+        version="natural curriculum - axe",
         lifetime=True,
         layer_size=16,
         replay_buffer_size=int(5E5),
         algorithm_kwargs=dict(
-            num_epochs=2000,
-            num_eval_steps_per_epoch=500,
+            num_epochs=1500,
+            num_eval_steps_per_epoch=6000,
             num_trains_per_train_loop=500,
             num_expl_steps_per_train_loop=500,
             min_num_steps_before_training=200,
             max_path_length=math.inf,
             batch_size=256,
-            validation_envs_pkl=join(get_repo_dir(), 'examples/continual/env_shaping/intermediate_resources/validation_envs/dynamic_static_validation_envs_8x8_2019_09_08_08_44_25.pkl'),
-            validation_rollout_length=200
+            validation_envs_pkl=join(get_repo_dir(), 'examples/continual/env_shaping/natural_curriculum/axe/validation_envs/dynamic_static_validation_envs_2019_09_17_01_26_56_16x16_lifelong.pkl'),
+            validation_rollout_length=1000
         ),
         trainer_kwargs=dict(
             discount=0.99,
@@ -225,5 +217,5 @@ if __name__ == "__main__":
                     region='us-west-2',
                     num_exps_per_instance=3,
                     snapshot_mode='gap',
-                    snapshot_gap=5
+                    snapshot_gap=10
                 )

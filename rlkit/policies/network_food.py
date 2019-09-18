@@ -153,6 +153,44 @@ class FoodNetworkMediumPartialObsTask(Policy, nn.Module):
         return Categorical(torch_ify(dist_vec)).sample().item(), {}
 
 
+class FoodNetworkMediumPartialObsTaskNumObj(Policy, nn.Module):
+    def __init__(self, img_network, inventory_network, num_obj_network, final_network, sizes):
+        """
+        :param sizes: list of lengths of inputs in order present in observations
+        """
+        super().__init__()
+
+        self.img_network = img_network
+        self.inventory_network = inventory_network
+        self.num_obj_network = num_obj_network
+        self.final_network = final_network
+        self.action_dim = final_network.output_size
+        # length of inputs in order received
+        self.sizes = sizes
+
+    def forward(self, obs):
+        if len(obs.shape) < 2:
+            obs = torch_ify(obs).unsqueeze(0)
+        cumsum = 0
+        arrs = []
+        for size in self.sizes:
+            arrs.append(obs.narrow(dim=1, start=cumsum, length=size))
+            cumsum += size
+        assert cumsum == obs.shape[1], 'not all of obs used'
+
+        img, shelf, num_obj = arrs
+        x_img = self.img_network(img)
+        x_inventory = self.inventory_network(shelf)
+        x_num_obj = self.num_obj_network(num_obj)
+        out = self.final_network(x_img, x_inventory, x_num_obj)
+
+        return out
+
+    def get_action(self, obs_np):
+        dist_vec = eval_np(self, obs_np)
+        return Categorical(torch_ify(dist_vec)).sample().item(), {}
+
+
 class FoodNetworkMediumPartialObsTaskHealth(Policy, nn.Module):
     def __init__(self, img_network, inventory_network, final_network, sizes):
         """

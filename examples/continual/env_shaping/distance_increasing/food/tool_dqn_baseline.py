@@ -116,31 +116,29 @@ if __name__ == "__main__":
     2. algo_variant, env_variant, env_search_space
     3. use_gpu 
     """
-    exp_prefix = 'tool-dqn-env-shaping-natural-curriculum-axe-baseline'
+    exp_prefix = 'tool-dqn-env-shaping-distance-increase-food-baseline'
     n_seeds = 1
-    mode = 'ec2'
+    mode = 'local'
     use_gpu = False
 
 
     env_variant = dict(
-        grid_size=32,
+        grid_size=8,
         agent_start_pos=None,
         health_cap=1000,
-        gen_resources=False,
+        gen_resources=True,
         fully_observed=False,
-        task='make_lifelong axe',
-        make_rtype='sparse',
+        task='make_lifelong food',
+        make_rtype='dense',
         fixed_reset=False,
         only_partial_obs=True,
         init_resources={
-            'metal': 50,
-            'wood': 50,
+            'food': 2
         },
         resource_prob={
-            'metal': 0,
-            'wood': 0,
+            'food': 0.08
         },
-        default_lifespan=0,
+        replenish_empty_resources=['food'],
         fixed_expected_resources=True,
         end_on_task_completion=False,
         time_horizon=0
@@ -148,24 +146,32 @@ if __name__ == "__main__":
     env_search_space = copy.deepcopy(env_variant)
     env_search_space = {k: [v] for k, v in env_search_space.items()}
     env_search_space.update(
-        make_rtype=['sparse', 'dense'],
+        resource_prob=[
+            {'metal': 0.01, 'wood': 0.01},
+            {'metal': 0.02, 'wood': 0.02},
+            {'metal': 0.05, 'wood': 0.05},
+        ],
+        init_resources=[
+            {'food': 2},
+            {'food': 4}
+        ]
     )
 
     algo_variant = dict(
         algorithm="DQN Lifetime",
-        version="natural curriculum - axe baseline",
+        version="distance increase - food baseline",
         lifetime=True,
         layer_size=16,
         replay_buffer_size=int(5E5),
         algorithm_kwargs=dict(
-            num_epochs=2000,
+            num_epochs=1000,
             num_eval_steps_per_epoch=6000,
             num_trains_per_train_loop=500,
             num_expl_steps_per_train_loop=500,
             min_num_steps_before_training=200,
             max_path_length=math.inf,
             batch_size=256,
-            validation_envs_pkl=join(get_repo_dir(), 'examples/continual/env_shaping/distance_increasing/validation_envs/natural_curriculum/axe/validation_envs/dynamic_static_validation_envs_2019_09_08_20_44_32.pkl'),
+            validation_envs_pkl=join(get_repo_dir(), 'examples/continual/env_shaping/distance_increasing/food/validation_envs/dynamic_static_validation_envs_2019_09_09_14_20_13.pkl'),
             validation_rollout_length=100
         ),
         trainer_kwargs=dict(
@@ -212,5 +218,5 @@ if __name__ == "__main__":
                     region='us-west-2',
                     num_exps_per_instance=3,
                     snapshot_mode='gap',
-                    snapshot_gap=5
+                    snapshot_gap=25
                 )

@@ -5,6 +5,7 @@ from __future__ import division, print_function
 import pickle
 import sys
 
+from gym_minigrid.envs.deer import DeerEnv
 from gym_minigrid.envs.tools import ToolsEnv
 import numpy
 import gym
@@ -35,29 +36,50 @@ def main():
 
     # Load the gym environment
     # env = gym.make(options.env_name)
-    env = ToolsEnv(
-        grid_size=32,
+    env = DeerEnv(
+        grid_size=12,
         agent_start_pos=None,
         health_cap=1000,
-        gen_resources=False,
+        gen_resources=True,
         fully_observed=False,
-        task='make_lifelong axe',
-        make_rtype='dense',
+        task='make_lifelong food',
+        make_rtype='dense-fixed',
         fixed_reset=False,
         only_partial_obs=True,
         init_resources={
-            'metal': 50,
-            'wood': 50,
+            'deer': 3,
+            'axe': 2,
         },
-        resource_prob={
-            'metal': 0,
-            'wood': 0,
+        replenish_low_resources={
+            'axe': 2
         },
-        default_lifespan=0,
         fixed_expected_resources=True,
         end_on_task_completion=False,
         time_horizon=0
     )
+    # env = ToolsEnv(
+    #     grid_size=16,
+    #     agent_start_pos=None,
+    #     health_cap=1000,
+    #     gen_resources=True,
+    #     fully_observed=False,
+    #     task='make_lifelong axe',
+    #     make_rtype='sparse',
+    #     fixed_reset=False,
+    #     only_partial_obs=True,
+    #     init_resources={
+    #         'metal': 15,
+    #         'wood': 15,
+    #     },
+    #     default_lifespan=0,
+    #     fixed_expected_resources=True,
+    #     end_on_task_completion=False,
+    #     time_horizon=1000,
+    #     replenish_low_resources={
+    #         'metal': 15,
+    #         'wood': 15
+    #     },
+    # )
     pkl = options.qf
     if pkl is not None:
         params = pickle.load(open(pkl, 'rb'))

@@ -535,7 +535,7 @@ def run_experiment(
                 "convert {} into a nested dictionary?".format(key)
             )
     if prepend_date_to_exp_prefix:
-        exp_prefix = time.strftime("%m-%d") + "-" + exp_prefix
+        exp_prefix = time.strftime("%m-%d-%H") + "-" + exp_prefix
     variant['seed'] = str(seed)
     variant['exp_id'] = str(exp_id)
     variant['exp_prefix'] = str(exp_prefix)
@@ -634,15 +634,20 @@ def run_experiment(
     mode_kwargs = {}
     if use_gpu and mode == 'ec2':
         image_id = conf.REGION_TO_GPU_AWS_IMAGE_ID[region]
-        if region == 'us-east-1':
-            avail_zone = conf.REGION_TO_GPU_AWS_AVAIL_ZONE.get(region, "us-east-1b")
-            mode_kwargs['extra_ec2_instance_kwargs'] = dict(
-                Placement=dict(
-                    AvailabilityZone=avail_zone,
-                ),
-            )
+        avail_zone = conf.REGION_TO_GPU_AWS_AVAIL_ZONE.get(region, "us-west-2d")
+        mode_kwargs['extra_ec2_instance_kwargs'] = dict(
+            Placement=dict(
+                AvailabilityZone=avail_zone,
+            ),
+        )
     else:
         image_id = conf.REGION_TO_GPU_AWS_IMAGE_ID[region]
+        avail_zone = conf.REGION_TO_GPU_AWS_AVAIL_ZONE.get(region, "us-west-2d")
+        mode_kwargs['extra_ec2_instance_kwargs'] = dict(
+            Placement=dict(
+                AvailabilityZone=avail_zone,
+            ),
+        )
     if hasattr(conf, "AWS_S3_PATH"):
         aws_s3_path = conf.AWS_S3_PATH
     else:

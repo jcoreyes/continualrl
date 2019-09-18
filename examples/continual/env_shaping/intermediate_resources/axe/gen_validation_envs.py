@@ -21,8 +21,8 @@ def gen_validation_envs(n, filename, **kwargs):
             fixed_reset=False,
             only_partial_obs=True,
             init_resources={
-                'metal': 1,
-                'wood': 1
+                'metal': 2,
+                'wood': 2
             },
             resource_prob={
                 'metal': 0.01,
@@ -30,7 +30,7 @@ def gen_validation_envs(n, filename, **kwargs):
             },
             fixed_expected_resources=True,
             end_on_task_completion=True,
-            time_horizon=100,
+            time_horizon=200,
             seed=seeds[idx]
         )
         env_kwargs.update(**kwargs)
@@ -45,11 +45,12 @@ def gen_validation_envs(n, filename, **kwargs):
 if __name__ == '__main__':
     now = datetime.datetime.now()
     timestamp = now.strftime('%Y_%m_%d_%H_%M_%S')
+    grid_size = 8
 
     cur_dir = os.path.dirname(os.path.realpath(__file__))
     validation_dir = os.path.join(cur_dir, 'validation_envs')
     os.makedirs(validation_dir, exist_ok=True)
 
-    filename = 'dynamic_static_validation_envs_%s.pkl' % timestamp
+    filename = 'dynamic_static_validation_envs_{0}x{0}_{1}.pkl'.format(grid_size, timestamp)
 
-    gen_validation_envs(100, os.path.join(validation_dir, filename))
+    gen_validation_envs(100, os.path.join(validation_dir, filename), grid_size=grid_size)
