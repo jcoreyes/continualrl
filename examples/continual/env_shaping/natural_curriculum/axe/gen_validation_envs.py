@@ -10,23 +10,27 @@ def gen_validation_envs(n, filename, **kwargs):
     seeds = np.random.randint(0, 100000, n).tolist()
     for idx in range(n):
         env_kwargs = dict(
-            grid_size=32,
+            grid_size=16,
             agent_start_pos=None,
             health_cap=1000,
-            gen_resources=False,
+            gen_resources=True,
             fully_observed=False,
             task='make_lifelong axe',
             make_rtype='sparse',
             fixed_reset=False,
             only_partial_obs=True,
             init_resources={
-                'metal': 50,
-                'wood': 50,
+                'metal': 15,
+                'wood': 15,
             },
             default_lifespan=0,
             fixed_expected_resources=True,
             end_on_task_completion=False,
-            time_horizon=3000,
+            time_horizon=1000,
+            replenish_low_resources={
+                'metal': 15,
+                'wood': 15
+            },
             seed=seeds[idx]
         )
         env_kwargs.update(**kwargs)
