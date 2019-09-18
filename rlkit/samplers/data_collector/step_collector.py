@@ -51,7 +51,7 @@ class MdpStepCollector(StepCollector):
 
     def get_snapshot(self):
         return dict(
-            env=self._env,
+            # env=self._env,
             policy=self._policy,
         )
 
