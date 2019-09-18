@@ -80,7 +80,7 @@ class BaseRLAlgorithm(object, metaclass=abc.ABCMeta):
         if self.validation and epoch % self.validation_period == 0:
             stats = self.validate(snapshot)
             logger.save_stats(epoch, stats)
-        #logger.save_itr_params(epoch, snapshot)
+        logger.save_itr_params(epoch, snapshot)
         gt.stamp('saving', unique=False)
         self._log_stats(epoch, incl_expl=incl_expl)
 
