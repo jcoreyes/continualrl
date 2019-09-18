@@ -3,11 +3,11 @@ Run DQN on grid world.
 """
 import math
 from os.path import join
-from rlkit.core.logging import get_repo_dir
 
 import gym
 import copy
 from gym_minigrid.envs.tools import ToolsEnv
+from rlkit.core.logging import get_repo_dir
 from rlkit.samplers.data_collector.path_collector import LifetimeMdpPathCollector, MdpPathCollectorConfig
 from rlkit.torch.dqn.double_dqn import DoubleDQNTrainer
 from rlkit.torch.sac.policies import SoftmaxQPolicy
@@ -77,7 +77,7 @@ def experiment(variant):
     )
     expl_path_collector = collector_class(
         expl_env,
-        expl_policy
+        expl_policy,
     )
     trainer = DoubleDQNTrainer(
         qf=qf,
@@ -110,72 +110,62 @@ if __name__ == "__main__":
     2. algo_variant, env_variant, env_search_space
     3. use_gpu 
     """
-    exp_prefix = 'tool-dqn-dynamic-static-reset'
+    exp_prefix = 'tool-dqn-env-shaping-intermediate-8x8-axe-baseline'
     n_seeds = 1
     mode = 'ec2'
     use_gpu = False
 
+
     env_variant = dict(
         grid_size=8,
-        # start agent at random pos
         agent_start_pos=None,
         health_cap=1000,
         gen_resources=True,
         fully_observed=False,
-        task='make axe',
+        task='make_lifelong axe',
         make_rtype='sparse',
         fixed_reset=False,
         only_partial_obs=True,
         init_resources={
-            'metal': 1,
-            'wood': 1
+            'metal': 2,
+            'wood': 2
         },
         resource_prob={
-            'metal': 0.01,
-            'wood': 0.01
+            'metal': 0.02,
+            'wood': 0.02
         },
+        replenish_empty_resources=['metal', 'wood'],
         fixed_expected_resources=True,
         end_on_task_completion=False,
-        replenish_empty_resources=['metal', 'wood'],
-        time_horizon=250
+        time_horizon=0
     )
     env_search_space = copy.deepcopy(env_variant)
     env_search_space = {k: [v] for k, v in env_search_space.items()}
     env_search_space.update(
+        make_rtype=['sparse', 'dense'],
         resource_prob=[
-            {'metal': 0, 'wood': 0},
-            {'metal': 0.005, 'wood': 0.005},
-            {'metal': 0.01, 'wood': 0.01},
             {'metal': 0.02, 'wood': 0.02},
-            {'metal': 0.05, 'wood': 0.05}
-        ],
-        init_resources=[
-            {'metal': 1, 'wood': 1},
-            {'metal': 2, 'wood': 2}
-        ],
-        replenish_empty_resources=[
-            ['metal', 'wood'],
-            []
-        ],
-        time_horizon=[
-            100, 200
+            {'metal': 0.05, 'wood': 0.05},
+            {'metal': 0.1, 'wood': 0.1}
         ]
     )
 
     algo_variant = dict(
-        algorithm="DQN",
-        version="dynamic static - reset",
+        algorithm="DQN Lifetime",
+        version="intermediate resources - axe baseline",
+        lifetime=True,
         layer_size=16,
         replay_buffer_size=int(5E5),
         algorithm_kwargs=dict(
             num_epochs=2000,
-            num_eval_steps_per_epoch=6000,
+            num_eval_steps_per_epoch=500,
             num_trains_per_train_loop=500,
             num_expl_steps_per_train_loop=500,
             min_num_steps_before_training=200,
             max_path_length=math.inf,
             batch_size=256,
-            validation_envs_pkl=join(get_repo_dir(), 'examples/continual/dynamic_static/validation_envs/dynamic_static_validation_envs_2019_09_08_08_40_44.pkl')
+            validation_envs_pkl=join(get_repo_dir(), 'examples/continual/env_shaping/intermediate_resources/axe/validation_envs/dynamic_static_validation_envs_8x8_2019_09_16_05_04_42.pkl'),
+            validation_rollout_length=300
         ),
         trainer_kwargs=dict(
             discount=0.99,
@@ -221,5 +211,5 @@ if __name__ == "__main__":
                     region='us-west-2',
                     num_exps_per_instance=3,
                     snapshot_mode='gap',
-                    snapshot_gap=5
+                    snapshot_gap=25
                 )

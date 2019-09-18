@@ -116,7 +116,7 @@ if __name__ == "__main__":
     2. algo_variant, env_variant, env_search_space
     3. use_gpu 
     """
-    exp_prefix = 'tool-dqn-env-shaping-natural-curriculum-food'
+    exp_prefix = 'tool-dqn-env-shaping-natural-curriculum-food-3'
     n_seeds = 1
     mode = 'ec2'
     use_gpu = False
@@ -145,9 +145,9 @@ if __name__ == "__main__":
     env_search_space.update(
         init_resources=[
             {'food': 50},
-            {'food': 100},
             {'food': 250},
-            {'food': 500},
+            {'food': 450},
+            {'food': 650}
         ]
     )
 
@@ -165,8 +165,8 @@ if __name__ == "__main__":
             min_num_steps_before_training=200,
             max_path_length=math.inf,
             batch_size=256,
-            validation_envs_pkl=join(get_repo_dir(), 'examples/continual/env_shaping/natural_curriculum/food/validation_envs/dynamic_static_validation_envs_2019_09_08_20_44_27.pkl'),
-            validation_rollout_length=100
+            validation_envs_pkl=join(get_repo_dir(), 'examples/continual/env_shaping/natural_curriculum/food/validation_envs/dynamic_static_validation_envs_2019_09_16_04_09_19.pkl'),
+            validation_rollout_length=300
         ),
         trainer_kwargs=dict(
             discount=0.99,

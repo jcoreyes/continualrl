@@ -15,7 +15,7 @@ POS_RWD = 100
 MED_RWD = 1
 
 
-class ToolsEnv(FoodEnvBase):
+class DeerEnv(FoodEnvBase):
     """
     Empty grid environment, no obstacles, sparse reward
     """
@@ -39,6 +39,7 @@ class ToolsEnv(FoodEnvBase):
             health_cap=100,
             food_rate=4,
             max_pantry_size=50,
+            deer_move_prob=0.2,
             obs_vision=False,
             food_rate_decay=0.0,
             init_resources=None,
@@ -76,14 +77,18 @@ class ToolsEnv(FoodEnvBase):
         self.food_rate_decay = food_rate_decay
         self.interactions = {
             # the 2 ingredients must be in alphabetical order
-            ('metal', 'wood'): 'axe',
-            ('axe', 'tree'): 'berry',
+            # ('metal', 'wood'): 'axe',
+            ('axe', 'deer'): 'food',
         }
         self.ingredients = {v: k for k, v in self.interactions.items()}
         self.gen_resources = gen_resources
         self.resource_prob = resource_prob or {}
         self.resource_prob_decay = resource_prob_decay or {}
         self.resource_prob_min = resource_prob_min or {}
+
+        # deer stuff
+        self.deer = []
+        self.deer_move_prob = deer_move_prob
 
         # tuple of (bump, schedule), giving place_radius at time t = (t + bump) // schedule
         self.place_schedule = place_schedule
@@ -111,9 +116,9 @@ class ToolsEnv(FoodEnvBase):
             'food': 2,
             'wood': 3,
             'metal': 4,
-            'tree': 5,
+            'deer': 5,
             'axe': 6,
-            'berry': 7
+            'monster': 7
         }
 
         # TASK stuff
@@ -154,11 +159,11 @@ class ToolsEnv(FoodEnvBase):
         # food
         self.pantry = []
         self.max_pantry_size = max_pantry_size
-        self.actions = ToolsEnv.Actions
+        self.actions = DeerEnv.Actions
 
         # stores info about picked up items
         self.info_last = {'pickup_%s' % k: 0 for k in self.object_to_idx.keys()
-                          if k in TYPE_TO_CLASS_ABS and TYPE_TO_CLASS_ABS[k]().can_mine(self)}
+                          if k not in ['empty', 'wall']}
         self.info_last.update({'made_%s' % v: 0 for v in self.interactions.values()})
 
         super().__init__(
@@ -249,24 +254,43 @@ class ToolsEnv(FoodEnvBase):
                 diam = self.place_radius()
                 if diam >= 2 * self.grid_size:
                     self.full_grid = True
-                self.place_prob(TYPE_TO_CLASS_ABS[type](lifespan=self.lifespans.get(type, self.default_lifespan)),
+                new_obj = TYPE_TO_CLASS_ABS[type](lifespan=self.lifespans.get(type, self.default_lifespan))
+                if self.place_prob(new_obj,
                                 place_prob,
                                 top=(np.clip(self.agent_pos - diam // 2, 0, self.grid_size-1)),
-                                size=(diam, diam))
+                                size=(diam, diam)):
+                    self.deer.append(new_obj)
             else:
-                self.place_prob(TYPE_TO_CLASS_ABS[type](lifespan=self.lifespans.get(type, self.default_lifespan)),
-                                place_prob)
+                new_obj = TYPE_TO_CLASS_ABS[type](lifespan=self.lifespans.get(type, self.default_lifespan))
+                if self.place_prob(new_obj,
+                                place_prob):
+                    self.deer.append(new_obj)
 
     def extra_gen_grid(self):
         for type, count in self.init_resources.items():
             if self.task and self.task[0] == 'pickup' and type == self.task[1]:
                 for _ in range(count):
-                    self.place_obj(TYPE_TO_CLASS_ABS[type]())
+                    new_obj = TYPE_TO_CLASS_ABS[type]()
+                    self.place_obj(new_obj)
+                    if new_obj.type == 'deer':
+                        self.deer.append(new_obj)
             else:
                 for _ in range(count):
-                    self.place_obj(TYPE_TO_CLASS_ABS[type](lifespan=self.lifespans.get(type, self.default_lifespan)))
+                    new_obj = TYPE_TO_CLASS_ABS[type](lifespan=self.lifespans.get(type, self.default_lifespan))
+                    self.place_obj(new_obj)
+                    if new_obj.type == 'deer':
+                        self.deer.append(new_obj)
 
     def extra_step(self, action, matched):
+        # Let deer move
+        for deer in self.deer:
+            if random.random() < self.deer_move_prob:
+                new_pos = np.clip(deer.cur_pos + random.choice(list(DIR_TO_VEC.values())), 1, self.grid_size - 1)
+                if not self.grid.get(*new_pos):
+                    self.grid.set(*new_pos, deer)
+                    self.grid.set(*deer.cur_pos, None)
+                    deer.cur_pos = new_pos
+
         if matched:
             return matched
 
@@ -310,6 +334,7 @@ class ToolsEnv(FoodEnvBase):
         elif agent_cell is None:
             # there's nothing to combine it with, so just place it on the grid
             self.grid.set(*self.agent_pos, self.carrying)
+            self.carrying.cur_pos = self.agent_pos
         else:
             # let's try to combine the placed object with the existing object
             interact_tup = tuple(sorted([self.carrying.type, agent_cell.type]))
@@ -323,6 +348,7 @@ class ToolsEnv(FoodEnvBase):
                 # replace existing obj with new obj
                 new_obj = TYPE_TO_CLASS_ABS[new_type](lifespan=self.lifespans.get(new_type, self.default_lifespan))
                 self.grid.set(*self.agent_pos, new_obj)
+                new_obj.cur_pos = self.agent_pos
                 self.made_obj_type = new_obj.type
                 self.just_made_obj_type = new_obj.type
                 self.info_last['made_%s' % new_type] = self.info_last['made_%s' % new_type] + 1
@@ -408,6 +434,7 @@ class ToolsEnv(FoodEnvBase):
         return obs, reward, done, info
 
     def reset(self, seed=None, return_seed=False):
+        self.deer = []
         if self.fixed_reset:
             self.seed(self.seed_val)
         else:
@@ -417,7 +444,7 @@ class ToolsEnv(FoodEnvBase):
         obs = super().reset(incl_health=self.include_health)
         extra_obs = np.repeat(self.gen_shelf_obs(), 8)
         num_objs = np.repeat(self.info_last['pickup_%s' % self.task[1]], 8)
-        obs = np.concatenate((obs, extra_obs.flatten(), num_objs))
+        obs = np.concatenate((obs, extra_obs, num_objs))
 
         self.pantry = []
         self.made_obj_type = None
@@ -426,7 +453,7 @@ class ToolsEnv(FoodEnvBase):
         self.last_idx = -1
         self.obs_count = {}
         self.info_last = {'pickup_%s' % k: 0 for k in self.object_to_idx.keys()
-                          if k in TYPE_TO_CLASS_ABS and TYPE_TO_CLASS_ABS[k]().can_mine(self)}
+                          if k not in ['empty' , 'wall']}
         self.info_last.update({'made_%s' % v: 0 for v in self.interactions.values()})
         return (obs, seed) if return_seed else obs
 
@@ -558,6 +585,10 @@ class ToolsEnv(FoodEnvBase):
                     return test_pos
                 test_pos += np.array([1, -1])
         return None
+
+    def dead_obj(self, i, j, obj):
+        if obj.type == 'deer':
+            self.deer.remove(obj)
 
     def decay_health(self):
         if self.include_health:

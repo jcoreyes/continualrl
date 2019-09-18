@@ -3,11 +3,11 @@ Run DQN on grid world.
 """
 import math
 from os.path import join
+from rlkit.core.logging import get_repo_dir
 
 import gym
 import copy
 from gym_minigrid.envs.tools import ToolsEnv
-from rlkit.core.logging import get_repo_dir
 from rlkit.samplers.data_collector.path_collector import LifetimeMdpPathCollector, MdpPathCollectorConfig
 from rlkit.torch.dqn.double_dqn import DoubleDQNTrainer
 from rlkit.torch.sac.policies import SoftmaxQPolicy
@@ -26,7 +26,7 @@ from rlkit.samplers.data_collector import MdpPathCollector
 from rlkit.torch.torch_rl_algorithm import TorchBatchRLAlgorithm, TorchLifetimeRLAlgorithm
 
 # from variants.dqn.dqn_medium_mlp_task_partial_variant import variant as algo_variant, gen_network
-from variants.dqn_lifetime.dqn_medium8_mlp_task_partial_variant import variant as algo_variant, gen_network
+from variants.dqn_lifetime.dqn_medium8_mlp_task_partial_variant import variant as algo_variant, gen_network_num_obj as gen_network
 
 
 def schedule(t):
@@ -57,7 +57,7 @@ def experiment(variant):
     eval_policy = ArgmaxDiscretePolicy(qf)
     # eval_policy = SoftmaxQPolicy(qf)
     expl_policy = PolicyWrappedWithExplorationStrategy(
-        EpsilonGreedyDecay(expl_env.action_space, 1e-4, 1, 0.1),
+        EpsilonGreedyDecay(expl_env.action_space, variant['algo_kwargs']['eps_decay_rate'], 1, 0.1),
         eval_policy,
     )
     if lifetime:
@@ -110,82 +110,63 @@ if __name__ == "__main__":
     2. algo_variant, env_variant, env_search_space
     3. use_gpu 
     """
-    exp_prefix = 'tool-dqn-env-shaping-frequency-decrease'
+    exp_prefix = 'tool-dqn-dynamic-static-reset'
     n_seeds = 1
     mode = 'ec2'
     use_gpu = False
 
-
     env_variant = dict(
         grid_size=8,
+        # start agent at random pos
         agent_start_pos=None,
         health_cap=1000,
         gen_resources=True,
         fully_observed=False,
-        task='make_lifelong axe',
+        task='make axe',
         make_rtype='sparse',
         fixed_reset=False,
         only_partial_obs=True,
         init_resources={
             'metal': 1,
-            'wood': 1,
+            'wood': 1
         },
         resource_prob={
-            'metal': 0.08,
-            'wood': 0.08,
-        },
-        resource_prob_min={
             'metal': 0.01,
             'wood': 0.01
         },
-        resource_prob_decay={
-            'metal': 1e-6,
-            'wood': 1e-6
-        },
-        fixed_expected_resources=False,
-        default_lifespan=200,
+        fixed_expected_resources=True,
         end_on_task_completion=False,
-        time_horizon=0
+        replenish_empty_resources=['metal', 'wood'],
+        time_horizon=250
     )
     env_search_space = copy.deepcopy(env_variant)
     env_search_space = {k: [v] for k, v in env_search_space.items()}
     env_search_space.update(
         resource_prob=[
-            {'metal': 0.08, 'wood': 0.08},
-            {'metal': 0.05, 'wood': 0.05},
-            {'metal': 0.02, 'wood': 0.02}
+            {'metal': 0.5, 'wood': 0.5}
         ],
-        resource_prob_decay=[
-            {'metal': 1e-6, 'wood': 1e-6},
-            {'metal': 1e-5, 'wood': 1e-5}
+        time_horizon=[
+            100, 200, 300
         ],
-        init_resources=[
-            {'metal': 1, 'wood': 1},
-            {'metal': 2, 'wood': 2},
-        ],
-        replenish_empty_resources=[
-            ['metal', 'wood'],
-            []
-        ]
+        make_rtype=['sparse', 'dense-fixed']
     )
 
     algo_variant = dict(
-        algorithm="DQN Lifetime",
-        version="frequency decrease",
-        lifetime=True,
+        algorithm="DQN",
+        version="dynamic static - reset",
         layer_size=16,
         replay_buffer_size=int(5E5),
         algorithm_kwargs=dict(
-            num_epochs=2500,
+            num_epochs=3000,
             num_eval_steps_per_epoch=6000,
             num_trains_per_train_loop=500,
             num_expl_steps_per_train_loop=500,
             min_num_steps_before_training=200,
             max_path_length=math.inf,
             batch_size=256,
-            validation_envs_pkl=join(get_repo_dir(), 'examples/continual/env_shaping/frequency_decrease/validation_envs/dynamic_static_validation_envs_2019_09_08_08_42_37.pkl'),
-            validation_rollout_length=100
+            validation_envs_pkl=join(get_repo_dir(), 'examples/continual/dynamic_static/axe/validation_envs/dynamic_static_validation_envs_2019_09_17_19_25_17.pkl')
         ),
+        eps_decay_rate=1e-4,
         trainer_kwargs=dict(
             discount=0.99,
             learning_rate=1E-4,
@@ -202,12 +183,21 @@ if __name__ == "__main__":
             input_size=200,
             output_size=32,
             hidden_sizes=[64, 64]
+        ),
+        num_obj_network_kwargs=dict(
+            # num_objs: 8
+            input_size=8,
+            output_size=8,
+            hidden_sizes=[8]
         )
     )
     algo_search_space = copy.deepcopy(algo_variant)
     algo_search_space = {k: [v] for k, v in algo_search_space.items()}
     algo_search_space.update(
         # insert sweep params here
+        eps_decay_rate=[
+            1e-4, 1e-5, 1e-6
+        ]
     )
 
     env_sweeper = hyp.DeterministicHyperparameterSweeper(
@@ -230,5 +220,5 @@ if __name__ == "__main__":
                     region='us-west-2',
                     num_exps_per_instance=3,
                     snapshot_mode='gap',
-                    snapshot_gap=25
+                    snapshot_gap=10
                 )
