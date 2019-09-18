@@ -103,7 +103,7 @@ class BaseRLAlgorithm(object, metaclass=abc.ABCMeta):
         for env_idx, env in enumerate(validation_envs['envs']):
             path = rollout(env, policy, self.validation_rollout_length)
             for typ in env.object_to_idx.keys():
-                if typ in TYPE_TO_CLASS_ABS and TYPE_TO_CLASS_ABS[typ]().can_mine(env):
+                if typ not in ['empty', 'wall', 'tree']:
                     key = 'pickup_%s' % typ
                     last_val = 0
                     pickup_idxs = []
