@@ -3,6 +3,7 @@ from collections import OrderedDict
 
 from typing import Iterable
 
+from rlkit.core.humaninput_lifetime_rl_algorithm import HumanInputLifetimeRLAlgorithm
 from rlkit.core.lifetime_rl_algorithm import LifetimeRLAlgorithm
 from torch import nn as nn
 
@@ -41,6 +42,14 @@ class TorchLifetimeRLAlgorithm(LifetimeRLAlgorithm):
         for net in self.trainer.networks:
             net.train(mode)
 
+class TorchHumanInputLifetimeRLAlgorithm(HumanInputLifetimeRLAlgorithm):
+    def to(self, device):
+        for net in self.trainer.networks:
+            net.to(device)
+
+    def training_mode(self, mode):
+        for net in self.trainer.networks:
+            net.train(mode)
 
 class TorchTrainer(Trainer, metaclass=abc.ABCMeta):
     def __init__(self):
