@@ -4,16 +4,19 @@ Run DQN on grid world.
 
 import gym
 import rlkit.torch.pytorch_util as ptu
-from rlkit.data_management.env_replay_buffer import EnvReplayBuffer
+from rlkit.core.online_rl_algorithm import OnlineRLAlgorithm
+from rlkit.data_management.env_replay_buffer import FrameEnvReplayBuffer
 from rlkit.exploration_strategies.base import \
     PolicyWrappedWithExplorationStrategy
 from rlkit.exploration_strategies.epsilon_greedy import EpsilonGreedyDecay, EpsilonGreedy
 from rlkit.launchers.launcher_util import run_experiment
 from rlkit.policies.argmax import ArgmaxDiscretePolicy
+from rlkit.pythonplusplus import identity
 from rlkit.samplers.data_collector import MdpPathCollector
+from rlkit.samplers.data_collector.step_collector import StepCollector, MdpStepCollector
 from rlkit.samplers.data_collector.path_collector import LifetimeMdpPathCollector
 from rlkit.torch.dqn.double_dqn import DoubleDQNTrainer
-from rlkit.torch.torch_rl_algorithm import TorchBatchRLAlgorithm, TorchLifetimeRLAlgorithm
+from rlkit.torch.torch_rl_algorithm import TorchBatchRLAlgorithm, TorchLifetimeRLAlgorithm, TorchOnlineRLAlgorithm
 from torch import nn as nn
 # from variants.dqn.dqn_medium8_mlp_task_variant import variant, gen_network
 from variants.minecraft.dqn_dense_navigate import gen_network
@@ -45,25 +48,25 @@ def experiment(variant):
 
     qf_criterion = nn.MSELoss()
     eval_policy = PolicyWrappedWithExplorationStrategy(
-        EpsilonGreedy(expl_env.action_space, 0.001),
+        EpsilonGreedy(expl_env.action_space, 0.05),
         ArgmaxDiscretePolicy(qf)
     )
     #eval_policy = SoftmaxQPolicy(qf)
     expl_policy = PolicyWrappedWithExplorationStrategy(
-        EpsilonGreedyDecay(expl_env.action_space, 1.0/2e5, 1.0, 0.01),
+        EpsilonGreedyDecay(expl_env.action_space, 1.0/1e5, 1.0, 0.05),
         ArgmaxDiscretePolicy(qf),
     )
     # expl_policy = PolicyWrappedWithExplorationStrategy(
     #     EpsilonGreedy(expl_env.action_space, 0.5),
     #     eval_policy,
     # )
-    collector_class = LifetimeMdpPathCollector if lifetime else MdpPathCollector
+    collector_class = MdpPathCollector
     eval_path_collector = collector_class(
         eval_env,
         eval_policy,
         render=False
     )
-    expl_path_collector = collector_class(
+    expl_path_collector = MdpStepCollector(
         expl_env,
         expl_policy,
         render=lifetime
@@ -74,12 +77,12 @@ def experiment(variant):
         qf_criterion=qf_criterion,
         **variant['algo_kwargs'] ['trainer_kwargs']
     )
-    replay_buffer = EnvReplayBuffer(
+    replay_buffer = FrameEnvReplayBuffer(
         variant['algo_kwargs']['replay_buffer_size'],
         expl_env,
         dtype='uint8'
     )
-    algo_class = TorchLifetimeRLAlgorithm if lifetime else TorchBatchRLAlgorithm
+    algo_class = TorchOnlineRLAlgorithm #TorchLifetimeRLAlgorithm if lifetime else TorchBatchRLAlgorithm
     algorithm = algo_class(
         trainer=trainer,
         exploration_env=expl_env,
@@ -148,15 +151,15 @@ if __name__ == "__main__":
         algorithm="DQN",
         lifetime=False,
         version="normal",
-        replay_buffer_size=int(1E5),
+        replay_buffer_size=int(2E5),
         algorithm_kwargs=dict(
             # below two params don't matter
             num_epochs=3000,
             num_eval_steps_per_epoch=1000,
-
-            num_trains_per_train_loop=500,
+            num_trains_per_train_loop=1000,
+            num_train_loops_per_epoch=3,
             num_expl_steps_per_train_loop=1000,
-            min_num_steps_before_training=2000,
+            min_num_steps_before_training=1000,
             max_path_length=1000,
             batch_size=64,
         ),
@@ -175,17 +178,16 @@ if __name__ == "__main__":
             input_width=64,
             input_height=64,
             # 16 channels if including compass, otherwise 12
-            input_channels=12,
-            output_size=512, # Computed manually
+            input_channels=9,
+            output_size=5, # action_dim
             kernel_sizes=[8, 4, 3],
             n_channels=[32, 64, 64],
             strides=[4, 2, 1],
             paddings=[0, 0, 0],
             hidden_sizes=[512],
             batch_norm_conv=False,
-            output_activation=F.relu,
+            output_activation=identity,
         ),
-        final_network_hidden_sizes=[512]
     )
 
 
