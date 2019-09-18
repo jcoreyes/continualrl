@@ -114,6 +114,7 @@ class FoodEnvBase(MiniGridAbsoluteEnv):
                 cell = self.grid.get(i, j)
                 if cell is not None:
                     if not cell.step():
+                        self.dead_obj(i, j, cell)
                         to_remove.append((i, j))
         for idxs in to_remove:
             self.grid.set(*idxs, None)
@@ -198,7 +199,10 @@ class FoodEnvBase(MiniGridAbsoluteEnv):
 
     def place_prob(self, obj, prob, top=None, size=None):
         if np.random.binomial(1, prob):
-            self.place_obj(obj, top, size)
+            pos = self.place_obj(obj, top, size)
+            obj.cur_pos = pos
+            return True
+        return False
 
     def decay_health(self):
         self.add_health(-1)
@@ -236,6 +240,10 @@ class FoodEnvBase(MiniGridAbsoluteEnv):
 
     def dead(self):
         return self.can_die and self.health <= 0
+
+    def dead_obj(self, i, j, obj):
+        """ Called when OBJ dies at position (i, j). """
+        pass
 
     def __getstate__(self):
         d = self.__dict__.copy()
