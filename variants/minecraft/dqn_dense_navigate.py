@@ -3,10 +3,11 @@ import math
 from rlkit.policies.minecraft import ImageNetwork
 from rlkit.policies.network_food import FoodNetworkEasy, FoodNetworkMediumFullObs, FoodNetworkMediumPartialObsTask
 from rlkit.pythonplusplus import identity
-from rlkit.torch.conv_networks import CNN
+from rlkit.torch.conv_networks import CNN, CNNNotFlat
 from rlkit.torch.networks import FlattenMlp, Mlp
 from torch.nn import functional as F
 import torch.nn as nn
+from rlkit.pythonplusplus import identity
 
 variant = dict(
     env_name="MineRLNavigateDense-v0",
@@ -46,25 +47,29 @@ variant = dict(
         strides=[1, 1],
         paddings=[1, 1],
         hidden_sizes=[128],
-        batch_norm_conv=True,
-        output_activation=F.relu,
+        batch_norm_conv=False,
+        output_activation=identity,
     ),
     final_network_hidden_sizes=[128]
 )
 
 
 def gen_network(variant, action_dim, policy=False):
-    return ImageNetwork(
-        img_network=CNN(**variant['img_conv_kwargs']),
-        #inventory_network=FlattenMlp(**variant['inventory_network_kwargs']),
-        final_network=FlattenMlp(
-            input_size=variant['img_conv_kwargs']['output_size'],
-            output_size=action_dim,
-            hidden_sizes=variant['final_network_hidden_sizes'],
-            output_activation=F.softmax if policy else identity
-        ),
-        sizes=[
-            variant['img_conv_kwargs']['input_width'] * variant['img_conv_kwargs']['input_height'] *
-            variant['img_conv_kwargs']['input_channels']
-        ]
-    )
+    variant['img_conv_kwargs']['output_size'] = action_dim
+    return CNNNotFlat(**variant['img_conv_kwargs'])
+
+
+    # return ImageNetwork(
+    #     img_network=CNN(**variant['img_conv_kwargs']),
+    #     #inventory_network=FlattenMlp(**variant['inventory_network_kwargs']),
+    #     final_network=FlattenMlp(
+    #         input_size=variant['img_conv_kwargs']['output_size'],
+    #         output_size=action_dim,
+    #         hidden_sizes=variant['final_network_hidden_sizes'],
+    #         output_activation=F.softmax if policy else identity
+    #     ),
+    #     sizes=[
+    #         variant['img_conv_kwargs']['input_width'] * variant['img_conv_kwargs']['input_height'] *
+    #         variant['img_conv_kwargs']['input_channels']
+    #     ]
+    # )

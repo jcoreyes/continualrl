@@ -45,7 +45,8 @@ def experiment(variant):
         # import pdb; pdb.set_trace()
         #print(env.action_names)
         action = input('Enter action: ')
-        key_to_action = dict(p=0, w=1, s=2, a=3, d=4)
+        key_to_action = dict(p=0, w=1, s=2, a=3, d=4) # forward, left, right, attack, stay
+        key_to_action = dict(p=0, w=1, s=2, a=3, d=4) # stay, forward, back, left, right
         #key_to_action = dict(s=0, a=1, d=2)
         if action not in key_to_action:
             continue
@@ -69,7 +70,9 @@ parser.add_argument('--env', type=str, default='MineRLTreechop-v0',
                         # Added
                         'MineRLEating-v0',
                         'MineRLMazeRunner-v0',
-                        'MineRLShapingTreechop-v0'
+                        'MineRLShapingTreechop-v0',
+                        'MineRLWoolGatheringTrain-v0',
+                        'MineRLWoolGatheringTest-v0'
                     ],
                     help='MineRL environment identifier.')
 parser.add_argument('--gray-scale', action='store_true', default=False, help='Convert pov into gray scaled image.')

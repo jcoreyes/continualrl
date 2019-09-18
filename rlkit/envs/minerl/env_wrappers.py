@@ -139,6 +139,28 @@ class PoVWithCompassAngleWrapper(gym.ObservationWrapper):
         compass_channel = np.ones(shape=list(pov.shape[:-1]) + [1], dtype=pov.dtype) * compass_scaled
         return np.concatenate([pov, compass_channel], axis=-1)
 
+class PoVWithInventoryWrapper(gym.ObservationWrapper):
+    """"""
+    def __init__(self, env):
+        super().__init__(env)
+
+        pov_space = self.env.observation_space.spaces['pov']
+
+
+        r1 = self.env.observation_space.spaces['inventory']['wool']
+        r2 = self.env.observation_space.spaces['inventory']['coal']
+
+        low = self.observation({'pov': pov_space.low, 'wool': r1.low, 'coal': r2.low})
+        high = self.observation({'pov': pov_space.high, 'wool': r1.high, 'coal': r2.high})
+
+        self.observation_space = gym.spaces.Box(low=low, high=high)
+
+    def observation(self, observation):
+        pov = observation['pov']
+        compass_scaled = observation['compassAngle'] / self._compass_angle_scale
+        compass_channel = np.ones(shape=list(pov.shape[:-1]) + [1], dtype=pov.dtype) * compass_scaled
+        return np.concatenate([pov, compass_channel], axis=-1)
+
 
 class MoveAxisWrapper(gym.ObservationWrapper):
     """Move axes of observation ndarrays."""
@@ -485,6 +507,8 @@ def wrap_env(env, test, args):
         env = GrayScaleWrapper(env, dict_space_key='pov')
     if args.env.startswith('MineRLNavigate') or args.env.startswith('MineRLEating'):
         env = PoVWithCompassAngleWrapper(env)
+    elif args.env.startswith('MineRLWool'):
+        env = PoVWithInventoryWrapper(env)
     else:
         env = ObtainPoVWrapper(env)
     env = MoveAxisWrapper(env, source=-1, destination=0)  # convert hwc -> chw as Chainer requires.
