@@ -28,6 +28,7 @@ class HumanInputLifetimeRLAlgorithm(BaseRLAlgorithm, metaclass=abc.ABCMeta):
             num_train_loops_per_epoch=1,
             min_num_steps_before_training=0,
             human_input_interval=10,
+            num_loops_before_human_input=10,
             rollout_env=None,
             **kwargs
     ):
@@ -50,6 +51,7 @@ class HumanInputLifetimeRLAlgorithm(BaseRLAlgorithm, metaclass=abc.ABCMeta):
         self.evaluation_env = evaluation_env
         self.human_input_interval = human_input_interval
         self.rollout_env = rollout_env
+        self.num_loops_before_human_input = num_loops_before_human_input
 
     def collect_rollout_gif(self, human_input_counter):
 
@@ -151,7 +153,7 @@ class HumanInputLifetimeRLAlgorithm(BaseRLAlgorithm, metaclass=abc.ABCMeta):
             self._end_epoch(num_loops - 1, incl_expl=False)
 
             # Human input section
-            if num_loops % self.human_input_interval == 0:
+            if num_loops > self.num_loops_before_human_input and num_loops % self.human_input_interval == 0:
                 self.collect_rollout_gif(human_input_counter)
                 for key in ['evaluationenv_infosfinalsolved_Mean']:
                     self.make_plot(key)
