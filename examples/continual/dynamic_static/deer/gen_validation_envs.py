@@ -1,6 +1,8 @@
 import os
 import pickle
 import datetime
+
+from gym_minigrid.envs.deer import DeerEnv
 import numpy as np
 from gym_minigrid.envs.tools import ToolsEnv
 
@@ -16,27 +18,25 @@ def gen_validation_envs(n, filename, **kwargs):
             health_cap=1000,
             gen_resources=True,
             fully_observed=False,
-            task='make berry',
+            task='make food',
             make_rtype='sparse',
             fixed_reset=False,
             only_partial_obs=True,
             init_resources={
-                'metal': 2,
-                'wood': 2,
-                'tree': 2
+                'axe': 2,
+                'deer': 3
             },
-            resource_prob={
-                'metal': 0.01,
-                'wood': 0.01,
-                'tree': 0.005
+            interactions={
+                ('axe', 'deer'): 'food'
             },
+            deer_move_prob=0.2,
             fixed_expected_resources=True,
             end_on_task_completion=True,
-            time_horizon=200,
+            time_horizon=100,
             seed=seeds[idx]
         )
         env_kwargs.update(**kwargs)
-        env = ToolsEnv(
+        env = DeerEnv(
             **env_kwargs
         )
         envs.append(env)
@@ -47,12 +47,11 @@ def gen_validation_envs(n, filename, **kwargs):
 if __name__ == '__main__':
     now = datetime.datetime.now()
     timestamp = now.strftime('%Y_%m_%d_%H_%M_%S')
-    grid_size = 12
 
     cur_dir = os.path.dirname(os.path.realpath(__file__))
     validation_dir = os.path.join(cur_dir, 'validation_envs')
     os.makedirs(validation_dir, exist_ok=True)
 
-    filename = 'dynamic_static_validation_envs_{0}x{0}_{1}.pkl'.format(grid_size, timestamp)
+    filename = 'dynamic_static_validation_envs_%s.pkl' % timestamp
 
-    gen_validation_envs(100, os.path.join(validation_dir, filename), grid_size=grid_size)
+    gen_validation_envs(100, os.path.join(validation_dir, filename))

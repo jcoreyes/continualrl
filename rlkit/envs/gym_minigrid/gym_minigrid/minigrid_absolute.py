@@ -88,7 +88,8 @@ OBJECT_TO_IDX = {
     'seed': 13,
     'plant': 14,
     'sun': 15,
-    'berry': 16
+    'berry': 16,
+    'deer': 17
 }
 
 IDX_TO_OBJECT = dict(zip(OBJECT_TO_IDX.values(), OBJECT_TO_IDX.keys()))
@@ -666,6 +667,33 @@ class Monster(WorldObj):
         else:
             dir = min(DIR_TO_VEC.values(), key=lambda val: np.linalg.norm(val + self.cur_pos - goal_pos))
         return dir
+
+
+class Deer(WorldObj):
+    def __init__(self, color='brown', lifespan=0):
+        super().__init__('deer', color, lifespan=lifespan)
+
+    def can_overlap(self):
+        return True
+
+    def can_mine(self, env):
+        return False
+
+    def render(self, r):
+        self._set_color(r)
+        r.drawPolygon([
+            (CELL_PIXELS * 0.2, CELL_PIXELS * 0.4),
+            (CELL_PIXELS * 0.4, CELL_PIXELS * 0.5),
+            (CELL_PIXELS * 0.4, CELL_PIXELS * 0.8),
+            (CELL_PIXELS * 0.5, CELL_PIXELS * 0.8),
+            (CELL_PIXELS * 0.5, CELL_PIXELS * 0.5),
+            (CELL_PIXELS * 0.7, CELL_PIXELS * 0.5),
+            (CELL_PIXELS * 0.7, CELL_PIXELS * 0.8),
+            (CELL_PIXELS * 0.8, CELL_PIXELS * 0.8),
+            (CELL_PIXELS * 0.8, CELL_PIXELS * 0.4),
+            (CELL_PIXELS * 0.5, CELL_PIXELS * 0.4),
+            (CELL_PIXELS * 0.5, CELL_PIXELS * 0.2)
+        ])
 
 
 class House(WorldObj):
@@ -1906,5 +1934,6 @@ TYPE_TO_CLASS_ABS = {
     'plant': Plant,
     'seed': Seed,
     'sun': Sun,
-    'berry': Berry
+    'berry': Berry,
+    'deer': Deer
 }
