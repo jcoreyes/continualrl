@@ -89,7 +89,7 @@ class ToolsEnv(FoodEnvBase):
         self.place_schedule = place_schedule
         # store whether the place_schedule has reached full grid radius yet, at which point it'll stop calling each time
         self.full_grid = False
-
+        self.human_radius = None # human controlled radius for placing resources. Will do nothing if None
         self.include_health = include_health
         self.replenish_empty_resources = replenish_empty_resources or []
         self.replenish_low_resources = replenish_low_resources or {}
@@ -220,10 +220,16 @@ class ToolsEnv(FoodEnvBase):
         add_ingredients(goal_obj, make_sequence)
         return make_sequence
 
+    def human_set_place_radius(self, r):
+        self.human_radius = r
+
     def place_radius(self):
         assert self.place_schedule is not None, \
             '`place_schedule` must be specified as (bump, period), giving radius(t) = (t + bump) // period'
-        return (self.step_count + self.place_schedule[0]) // self.place_schedule[1]
+        if self.human_radius is not None:
+            return self.human_radius
+        else:
+            return (self.step_count + self.place_schedule[0]) // self.place_schedule[1]
 
     def place_items(self):
         if not self.gen_resources:
