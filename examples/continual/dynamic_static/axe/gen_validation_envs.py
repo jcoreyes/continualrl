@@ -26,7 +26,7 @@ def gen_validation_envs(n, filename, **kwargs):
             },
             fixed_expected_resources=True,
             end_on_task_completion=True,
-            time_horizon=100,
+            time_horizon=200,
             seed=seeds[idx]
         )
         env_kwargs.update(**kwargs)
