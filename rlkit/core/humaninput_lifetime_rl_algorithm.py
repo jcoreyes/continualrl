@@ -54,7 +54,6 @@ class HumanInputLifetimeRLAlgorithm(BaseRLAlgorithm, metaclass=abc.ABCMeta):
     def collect_rollout_gif(self, human_input_counter):
 
         agent = self.eval_data_collector._policy
-
         path_len = 100
         env = self.rollout_env
         o = env.reset()
@@ -72,13 +71,21 @@ class HumanInputLifetimeRLAlgorithm(BaseRLAlgorithm, metaclass=abc.ABCMeta):
         from array2gif import write_gif
         write_gif(imgs, logger.get_snapshot_dir() + '/train_%d.gif' % human_input_counter, fps=5)
 
+    def make_plot(self, key):
+        import matplotlib.pyplot as plt
+        data = np.genfromtxt(logger.get_snapshot_dir() + '/progress.csv', delimiter=',', names=True)
+        y = data[key]
+        plt.plot(np.arange(y.shape[0]), y)
+        plt.savefig(logger.get_snapshot_dir() + '/plot_%s.png' % key)
+
+
     def set_radius(self, r):
         self.eval_data_collector._env.human_set_place_radius(r)
         self.rollout_env.human_set_place_radius(r)
 
     def get_human_input(self, human_input_counter):
 
-        self.collect_rollout_gif(human_input_counter)
+
         correct_input = False
         while not correct_input:
             human_input = input("Input radius resource distance between 2 and 8 (inclusive). Previously at %d: " % self.rollout_env.place_radius())
@@ -145,6 +152,9 @@ class HumanInputLifetimeRLAlgorithm(BaseRLAlgorithm, metaclass=abc.ABCMeta):
 
             # Human input section
             if num_loops % self.human_input_interval == 0:
+                self.collect_rollout_gif(human_input_counter)
+                for key in ['evaluationenv_infosfinalsolved_Mean']:
+                    self.make_plot(key)
                 value = self.get_human_input(human_input_counter)
                 self.set_radius(value)
                 human_input_counter += 1
