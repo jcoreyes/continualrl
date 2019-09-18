@@ -72,9 +72,10 @@ class OnlineRLAlgorithm(BaseRLAlgorithm, metaclass=abc.ABCMeta):
                 discard_incomplete_paths=True,
             )
             gt.stamp('evaluation sampling')
-
+            counter = 0
             for _ in range(self.num_train_loops_per_epoch):
                 for _ in range(self.num_expl_steps_per_train_loop):
+                    counter += 1
                     self.expl_data_collector.collect_new_steps(
                         self.max_path_length,
                         1,  # num steps
@@ -91,6 +92,7 @@ class OnlineRLAlgorithm(BaseRLAlgorithm, metaclass=abc.ABCMeta):
                     self.training_mode(False)
 
             new_expl_paths = self.expl_data_collector.get_epoch_paths()
+
             self.replay_buffer.add_paths(new_expl_paths)
             gt.stamp('data storing', unique=False)
 
