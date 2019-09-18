@@ -47,7 +47,7 @@ def gen_validation_envs(n, filename, **kwargs):
 if __name__ == '__main__':
     now = datetime.datetime.now()
     timestamp = now.strftime('%Y_%m_%d_%H_%M_%S')
-    grid_size = 8
+    grid_size = 12
 
     cur_dir = os.path.dirname(os.path.realpath(__file__))
     validation_dir = os.path.join(cur_dir, 'validation_envs')

@@ -136,5 +136,5 @@ if __name__ == "__main__":
                 region='us-west-2',
                 num_exps_per_instance=3,
                 snapshot_mode='gap',
-                snapshot_gap=5
+                snapshot_gap=10
             )

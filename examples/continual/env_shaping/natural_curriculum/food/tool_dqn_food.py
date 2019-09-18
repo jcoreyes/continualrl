@@ -26,7 +26,7 @@ from rlkit.samplers.data_collector import MdpPathCollector
 from rlkit.torch.torch_rl_algorithm import TorchBatchRLAlgorithm, TorchLifetimeRLAlgorithm
 
 # from variants.dqn.dqn_medium_mlp_task_partial_variant import variant as algo_variant, gen_network
-from variants.dqn_lifetime.dqn_medium8_mlp_task_partial_variant import variant as algo_variant, gen_network
+from variants.dqn_lifetime.dqn_medium8_mlp_task_partial_variant import variant as algo_variant, gen_network_num_obj as gen_network
 
 
 def schedule(t):
@@ -73,7 +73,7 @@ def experiment(variant):
     eval_path_collector = collector_class(
         eval_env,
         eval_policy,
-        # render=True
+        render=True
     )
     expl_path_collector = collector_class(
         expl_env,
@@ -118,7 +118,7 @@ if __name__ == "__main__":
     """
     exp_prefix = 'tool-dqn-env-shaping-natural-curriculum-food-3'
     n_seeds = 1
-    mode = 'ec2'
+    mode = 'local'
     use_gpu = False
 
 
@@ -165,7 +165,7 @@ if __name__ == "__main__":
             min_num_steps_before_training=200,
             max_path_length=math.inf,
             batch_size=256,
-            validation_envs_pkl=join(get_repo_dir(), 'examples/continual/env_shaping/natural_curriculum/food/validation_envs/dynamic_static_validation_envs_2019_09_16_04_09_19.pkl'),
+            validation_envs_pkl=join(get_repo_dir(), 'examples/continual/env_shaping/natural_curriculum/food/validation_envs/dynamic_static_validation_envs_2019_09_18_04_43_43.pkl'),
             validation_rollout_length=300
         ),
         trainer_kwargs=dict(
@@ -184,6 +184,12 @@ if __name__ == "__main__":
             input_size=200,
             output_size=32,
             hidden_sizes=[64, 64]
+        ),
+        num_obj_network_kwargs=dict(
+            # num_objs: 8
+            input_size=8,
+            output_size=8,
+            hidden_sizes=[8]
         )
     )
     algo_search_space = copy.deepcopy(algo_variant)
@@ -212,5 +218,5 @@ if __name__ == "__main__":
                     region='us-west-2',
                     num_exps_per_instance=3,
                     snapshot_mode='gap',
-                    snapshot_gap=5
+                    snapshot_gap=10
                 )
