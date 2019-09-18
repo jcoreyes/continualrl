@@ -10,22 +10,25 @@ def gen_validation_envs(n, filename, **kwargs):
     seeds = np.random.randint(0, 100000, n).tolist()
     for idx in range(n):
         env_kwargs = dict(
-            grid_size=32,
+            grid_size=8,
+            # start agent at random pos
             agent_start_pos=None,
             health_cap=1000,
-            gen_resources=False,
+            gen_resources=True,
             fully_observed=False,
-            task='make_lifelong food',
+            task='make food',
             make_rtype='sparse',
             fixed_reset=False,
             only_partial_obs=True,
             init_resources={
-                'food': 50,
+                'food': 2,
             },
-            default_lifespan=0,
+            resource_prob={
+                'food': 0.01
+            },
             fixed_expected_resources=True,
-            end_on_task_completion=False,
-            time_horizon=300,
+            end_on_task_completion=True,
+            time_horizon=100,
             seed=seeds[idx]
         )
         env_kwargs.update(**kwargs)

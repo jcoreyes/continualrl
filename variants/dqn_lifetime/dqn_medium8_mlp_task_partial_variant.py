@@ -1,7 +1,7 @@
 import math
 
 from rlkit.policies.network_food import FoodNetworkEasy, FoodNetworkMediumFullObs, \
-    FoodNetworkMediumPartialObsTask, FoodNetworkMediumPartialObsTaskHealth
+    FoodNetworkMediumPartialObsTask, FoodNetworkMediumPartialObsTaskHealth, FoodNetworkMediumPartialObsTaskNumObj
 from rlkit.pythonplusplus import identity
 from rlkit.torch.conv_networks import CNN
 from rlkit.torch.networks import FlattenMlp, Mlp
@@ -59,6 +59,29 @@ def gen_network(variant, action_dim, layer_size, policy=False):
             variant['full_img_network_kwargs']['input_size'],
             # shelf dim
             64
+        ]
+    )
+
+
+def gen_network_num_obj(variant, action_dim, layer_size, policy=False):
+    return FoodNetworkMediumPartialObsTaskNumObj(
+        img_network=Mlp(**variant['full_img_network_kwargs']),
+        inventory_network=FlattenMlp(**variant['inventory_network_kwargs']),
+        num_obj_network=Mlp(**variant['num_obj_network_kwargs']),
+        final_network=FlattenMlp(
+            input_size=variant['full_img_network_kwargs']['output_size']
+                       + variant['inventory_network_kwargs']['output_size']
+                       + variant['num_obj_network_kwargs']['output_size'],
+            output_size=action_dim,
+            hidden_sizes=[layer_size, layer_size],
+            output_activation=F.softmax if policy else identity
+        ),
+        sizes=[
+            variant['full_img_network_kwargs']['input_size'],
+            # shelf dim
+            64,
+            # num made objs
+            8
         ]
     )
 
