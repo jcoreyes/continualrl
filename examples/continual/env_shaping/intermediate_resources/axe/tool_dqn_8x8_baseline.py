@@ -26,7 +26,7 @@ from rlkit.samplers.data_collector import MdpPathCollector
 from rlkit.torch.torch_rl_algorithm import TorchBatchRLAlgorithm, TorchLifetimeRLAlgorithm
 
 # from variants.dqn.dqn_medium_mlp_task_partial_variant import variant as algo_variant, gen_network
-from variants.dqn_lifetime.dqn_medium8_mlp_task_partial_variant import variant as algo_variant, gen_network
+from variants.dqn_lifetime.dqn_medium8_mlp_task_partial_variant import variant as algo_variant, gen_network_num_obj as gen_network
 
 
 def schedule(t):
@@ -127,8 +127,8 @@ if __name__ == "__main__":
         fixed_reset=False,
         only_partial_obs=True,
         init_resources={
-            'metal': 2,
-            'wood': 2
+            'metal': 3,
+            'wood': 3
         },
         resource_prob={
             'metal': 0.02,
@@ -142,7 +142,7 @@ if __name__ == "__main__":
     env_search_space = copy.deepcopy(env_variant)
     env_search_space = {k: [v] for k, v in env_search_space.items()}
     env_search_space.update(
-        make_rtype=['sparse', 'dense'],
+        make_rtype=['sparse', 'dense-fixed'],
         resource_prob=[
             {'metal': 0.02, 'wood': 0.02},
             {'metal': 0.05, 'wood': 0.05},
@@ -164,8 +164,8 @@ if __name__ == "__main__":
             min_num_steps_before_training=200,
             max_path_length=math.inf,
             batch_size=256,
-            validation_envs_pkl=join(get_repo_dir(), 'examples/continual/env_shaping/intermediate_resources/axe/validation_envs/dynamic_static_validation_envs_8x8_2019_09_16_05_04_42.pkl'),
-            validation_rollout_length=300
+            validation_envs_pkl=join(get_repo_dir(), 'examples/continual/env_shaping/intermediate_resources/axe/validation_envs/dynamic_static_validation_envs_8x8_2019_09_18_06_24_24.pkl'),
+            validation_rollout_length=200
         ),
         trainer_kwargs=dict(
             discount=0.99,
@@ -183,6 +183,12 @@ if __name__ == "__main__":
             input_size=200,
             output_size=32,
             hidden_sizes=[64, 64]
+        ),
+        num_obj_network_kwargs=dict(
+            # num_objs: 8
+            input_size=8,
+            output_size=8,
+            hidden_sizes=[8]
         )
     )
     algo_search_space = copy.deepcopy(algo_variant)
@@ -211,5 +217,5 @@ if __name__ == "__main__":
                     region='us-west-2',
                     num_exps_per_instance=3,
                     snapshot_mode='gap',
-                    snapshot_gap=25
+                    snapshot_gap=10
                 )

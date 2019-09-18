@@ -27,7 +27,7 @@ from rlkit.samplers.data_collector import MdpPathCollector
 from rlkit.torch.torch_rl_algorithm import TorchBatchRLAlgorithm, TorchLifetimeRLAlgorithm
 
 # from variants.dqn.dqn_medium_mlp_task_partial_variant import variant as algo_variant, gen_network
-from variants.dqn_lifetime.dqn_medium8_mlp_task_partial_variant import variant as algo_variant, gen_network
+from variants.dqn_lifetime.dqn_medium8_mlp_task_partial_variant import variant as algo_variant, gen_network_num_obj as gen_network
 
 
 def schedule(t):
@@ -113,7 +113,7 @@ if __name__ == "__main__":
     """
     exp_prefix = 'tool-dqn-dynamic-static-deer-resetfree'
     n_seeds = 1
-    mode = 'local'
+    mode = 'ec2'
     use_gpu = False
 
     env_variant = dict(
@@ -165,7 +165,8 @@ if __name__ == "__main__":
             min_num_steps_before_training=200,
             max_path_length=math.inf,
             batch_size=256,
-            validation_envs_pkl=join(get_repo_dir(), 'examples/continual/dynamic_static/deer/validation_envs/dynamic_static_validation_envs_2019_09_17_04_39_49.pkl')
+            validation_envs_pkl=join(get_repo_dir(), 'examples/continual/dynamic_static/deer/validation_envs/dynamic_static_validation_envs_2019_09_18_04_54_11.pkl'),
+            validation_rollout_length=200
         ),
         trainer_kwargs=dict(
             discount=0.99,
@@ -183,6 +184,12 @@ if __name__ == "__main__":
             input_size=200,
             output_size=32,
             hidden_sizes=[64, 64]
+        ),
+        num_obj_network_kwargs=dict(
+            # num_objs: 8
+            input_size=8,
+            output_size=8,
+            hidden_sizes=[8]
         )
     )
     algo_search_space = copy.deepcopy(algo_variant)

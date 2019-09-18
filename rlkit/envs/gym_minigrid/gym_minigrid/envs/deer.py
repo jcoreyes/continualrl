@@ -163,7 +163,7 @@ class DeerEnv(FoodEnvBase):
 
         # stores info about picked up items
         self.info_last = {'pickup_%s' % k: 0 for k in self.object_to_idx.keys()
-                          if k not in ['empty', 'wall']}
+                          if k not in ['empty', 'wall', 'tree']}
         self.info_last.update({'made_%s' % v: 0 for v in self.interactions.values()})
 
         super().__init__(
@@ -453,7 +453,7 @@ class DeerEnv(FoodEnvBase):
         self.last_idx = -1
         self.obs_count = {}
         self.info_last = {'pickup_%s' % k: 0 for k in self.object_to_idx.keys()
-                          if k not in ['empty' , 'wall']}
+                          if k not in ['empty', 'wall', 'tree']}
         self.info_last.update({'made_%s' % v: 0 for v in self.interactions.values()})
         return (obs, seed) if return_seed else obs
 

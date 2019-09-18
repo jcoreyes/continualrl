@@ -30,23 +30,35 @@ def compute_stats(stats, horizon, task_obj):
     """
     pickup_key = 'pickup_%s' % task_obj
     made_key = 'made_%s' % task_obj
+    made_axe_key = 'made_axe'
     num_solves = 0
+    # include possibly multiple solves per env
+    num_solves_total = 0
     num_made = 0
+    num_made_axe = 0
     solve_times = []
     for env_idx, stat in enumerate(stats):
         if pickup_key in stat and stat[pickup_key] and (stat[pickup_key][0] < horizon or horizon == 0):
             num_solves += 1
+            num_solves_total += len(stat[pickup_key])
             solve_times.append(stat[pickup_key][0])
         if made_key in stat and stat[made_key] and (stat[made_key][0] < horizon or horizon == 0):
             num_made += 1
+        if made_axe_key in stat and stat[made_axe_key] and (stat[made_axe_key][0] < horizon or horizon == 0):
+            num_made_axe += 1
     proportion_solved = num_solves / len(stats)
+    # can be greater than 1 if on avg solved >1 times per env
+    proportion_solved_total = num_solves_total / len(stats)
     average_solve_time = sum(solve_times) / len(solve_times) if solve_times else 0
     proportion_made = num_made / len(stats)
+    proportion_made_axe = num_made_axe / len(stats)
 
     return {
         'proportion_solved': proportion_solved,
+        'proportion_solved_total': proportion_solved_total,
         'average_solve_time': average_solve_time,
-        'proportion_made': proportion_made
+        'proportion_made': proportion_made,
+        'proportion_made_axe': proportion_made_axe
     }
 
 
