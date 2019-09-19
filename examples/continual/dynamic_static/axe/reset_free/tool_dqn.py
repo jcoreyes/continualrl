@@ -111,7 +111,7 @@ if __name__ == "__main__":
     """
     exp_prefix = 'tool-dqn-dynamic-static-resetfree'
     n_seeds = 3
-    mode = 'ec2'
+    mode = 'local'
     use_gpu = False
 
     env_variant = dict(
@@ -142,11 +142,11 @@ if __name__ == "__main__":
     env_search_space = {k: [v] for k, v in env_search_space.items()}
     env_search_space.update(
         resource_prob=[
-            {'metal': 0, 'wood': 0},
-            {'metal': 0.01, 'wood': 0.01},
+            # {'metal': 0, 'wood': 0},
+            # {'metal': 0.01, 'wood': 0.01},
             {'metal': 0.05, 'wood': 0.05},
-            {'metal': 0.1, 'wood': 0.1},
-            {'metal': 0.5, 'wood': 0.5}
+            # {'metal': 0.1, 'wood': 0.1},
+            # {'metal': 0.5, 'wood': 0.5}
         ],
         make_rtype=['sparse', 'dense-fixed']
     )
@@ -217,3 +217,4 @@ if __name__ == "__main__":
                     instance_type='c5.large',
                     spot_price=0.07
                 )
+                exit(0)
