@@ -158,7 +158,7 @@ if __name__ == "__main__":
     env_search_space.update(
         resource_prob=[
             # {'metal': 0.01, 'wood': 0.01},
-            {'metal': 0.02, 'wood': 0.02},
+            {'metal': 0.1, 'wood': 0.1},
         ],
         init_resources=[
             # {'metal': 1, 'wood': 1},
