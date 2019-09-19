@@ -118,12 +118,12 @@ if __name__ == "__main__":
     """
     exp_prefix = 'tool-dqn-env-shaping-natural-curriculum-axe'
     n_seeds = 1
-    mode = 'ec2'
+    mode = 'local'
     use_gpu = False
 
 
     env_variant = dict(
-        grid_size=16,
+        grid_size=10,
         agent_start_pos=None,
         health_cap=1000,
         gen_resources=True,
@@ -133,27 +133,27 @@ if __name__ == "__main__":
         fixed_reset=False,
         only_partial_obs=True,
         init_resources={
-            'metal': 15,
-            'wood': 15,
+            'metal': 8,
+            'wood': 8,
         },
         default_lifespan=0,
         fixed_expected_resources=True,
         end_on_task_completion=False,
         time_horizon=0,
         replenish_low_resources={
-            'metal': 15,
-            'wood': 15
+            'metal': 8,
+            'wood': 8
         }
     )
     env_search_space = copy.deepcopy(env_variant)
     env_search_space = {k: [v] for k, v in env_search_space.items()}
     env_search_space.update(
-        init_resources=[
-            {'metal': 15, 'wood': 15},
-            {'metal': 30, 'wood': 30},
-            {'metal': 45, 'wood': 45}
-        ],
-        make_rtype=['sparse', 'dense-fixed']
+        # init_resources=[
+        #     {'metal': 8, 'wood': 8},
+        #     {'metal': 14, 'wood': 14},
+        #     {'metal': 20, 'wood': 20}
+        # ],
+        # make_rtype=['sparse', 'dense-fixed']
     )
 
     algo_variant = dict(
@@ -170,7 +170,7 @@ if __name__ == "__main__":
             min_num_steps_before_training=200,
             max_path_length=math.inf,
             batch_size=256,
-            validation_envs_pkl=join(get_repo_dir(), 'examples/continual/env_shaping/natural_curriculum/axe/validation_envs/dynamic_static_validation_envs_2019_09_18_04_43_10.pkl'),
+            validation_envs_pkl=join(get_repo_dir(), 'examples/continual/env_shaping/natural_curriculum/axe/validation_envs/dynamic_static_validation_envs_2019_09_18_18_14_39.pkl'),
             validation_rollout_length=1000
         ),
         trainer_kwargs=dict(
@@ -223,5 +223,7 @@ if __name__ == "__main__":
                     region='us-west-2',
                     num_exps_per_instance=3,
                     snapshot_mode='gap',
-                    snapshot_gap=10
+                    snapshot_gap=10,
+                    instance_type='c5.large',
+                    spot_price=0.07
                 )

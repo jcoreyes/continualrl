@@ -144,10 +144,10 @@ if __name__ == "__main__":
     env_search_space = {k: [v] for k, v in env_search_space.items()}
     env_search_space.update(
         deer_move_prob=[
-            0, 0.1, 0.2, 0.3, 0.4
+            0, 0.2, 0.4, 0.6
         ],
         time_horizon=[
-            100, 200
+            20, 50, 100, 200
         ],
         make_rtype=['sparse', 'dense-fixed']
     )
@@ -168,6 +168,7 @@ if __name__ == "__main__":
             validation_envs_pkl=join(get_repo_dir(), 'examples/continual/dynamic_static/deer/validation_envs/dynamic_static_validation_envs_2019_09_18_04_54_11.pkl'),
             validation_rollout_length=200
         ),
+        eps_decay_rate=1e-5,
         trainer_kwargs=dict(
             discount=0.99,
             learning_rate=1E-4,
@@ -196,9 +197,6 @@ if __name__ == "__main__":
     algo_search_space = {k: [v] for k, v in algo_search_space.items()}
     algo_search_space.update(
         # insert sweep params here
-        eps_decay_rate=[
-            1e-4, 1e-5, 1e-6
-        ]
     )
 
     env_sweeper = hyp.DeterministicHyperparameterSweeper(
@@ -221,5 +219,7 @@ if __name__ == "__main__":
                     region='us-west-2',
                     num_exps_per_instance=3,
                     snapshot_mode='gap',
-                    snapshot_gap=10
+                    snapshot_gap=10,
+                    instance_type='c4.large',
+                    spot_price=0.07
                 )

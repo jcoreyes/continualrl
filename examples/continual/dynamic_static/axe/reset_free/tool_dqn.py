@@ -110,7 +110,7 @@ if __name__ == "__main__":
     3. use_gpu 
     """
     exp_prefix = 'tool-dqn-dynamic-static-resetfree'
-    n_seeds = 1
+    n_seeds = 3
     mode = 'ec2'
     use_gpu = False
 
@@ -126,8 +126,8 @@ if __name__ == "__main__":
         fixed_reset=False,
         only_partial_obs=True,
         init_resources={
-            'metal': 1,
-            'wood': 1
+            'metal': 2,
+            'wood': 2
         },
         resource_prob={
             'metal': 0,
@@ -143,11 +143,12 @@ if __name__ == "__main__":
     env_search_space.update(
         resource_prob=[
             {'metal': 0, 'wood': 0},
-            {'metal': 0.005, 'wood': 0.005},
             {'metal': 0.01, 'wood': 0.01},
-            {'metal': 0.02, 'wood': 0.02},
-            {'metal': 0.05, 'wood': 0.05}
-        ]
+            {'metal': 0.05, 'wood': 0.05},
+            {'metal': 0.1, 'wood': 0.1},
+            {'metal': 0.5, 'wood': 0.5}
+        ],
+        make_rtype=['sparse', 'dense-fixed']
     )
 
     algo_variant = dict(
@@ -157,14 +158,14 @@ if __name__ == "__main__":
         layer_size=16,
         replay_buffer_size=int(5E5),
         algorithm_kwargs=dict(
-            num_epochs=2500,
+            num_epochs=2000,
             num_eval_steps_per_epoch=500,
             num_trains_per_train_loop=500,
             num_expl_steps_per_train_loop=500,
             min_num_steps_before_training=200,
             max_path_length=math.inf,
             batch_size=256,
-            validation_envs_pkl=join(get_repo_dir(), 'examples/continual/dynamic_static/axe/validation_envs/dynamic_static_validation_envs_2019_09_18_04_55_09.pkl')
+            validation_envs_pkl=join(get_repo_dir(), 'examples/continual/dynamic_static/axe/validation_envs/dynamic_static_validation_envs_2019_09_19_06_47_19.pkl')
         ),
         trainer_kwargs=dict(
             discount=0.99,
@@ -214,7 +215,9 @@ if __name__ == "__main__":
                     variant=variant,
                     use_gpu=use_gpu,
                     region='us-west-2',
-                    num_exps_per_instance=3,
+                    num_exps_per_instance=1,
                     snapshot_mode='gap',
-                    snapshot_gap=10
+                    snapshot_gap=10,
+                    instance_type='c5.large',
+                    spot_price=0.07
                 )
