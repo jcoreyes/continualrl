@@ -24,6 +24,10 @@ def gen_validation_envs(n, filename, **kwargs):
                 'metal': 2,
                 'wood': 2
             },
+            resource_prob={
+                'metal': 0.02,
+                'wood': 0.02
+            },
             fixed_expected_resources=True,
             end_on_task_completion=True,
             time_horizon=200,

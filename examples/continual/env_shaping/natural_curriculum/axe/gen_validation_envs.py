@@ -10,7 +10,7 @@ def gen_validation_envs(n, filename, **kwargs):
     seeds = np.random.randint(0, 100000, n).tolist()
     for idx in range(n):
         env_kwargs = dict(
-            grid_size=16,
+            grid_size=10,
             agent_start_pos=None,
             health_cap=1000,
             gen_resources=True,
@@ -20,16 +20,16 @@ def gen_validation_envs(n, filename, **kwargs):
             fixed_reset=False,
             only_partial_obs=True,
             init_resources={
-                'metal': 15,
-                'wood': 15,
+                'metal': 8,
+                'wood': 8,
             },
             default_lifespan=0,
             fixed_expected_resources=True,
             end_on_task_completion=False,
             time_horizon=1000,
             replenish_low_resources={
-                'metal': 15,
-                'wood': 15
+                'metal': 8,
+                'wood': 8
             },
             seed=seeds[idx]
         )

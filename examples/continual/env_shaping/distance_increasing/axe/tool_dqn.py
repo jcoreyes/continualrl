@@ -151,12 +151,19 @@ if __name__ == "__main__":
     env_search_space.update(
         resource_prob=[
             {'metal': 0.01, 'wood': 0.01},
-            {'metal': 0.02, 'wood': 0.02},
+            {'metal': 0.05, 'wood': 0.05}
+        ],
+        place_schedule=[
+            (10000, 5000),
+            (20000, 10000),
+            (40000, 20000)
         ],
         init_resources=[
-            {'metal': 1, 'wood': 1},
             {'metal': 2, 'wood': 2},
             {'metal': 4, 'wood': 4},
+        ],
+        make_rtype=[
+            'sparse', 'dense-fixed', 'sparse_negstep'
         ]
     )
 
@@ -174,7 +181,7 @@ if __name__ == "__main__":
             min_num_steps_before_training=200,
             max_path_length=math.inf,
             batch_size=256,
-            validation_envs_pkl=join(get_repo_dir(), 'examples/continual/env_shaping/distance_increasing/axe/validation_envs/dynamic_static_validation_envs_2019_09_18_04_35_34.pkl'),
+            validation_envs_pkl=join(get_repo_dir(), 'examples/continual/env_shaping/distance_increasing/axe/validation_envs/dynamic_static_validation_envs_2019_09_18_16_22_47.pkl'),
             validation_rollout_length=100
         ),
         trainer_kwargs=dict(
@@ -227,5 +234,6 @@ if __name__ == "__main__":
                     region='us-west-2',
                     num_exps_per_instance=3,
                     snapshot_mode='gap',
-                    snapshot_gap=10
+                    snapshot_gap=10,
+                    instance_type='c4.large'
                 )

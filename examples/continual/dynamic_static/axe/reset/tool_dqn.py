@@ -69,7 +69,7 @@ def experiment(variant):
     if eval_env.time_horizon == 0:
         collector_class = LifetimeMdpPathCollector if lifetime else MdpPathCollector
     else:
-        collector_class = MdpPathCollectorConfig
+        collector_class = MdpPathCollector if variant['algo_kwargs']['reset_diff_envs'] else MdpPathCollectorConfig
     eval_path_collector = collector_class(
         eval_env,
         eval_policy,
@@ -111,8 +111,8 @@ if __name__ == "__main__":
     3. use_gpu 
     """
     exp_prefix = 'tool-dqn-dynamic-static-reset'
-    n_seeds = 1
-    mode = 'ec2'
+    n_seeds = 3
+    mode = 'local'
     use_gpu = False
 
     env_variant = dict(
@@ -127,8 +127,8 @@ if __name__ == "__main__":
         fixed_reset=False,
         only_partial_obs=True,
         init_resources={
-            'metal': 1,
-            'wood': 1
+            'metal': 2,
+            'wood': 2
         },
         resource_prob={
             'metal': 0.01,
@@ -142,13 +142,17 @@ if __name__ == "__main__":
     env_search_space = copy.deepcopy(env_variant)
     env_search_space = {k: [v] for k, v in env_search_space.items()}
     env_search_space.update(
-        resource_prob=[
-            {'metal': 0.5, 'wood': 0.5}
-        ],
-        time_horizon=[
-            100, 200, 300
-        ],
-        make_rtype=['sparse', 'dense-fixed']
+        # resource_prob=[
+        #     {'metal': 0, 'wood': 0},
+        #     {'metal': 0.01, 'wood': 0.01},
+        #     {'metal': 0.05, 'wood': 0.05},
+        #     {'metal': 0.1, 'wood': 0.1},
+        #     {'metal': 0.5, 'wood': 0.5}
+        # ],
+        # time_horizon=[
+        #     20, 50, 100, 200
+        # ],
+        # make_rtype=['sparse', 'dense-fixed']
     )
 
     algo_variant = dict(
@@ -156,6 +160,7 @@ if __name__ == "__main__":
         version="dynamic static - reset",
         layer_size=16,
         replay_buffer_size=int(5E5),
+        reset_diff_envs=True,
         algorithm_kwargs=dict(
             num_epochs=3000,
             num_eval_steps_per_epoch=6000,
@@ -164,9 +169,9 @@ if __name__ == "__main__":
             min_num_steps_before_training=200,
             max_path_length=math.inf,
             batch_size=256,
-            validation_envs_pkl=join(get_repo_dir(), 'examples/continual/dynamic_static/axe/validation_envs/dynamic_static_validation_envs_2019_09_18_04_55_09.pkl')
+            validation_envs_pkl=join(get_repo_dir(), 'examples/continual/dynamic_static/axe/validation_envs/dynamic_static_validation_envs_2019_09_19_06_47_19.pkl')
         ),
-        eps_decay_rate=1e-4,
+        eps_decay_rate=1e-5,
         trainer_kwargs=dict(
             discount=0.99,
             learning_rate=1E-4,
@@ -195,9 +200,7 @@ if __name__ == "__main__":
     algo_search_space = {k: [v] for k, v in algo_search_space.items()}
     algo_search_space.update(
         # insert sweep params here
-        eps_decay_rate=[
-            1e-4, 1e-5, 1e-6
-        ]
+        # reset_diff_envs=[True, False]
     )
 
     env_sweeper = hyp.DeterministicHyperparameterSweeper(
@@ -218,7 +221,9 @@ if __name__ == "__main__":
                     variant=variant,
                     use_gpu=use_gpu,
                     region='us-west-2',
-                    num_exps_per_instance=3,
+                    num_exps_per_instance=1,
                     snapshot_mode='gap',
-                    snapshot_gap=10
+                    snapshot_gap=10,
+                    instance_type='c4.large',
+                    spot_price=0.07
                 )
