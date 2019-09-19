@@ -3,7 +3,7 @@ import pickle
 import datetime
 import numpy as np
 from gym_minigrid.envs.tools import ToolsEnv
-
+import json
 
 def gen_validation_envs(n, filename, **kwargs):
     envs = []
@@ -14,7 +14,7 @@ def gen_validation_envs(n, filename, **kwargs):
             # start agent at random pos
             agent_start_pos=None,
             health_cap=1000,
-            gen_resources=True,
+            gen_resources=False,
             fully_observed=False,
             task='make axe',
             make_rtype='sparse',
@@ -25,8 +25,8 @@ def gen_validation_envs(n, filename, **kwargs):
                 'wood': 2
             },
             resource_prob={
-                'metal': 0.02,
-                'wood': 0.02
+                'metal': 0.0,
+                'wood': 0.0
             },
             fixed_expected_resources=True,
             end_on_task_completion=True,
@@ -39,6 +39,8 @@ def gen_validation_envs(n, filename, **kwargs):
         )
         envs.append(env)
     pickle.dump({'envs': envs, 'seeds': seeds}, open(filename, 'wb'))
+    json.dump(env_kwargs, open(filename.strip('.pkl') + '.json', 'w'),
+              indent=4, sort_keys=True)
     print('Generated %d envs at file: %s' % (n, filename))
 
 

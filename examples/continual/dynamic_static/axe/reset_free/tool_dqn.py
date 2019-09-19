@@ -25,7 +25,7 @@ from rlkit.samplers.data_collector import MdpPathCollector
 from rlkit.torch.torch_rl_algorithm import TorchBatchRLAlgorithm, TorchLifetimeRLAlgorithm
 
 # from variants.dqn.dqn_medium_mlp_task_partial_variant import variant as algo_variant, gen_network
-from variants.dqn_lifetime.dqn_medium8_mlp_task_partial_variant import variant as algo_variant, gen_network_num_obj as gen_network
+from variants.dqn_lifetime.dqn_medium8_mlp_task_partial_variant import variant as algo_variant, gen_network as gen_network
 
 
 def schedule(t):
@@ -56,7 +56,7 @@ def experiment(variant):
     eval_policy = ArgmaxDiscretePolicy(qf)
     # eval_policy = SoftmaxQPolicy(qf)
     expl_policy = PolicyWrappedWithExplorationStrategy(
-        EpsilonGreedyDecay(expl_env.action_space, 1e-4, 1, 0.1),
+        EpsilonGreedyDecay(expl_env.action_space, 1e-5, 1, 0.1),
         eval_policy,
     )
     if lifetime:
@@ -164,8 +164,10 @@ if __name__ == "__main__":
             num_expl_steps_per_train_loop=500,
             min_num_steps_before_training=200,
             max_path_length=math.inf,
-            batch_size=256,
-            validation_envs_pkl=join(get_repo_dir(), 'examples/continual/dynamic_static/axe/validation_envs/dynamic_static_validation_envs_2019_09_19_06_47_19.pkl')
+            batch_size=64,
+            validation_envs_pkl=join(get_repo_dir(), 'examples/continual/dynamic_static/axe/validation_envs/dynamic_static_validation_envs_2019_09_19_11_19_05.pkl'),
+            validation_rollout_length=200,
+            validation_period=10
         ),
         trainer_kwargs=dict(
             discount=0.99,
@@ -184,12 +186,6 @@ if __name__ == "__main__":
             output_size=32,
             hidden_sizes=[64, 64]
         ),
-        num_obj_network_kwargs=dict(
-            # num_objs: 8
-            input_size=8,
-            output_size=8,
-            hidden_sizes=[8]
-        )
     )
     algo_search_space = copy.deepcopy(algo_variant)
     algo_search_space = {k: [v] for k, v in algo_search_space.items()}
@@ -214,7 +210,7 @@ if __name__ == "__main__":
                     mode=mode,
                     variant=variant,
                     use_gpu=use_gpu,
-                    region='us-west-2',
+                    region='us-east-2',
                     num_exps_per_instance=1,
                     snapshot_mode='gap',
                     snapshot_gap=10,
