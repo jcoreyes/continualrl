@@ -2,7 +2,11 @@ import abc
 from collections import OrderedDict
 import pickle
 
+from gym.spaces import Discrete
 from gym_minigrid.minigrid_absolute import TYPE_TO_CLASS_ABS
+from rlkit.exploration_strategies.base import PolicyWrappedWithExplorationStrategy
+from rlkit.exploration_strategies.epsilon_greedy import EpsilonGreedy
+from rlkit.policies.argmax import ArgmaxDiscretePolicy
 from rlkit.samplers.rollout_functions import rollout
 import torch
 
@@ -41,7 +45,7 @@ class BaseRLAlgorithm(object, metaclass=abc.ABCMeta):
             viz_gap=50,
             # suvansh: validation tasks for continual proj
             validation_envs_pkl=None,
-            validation_period=10,
+            validation_period=2,
             validation_rollout_length=100
     ):
         self.trainer = trainer
@@ -98,6 +102,13 @@ class BaseRLAlgorithm(object, metaclass=abc.ABCMeta):
             'pickup_wood': [0, 15, 20] means you picked up a wood object at timesteps 0, 15, and 20.
         """
         policy = snapshot['evaluation/policy']
+        if hasattr(policy, 'policy'):
+            # if it's reset free, strip out the underlying policy from the exploration strategy
+            policy = policy.policy
+        policy = PolicyWrappedWithExplorationStrategy(
+            EpsilonGreedy(self.eval_env.action_space, 0.1),
+            policy
+        )
         validation_envs = pickle.load(open(self.validation_envs_pkl, 'rb'))
         stats = [{} for _ in range(len(validation_envs['envs']))]
         for env_idx, env in enumerate(validation_envs['envs']):

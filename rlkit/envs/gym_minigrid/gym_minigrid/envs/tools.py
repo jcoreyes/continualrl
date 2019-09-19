@@ -173,7 +173,10 @@ class ToolsEnv(FoodEnvBase):
         shape = None
         # TODO some of these shapes are wrong. fix by running through each branch and getting empirical obs shape
         if self.only_partial_obs:
-            shape = (273,)
+            if self.agent_view_size == 5:
+                shape = (273,)
+            elif self.agent_view_size == 7:
+                shape = (465,)
         elif self.grid_size == 32:
             if self.obs_vision:
                 shape = (58569,)
@@ -452,6 +455,11 @@ class ToolsEnv(FoodEnvBase):
         if self.make_rtype == 'sparse':
             reward = POS_RWD * int(self.solved_task())
             if reward and 'lifelong' in self.task[0]:
+                self.carrying = None
+                self.num_solves += 1
+        elif self.make_rtype == 'sparse_negstep':
+            reward = POS_RWD * int(self.solved_task()) or -0.01
+            if reward > 0 and 'lifelong' in self.task[0]:
                 self.carrying = None
                 self.num_solves += 1
         elif self.make_rtype in ['waypoint', 'dense']:
