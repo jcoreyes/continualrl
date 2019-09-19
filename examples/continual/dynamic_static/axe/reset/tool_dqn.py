@@ -26,7 +26,7 @@ from rlkit.samplers.data_collector import MdpPathCollector
 from rlkit.torch.torch_rl_algorithm import TorchBatchRLAlgorithm, TorchLifetimeRLAlgorithm
 
 # from variants.dqn.dqn_medium_mlp_task_partial_variant import variant as algo_variant, gen_network
-from variants.dqn_lifetime.dqn_medium8_mlp_task_partial_variant import variant as algo_variant, gen_network_num_obj as gen_network
+from variants.dqn_lifetime.dqn_medium8_mlp_task_partial_variant import variant as algo_variant, gen_network as gen_network
 
 
 def schedule(t):
@@ -112,7 +112,7 @@ if __name__ == "__main__":
     """
     exp_prefix = 'tool-dqn-dynamic-static-reset'
     n_seeds = 3
-    mode = 'local'
+    mode = 'ec2'
     use_gpu = False
 
     env_variant = dict(
@@ -142,17 +142,17 @@ if __name__ == "__main__":
     env_search_space = copy.deepcopy(env_variant)
     env_search_space = {k: [v] for k, v in env_search_space.items()}
     env_search_space.update(
-        # resource_prob=[
-        #     {'metal': 0, 'wood': 0},
-        #     {'metal': 0.01, 'wood': 0.01},
-        #     {'metal': 0.05, 'wood': 0.05},
-        #     {'metal': 0.1, 'wood': 0.1},
-        #     {'metal': 0.5, 'wood': 0.5}
-        # ],
-        # time_horizon=[
-        #     20, 50, 100, 200
-        # ],
-        # make_rtype=['sparse', 'dense-fixed']
+        resource_prob=[
+            {'metal': 0, 'wood': 0},
+            {'metal': 0.01, 'wood': 0.01},
+            {'metal': 0.05, 'wood': 0.05},
+            {'metal': 0.1, 'wood': 0.1},
+            {'metal': 0.5, 'wood': 0.5}
+        ],
+        time_horizon=[
+            20, 50, 100, 200
+        ],
+        make_rtype=['sparse', 'dense-fixed']
     )
 
     algo_variant = dict(
@@ -202,7 +202,7 @@ if __name__ == "__main__":
     algo_search_space = {k: [v] for k, v in algo_search_space.items()}
     algo_search_space.update(
         # insert sweep params here
-        # reset_diff_envs=[True, False]
+        reset_diff_envs=[True, False]
     )
 
     env_sweeper = hyp.DeterministicHyperparameterSweeper(
@@ -229,4 +229,4 @@ if __name__ == "__main__":
                     instance_type='c4.large',
                     spot_price=0.07
                 )
-                exit(0)
+
