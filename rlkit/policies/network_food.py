@@ -138,7 +138,7 @@ class FoodNetworkMediumPartialObsTask(Policy, nn.Module):
         for size in self.sizes:
             arrs.append(obs.narrow(dim=1, start=cumsum, length=size))
             cumsum += size
-        assert cumsum == obs.shape[1], 'not all of obs used'
+        #assert cumsum == obs.shape[1], 'not all of obs used'
 
         img, shelf = arrs
         x_img = self.img_network(img)
