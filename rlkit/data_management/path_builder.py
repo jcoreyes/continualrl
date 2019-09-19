@@ -1,5 +1,5 @@
 import numpy as np
-from chainerrl.wrappers.atari_wrappers import LazyFrames
+#from chainerrl.wrappers.atari_wrappers import LazyFrames
 
 
 class PathBuilder(dict):
@@ -55,7 +55,7 @@ class PathBuilder(dict):
 
 
 def stack_list(lst):
-    if isinstance(lst[0], dict) or isinstance(lst[0], LazyFrames):
+    if isinstance(lst[0], dict): #:  or isinstance(lst[0], LazyFrames):
         return lst
     else:
         return np.array(lst)
