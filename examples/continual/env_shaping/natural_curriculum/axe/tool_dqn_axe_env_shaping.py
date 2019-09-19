@@ -170,7 +170,7 @@ if __name__ == "__main__":
             min_num_steps_before_training=200,
             max_path_length=math.inf,
             batch_size=256,
-            validation_envs_pkl=join(get_repo_dir(), 'examples/continual/env_shaping/natural_curriculum/axe/validation_envs/dynamic_static_validation_envs_2019_09_18_18_14_39.pkl'),
+            validation_envs_pkl=join(get_repo_dir(), 'examples/continual/env_shaping/natural_curriculum/axe/validation_envs/dynamic_static_validation_envs_2019_09_19_10_45_06.pkl'),
             validation_rollout_length=1000
         ),
         trainer_kwargs=dict(
