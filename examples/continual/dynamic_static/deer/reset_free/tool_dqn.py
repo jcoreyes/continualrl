@@ -220,5 +220,7 @@ if __name__ == "__main__":
                     region='us-west-2',
                     num_exps_per_instance=3,
                     snapshot_mode='gap',
-                    snapshot_gap=10
+                    snapshot_gap=10,
+                    instance_type='c4.large',
+                    spot_price=0.07
                 )
