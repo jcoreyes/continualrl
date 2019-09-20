@@ -111,7 +111,7 @@ if __name__ == "__main__":
     3. use_gpu 
     """
     exp_prefix = 'tool-dqn-env-shaping-imbalanced-imbalanced-train'
-    n_seeds = 1
+    n_seeds = 3
     mode = 'ec2'
     use_gpu = False
 
@@ -181,7 +181,8 @@ if __name__ == "__main__":
             max_path_length=math.inf,
             batch_size=64,
             validation_envs_pkl=join(get_repo_dir(), 'examples/continual/env_shaping/env_vs_reward/imbalanced/validation_envs/dynamic_static_validation_envs_2019_09_20_05_06_46.pkl'),
-            validation_rollout_length=200
+            validation_rollout_length=200,
+            validation_period=10
         ),
         trainer_kwargs=dict(
             discount=0.99,
@@ -230,10 +231,11 @@ if __name__ == "__main__":
                     mode=mode,
                     variant=variant,
                     use_gpu=use_gpu,
-                    region='us-west-2',
-                    num_exps_per_instance=3,
+                    region='us-east-2',
+                    num_exps_per_instance=1,
                     snapshot_mode='gap',
                     snapshot_gap=10,
-                    instance_type='c5.large',
-                    spot_price=0.08
+                    instance_type='c4.large',
+                    spot_price=0.05
                 )
+                
