@@ -141,8 +141,11 @@ class DeerEnv(FoodEnvBase):
         # used for task 'make_lifelong'
         self.num_solves = 0
         self.end_on_task_completion = end_on_task_completion
-        if (self.task and 'lifelong' in self.task[0]):
-            self.end_on_task_completion = False
+        if self.task:
+            if 'lifelong' in self.task[0]:
+                self.end_on_task_completion = False
+            else:
+                self.end_on_task_completion = True
 
         # Exploration!
         assert not (cbe and rnd), "can't have both CBE and RND"
@@ -426,6 +429,7 @@ class DeerEnv(FoodEnvBase):
             self.sum_square_rnd += loss ** 2
             stdev = (self.sum_square_rnd / self.step_count) - (self.sum_rnd / self.step_count) ** 2
             reward += loss / (stdev * self.health_cap)
+        print(self.step_count, info['pickup_food'])
         return obs, reward, done, info
 
     def reset(self, seed=None, return_seed=False):

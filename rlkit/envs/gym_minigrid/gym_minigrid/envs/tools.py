@@ -144,7 +144,6 @@ class ToolsEnv(FoodEnvBase):
             else:
                 self.end_on_task_completion = True
 
-
         # Exploration!
         assert not (cbe and rnd), "can't have both CBE and RND"
         # CBE
