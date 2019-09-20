@@ -429,7 +429,6 @@ class DeerEnv(FoodEnvBase):
             self.sum_square_rnd += loss ** 2
             stdev = (self.sum_square_rnd / self.step_count) - (self.sum_rnd / self.step_count) ** 2
             reward += loss / (stdev * self.health_cap)
-        print(self.step_count, info['pickup_food'])
         return obs, reward, done, info
 
     def reset(self, seed=None, return_seed=False):
