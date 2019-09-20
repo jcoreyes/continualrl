@@ -61,7 +61,6 @@ class BaseRLAlgorithm(object, metaclass=abc.ABCMeta):
             self.validation_envs_pkl = validation_envs_pkl
             self.validation_period = validation_period
             self.validation_rollout_length = validation_rollout_length
-            import pdb; pdb.set_trace()
         else:
             self.validation = False
         self._start_epoch = 0
