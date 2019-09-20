@@ -20,16 +20,16 @@ def gen_validation_envs(n, filename, **kwargs):
             fixed_reset=False,
             only_partial_obs=True,
             init_resources={
-                'metal': 8,
-                'wood': 8,
+                'metal': 3,
+                'wood': 3,
             },
             default_lifespan=0,
             fixed_expected_resources=True,
             end_on_task_completion=False,
             time_horizon=1000,
             replenish_low_resources={
-                'metal': 8,
-                'wood': 8
+                'metal': 3,
+                'wood': 3
             },
             seed=seeds[idx]
         )

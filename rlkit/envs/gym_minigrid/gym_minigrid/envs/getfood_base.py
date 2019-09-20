@@ -73,14 +73,14 @@ class FoodEnvBase(MiniGridAbsoluteEnv):
         # Place a goal square in the bottom-right corner
         # self.grid.set(width - 2, height - 2, Goal())
 
+        self.extra_gen_grid()
+
         # Place the agent
         if self.agent_start_pos is not None:
             self.start_pos = self.agent_start_pos
         # self.start_dir = self.agent_start_dir
         else:
             self.place_agent()
-
-        self.extra_gen_grid()
 
         self.mission = None
 
