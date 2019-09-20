@@ -393,13 +393,6 @@ class DeerEnv(FoodEnvBase):
         else:
             reward = int(solved)
 
-        if solved:
-            if 'lifelong' not in self.task[0]:
-                obs = self.reset()
-            else:
-                # remove obj so can keep making
-                self.carrying = None
-
         """ Generate info """
         info.update({'health': self.health})
         info.update(self.info_last)
@@ -407,6 +400,9 @@ class DeerEnv(FoodEnvBase):
             if self.end_on_task_completion:
                 done = True
             info.update({'solved': True})
+            if 'lifelong' in self.task[0]:
+                # remove obj so can keep making
+                self.carrying = None
         else:
             info.update({'solved': False})
         if self.time_horizon and self.step_count % self.time_horizon == 0:
@@ -430,7 +426,6 @@ class DeerEnv(FoodEnvBase):
             self.sum_square_rnd += loss ** 2
             stdev = (self.sum_square_rnd / self.step_count) - (self.sum_rnd / self.step_count) ** 2
             reward += loss / (stdev * self.health_cap)
-
         return obs, reward, done, info
 
     def reset(self, seed=None, return_seed=False):
