@@ -222,7 +222,7 @@ if __name__ == "__main__":
                     variant=variant,
                     use_gpu=use_gpu,
                     region='us-west-2',
-                    num_exps_per_instance=3,
+                    num_exps_per_instance=1,
                     snapshot_mode='gap',
                     snapshot_gap=10,
                     instance_type='c5.large',
