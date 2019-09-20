@@ -5,7 +5,7 @@ import datetime
 from gym_minigrid.envs.deer import DeerEnv
 import numpy as np
 from gym_minigrid.envs.tools import ToolsEnv
-
+import json
 
 def gen_validation_envs(n, filename, **kwargs):
     envs = []
@@ -24,7 +24,7 @@ def gen_validation_envs(n, filename, **kwargs):
             only_partial_obs=True,
             init_resources={
                 'axe': 2,
-                'deer': 3
+                'deer': 2
             },
             deer_move_prob=0.2,
             fixed_expected_resources=True,
@@ -38,6 +38,8 @@ def gen_validation_envs(n, filename, **kwargs):
         )
         envs.append(env)
     pickle.dump({'envs': envs, 'seeds': seeds}, open(filename, 'wb'))
+    json.dump(env_kwargs, open(filename.strip('.pkl') + '.json', 'w'),
+              indent=4, sort_keys=True)
     print('Generated %d envs at file: %s' % (n, filename))
 
 
