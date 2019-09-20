@@ -127,22 +127,22 @@ if __name__ == "__main__":
         fixed_reset=False,
         only_partial_obs=True,
         init_resources={
-            'metal': 3,
-            'wood': 3,
+            'metal': 1,
+            'wood': 1,
         },
         default_lifespan=0,
         fixed_expected_resources=True,
         end_on_task_completion=False,
         time_horizon=0,
         replenish_low_resources={
-            'metal': 3,
-            'wood': 3
+            'metal': 1,
+            'wood': 1
         }
     )
     env_search_space = copy.deepcopy(env_variant)
     env_search_space = {k: [v] for k, v in env_search_space.items()}
     env_search_space.update(
-        make_rtype=['sparse', 'dense-fixed'],
+        make_rtype=['sparse', 'dense-fixed', 'one-time'],
     )
 
     algo_variant = dict(
@@ -159,7 +159,7 @@ if __name__ == "__main__":
             min_num_steps_before_training=200,
             max_path_length=math.inf,
             batch_size=64,
-            validation_envs_pkl=join(get_repo_dir(), 'examples/continual/env_shaping/natural_curriculum/axe/validation_envs/dynamic_static_validation_envs_2019_09_19_21_42_57.pkl'),
+            validation_envs_pkl=join(get_repo_dir(), 'examples/continual/env_shaping/natural_curriculum/axe/validation_envs/dynamic_static_validation_envs_2019_09_20_06_25_47.pkl'),
             validation_rollout_length=1000,
             validation_period=10
         ),
@@ -210,7 +210,7 @@ if __name__ == "__main__":
                     mode=mode,
                     variant=variant,
                     use_gpu=use_gpu,
-                    region='us-east-2',
+                    region='us-west-2',
                     num_exps_per_instance=3,
                     snapshot_mode='gap',
                     snapshot_gap=10,

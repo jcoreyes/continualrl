@@ -45,7 +45,7 @@ class BaseRLAlgorithm(object, metaclass=abc.ABCMeta):
             viz_gap=50,
             # suvansh: validation tasks for continual proj
             validation_envs_pkl=None,
-            validation_period=2,
+            validation_period=10,
             validation_rollout_length=100
     ):
         self.trainer = trainer
