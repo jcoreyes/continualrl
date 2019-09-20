@@ -2,7 +2,7 @@ import os
 import pickle
 import datetime
 import numpy as np
-from gym_minigrid.envs.tools import ToolsEnv
+from gym_minigrid.envs.tools import ToolsEnv, ToolsWallEnv
 
 
 def gen_validation_envs(n, filename, **kwargs):
@@ -14,7 +14,7 @@ def gen_validation_envs(n, filename, **kwargs):
             # start agent at random pos
             agent_start_pos=None,
             health_cap=1000,
-            gen_resources=True,
+            gen_resources=False,
             fully_observed=False,
             task='make axe',
             make_rtype='sparse',
@@ -30,7 +30,7 @@ def gen_validation_envs(n, filename, **kwargs):
             seed=seeds[idx]
         )
         env_kwargs.update(**kwargs)
-        env = ToolsEnv(
+        env = ToolsWallEnv(
             **env_kwargs
         )
         envs.append(env)

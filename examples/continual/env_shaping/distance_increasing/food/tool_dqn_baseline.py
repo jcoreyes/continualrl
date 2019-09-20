@@ -103,12 +103,6 @@ def experiment(variant):
     algorithm.train()
 
 
-def get_place_schedule(bump, period):
-    def place_schedule(s):
-        return (s + bump) // period
-    return place_schedule
-
-
 if __name__ == "__main__":
     """
     NOTE: Things to check for running exps:
