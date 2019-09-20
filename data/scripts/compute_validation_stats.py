@@ -1,3 +1,4 @@
+import math
 import os
 import json
 import argparse
@@ -28,6 +29,7 @@ def compute_stats(stats, horizon, task_obj):
     :param task_obj: the type of object the agent was aiming to acquire for the exp (e.g. 'berry', 'axe', 'food')
     :return:
     """
+    horizon = horizon or math.inf
     pickup_key = 'pickup_%s' % task_obj
     made_key = 'made_%s' % task_obj
     made_axe_key = 'made_axe'

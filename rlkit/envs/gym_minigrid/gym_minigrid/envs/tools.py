@@ -61,6 +61,7 @@ class ToolsEnv(FoodEnvBase):
             end_on_task_completion=True,
             can_die=False,
             include_health=False,
+            include_num_objs=False,
             replenish_empty_resources=None,
             replenish_low_resources=None,
             # nonzero for reset case, 0 for reset free
@@ -91,6 +92,7 @@ class ToolsEnv(FoodEnvBase):
         self.full_grid = False
         self.human_radius = None # human controlled radius for placing resources. Will do nothing if None
         self.include_health = include_health
+        self.include_num_objs = include_num_objs
         self.replenish_empty_resources = replenish_empty_resources or []
         self.replenish_low_resources = replenish_low_resources or {}
         self.time_horizon = time_horizon
@@ -136,8 +138,12 @@ class ToolsEnv(FoodEnvBase):
         # used for task 'make_lifelong'
         self.num_solves = 0
         self.end_on_task_completion = end_on_task_completion
-        if (self.task and 'lifelong' in self.task[0]):
-            self.end_on_task_completion = False
+        if self.task:
+            if 'lifelong' in self.task[0]:
+                self.end_on_task_completion = False
+            else:
+                self.end_on_task_completion = True
+
 
         # Exploration!
         assert not (cbe and rnd), "can't have both CBE and RND"
@@ -199,6 +205,8 @@ class ToolsEnv(FoodEnvBase):
         # remove health component if not used
         if not include_health:
             shape = (shape[0] - 1,)
+        if not include_num_objs:
+            shape = (shape[0] - 8,)
 
         self.observation_space = spaces.Box(
             low=0,
@@ -278,7 +286,6 @@ class ToolsEnv(FoodEnvBase):
     def extra_step(self, action, matched):
         if matched:
             return matched
-
         agent_cell = self.grid.get(*self.agent_pos)
         matched = True
 
@@ -365,7 +372,7 @@ class ToolsEnv(FoodEnvBase):
         # magic number repeating shelf 8 times to fill up more of the obs
         extra_obs = np.repeat(extra_obs, 8)
         num_objs = np.repeat(self.info_last['pickup_%s' % self.task[1]], 8)
-        obs = np.concatenate((obs, extra_obs, num_objs))
+        obs = np.concatenate((obs, extra_obs, num_objs)) if self.include_num_objs else np.concatenate((obs, extra_obs))
 
         """ Generate reward """
         solved = self.solved_task()
@@ -376,13 +383,6 @@ class ToolsEnv(FoodEnvBase):
         else:
             reward = int(solved)
 
-        if solved:
-            if 'lifelong' not in self.task[0]:
-                obs = self.reset()
-            else:
-                # remove obj so can keep making
-                self.carrying = None
-
         """ Generate info """
         info.update({'health': self.health})
         info.update(self.info_last)
@@ -390,6 +390,9 @@ class ToolsEnv(FoodEnvBase):
             if self.end_on_task_completion:
                 done = True
             info.update({'solved': True})
+            if 'lifelong' in self.task[0]:
+                # remove obj so can keep making
+                self.carrying = None
         else:
             info.update({'solved': False})
         if self.time_horizon and self.step_count % self.time_horizon == 0:
@@ -413,7 +416,6 @@ class ToolsEnv(FoodEnvBase):
             self.sum_square_rnd += loss ** 2
             stdev = (self.sum_square_rnd / self.step_count) - (self.sum_rnd / self.step_count) ** 2
             reward += loss / (stdev * self.health_cap)
-
         return obs, reward, done, info
 
     def reset(self, seed=None, return_seed=False):
@@ -426,7 +428,7 @@ class ToolsEnv(FoodEnvBase):
         obs = super().reset(incl_health=self.include_health)
         extra_obs = np.repeat(self.gen_shelf_obs(), 8)
         num_objs = np.repeat(self.info_last['pickup_%s' % self.task[1]], 8)
-        obs = np.concatenate((obs, extra_obs.flatten(), num_objs))
+        obs = np.concatenate((obs, extra_obs.flatten(), num_objs)) if self.include_num_objs else np.concatenate((obs, extra_obs.flatten()))
 
         self.pantry = []
         self.made_obj_type = None
