@@ -577,3 +577,16 @@ class ToolsEnv(FoodEnvBase):
     def decay_health(self):
         if self.include_health:
             super().decay_health()
+
+
+class ToolsWallEnv(ToolsEnv):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+    def extra_gen_grid(self):
+        self.grid.horz_wall(0, self.grid_size // 2)
+        # make a 2-wide hole in the wall at a random location
+        hole_loc = self._rand_int(1, self.grid_size - 2)
+        self.grid.set(hole_loc, self.grid_size // 2, None)
+        self.grid.set(hole_loc + 1, self.grid_size // 2, None)
+        super().extra_gen_grid()

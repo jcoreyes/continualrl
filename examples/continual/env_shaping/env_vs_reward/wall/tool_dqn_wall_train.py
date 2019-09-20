@@ -6,7 +6,7 @@ from os.path import join
 
 import gym
 import copy
-from gym_minigrid.envs.tools import ToolsEnv
+from gym_minigrid.envs.tools import ToolsEnv, ToolsWallEnv
 from rlkit.core.logging import get_repo_dir
 from rlkit.samplers.data_collector.path_collector import LifetimeMdpPathCollector, MdpPathCollectorConfig
 from rlkit.torch.dqn.double_dqn import DoubleDQNTrainer
@@ -23,10 +23,10 @@ import rlkit.torch.pytorch_util as ptu
 from rlkit.data_management.env_replay_buffer import EnvReplayBuffer
 from rlkit.launchers.launcher_util import setup_logger, run_experiment
 from rlkit.samplers.data_collector import MdpPathCollector
-from rlkit.torch.torch_rl_algorithm import TorchBatchRLAlgorithm, TorchLifetimeRLAlgorithm, TorchHumanInputLifetimeRLAlgorithm
+from rlkit.torch.torch_rl_algorithm import TorchBatchRLAlgorithm, TorchLifetimeRLAlgorithm
 
 # from variants.dqn.dqn_medium_mlp_task_partial_variant import variant as algo_variant, gen_network
-from variants.dqn_lifetime.dqn_medium8_mlp_task_partial_variant import gen_network_num_obj as gen_network
+from variants.dqn_lifetime.dqn_medium8_mlp_task_partial_variant import variant as algo_variant, gen_network#_num_obj as gen_network
 
 
 def schedule(t):
@@ -37,17 +37,12 @@ def schedule(t):
 def experiment(variant):
     from rlkit.envs.gym_minigrid.gym_minigrid import envs
 
-    expl_env = ToolsEnv(
+    expl_env = ToolsWallEnv(
         **variant['env_kwargs']
     )
-    eval_env = ToolsEnv(
+    eval_env = ToolsWallEnv(
         **variant['env_kwargs']
     )
-
-    rollout_env = ToolsEnv(
-        **variant['env_kwargs']
-    )
-
     obs_dim = expl_env.observation_space.low.size
     action_dim = eval_env.action_space.n
     layer_size = variant['algo_kwargs']['layer_size']
@@ -62,7 +57,7 @@ def experiment(variant):
     eval_policy = ArgmaxDiscretePolicy(qf)
     # eval_policy = SoftmaxQPolicy(qf)
     expl_policy = PolicyWrappedWithExplorationStrategy(
-        EpsilonGreedyDecay(expl_env.action_space, 1e-4, 1, 0.1),
+        EpsilonGreedyDecay(expl_env.action_space, variant['algo_kwargs']['eps_decay_rate'], 1, 0.1),
         eval_policy,
     )
     if lifetime:
@@ -94,13 +89,11 @@ def experiment(variant):
         variant['algo_kwargs']['replay_buffer_size'],
         expl_env
     )
-    #algo_class = TorchLifetimeRLAlgorithm if lifetime else TorchBatchRLAlgorithm
-    algo_class = TorchHumanInputLifetimeRLAlgorithm
+    algo_class = TorchLifetimeRLAlgorithm if lifetime else TorchBatchRLAlgorithm
     algorithm = algo_class(
         trainer=trainer,
         exploration_env=expl_env,
         evaluation_env=eval_env,
-        rollout_env=rollout_env,
         exploration_data_collector=expl_path_collector,
         evaluation_data_collector=eval_path_collector,
         replay_buffer=replay_buffer,
@@ -117,9 +110,9 @@ if __name__ == "__main__":
     2. algo_variant, env_variant, env_search_space
     3. use_gpu 
     """
-    exp_prefix = 'tool-dqn-env-shaping-distance-increase-axe'
+    exp_prefix = 'tool-dqn-env-shaping-wall-wall-train'
     n_seeds = 1
-    mode = 'local'
+    mode = 'ec2'
     use_gpu = False
 
 
@@ -142,7 +135,7 @@ if __name__ == "__main__":
             'wood': 0.08,
         },
         replenish_empty_resources=['metal', 'wood'],
-        place_schedule=(2000, 1000), # will be overridden by human input after first human input
+        place_schedule=(2000, 1000),
         fixed_expected_resources=True,
         end_on_task_completion=False,
         time_horizon=0
@@ -151,22 +144,34 @@ if __name__ == "__main__":
     env_search_space = {k: [v] for k, v in env_search_space.items()}
     env_search_space.update(
         resource_prob=[
-            # {'metal': 0.01, 'wood': 0.01},
-            {'metal': 0.1, 'wood': 0.1},
+            {'metal': 0, 'wood': 0},
+            {'metal': 0.01, 'wood': 0.01},
+            {'metal': 0.05, 'wood': 0.05}
+        ],
+        place_schedule=[
+            # None is the baseline
+            None,
+            (10000, 5000),
+            (20000, 10000),
+            (40000, 20000)
         ],
         init_resources=[
-            # {'metal': 1, 'wood': 1},
-             {'metal': 2, 'wood': 2},
-            # {'metal': 4, 'wood': 4},
+            {'metal': 1, 'wood': 1},
+            {'metal': 2, 'wood': 2},
+            {'metal': 4, 'wood': 4},
+        ],
+        make_rtype=[
+            'sparse', 'dense-fixed', 'one-time'
         ]
     )
 
     algo_variant = dict(
         algorithm="DQN Lifetime",
-        version="distance increase - axe",
+        version="env vs rwd - wall - wall train",
         lifetime=True,
         layer_size=16,
         replay_buffer_size=int(5E5),
+        eps_decay_rate=1e-5,
         algorithm_kwargs=dict(
             num_epochs=2500,
             num_eval_steps_per_epoch=6000,
@@ -175,8 +180,8 @@ if __name__ == "__main__":
             min_num_steps_before_training=200,
             max_path_length=math.inf,
             batch_size=64,
-            validation_envs_pkl=join(get_repo_dir(), 'examples/continual/env_shaping/distance_increasing/axe/validation_envs/dynamic_static_validation_envs_2019_09_18_10_17_55.pkl'),
-            validation_rollout_length=100,
+            validation_envs_pkl=join(get_repo_dir(), 'examples/continual/env_shaping/env_vs_reward/wall/validation_envs/dynamic_static_validation_envs_2019_09_20_03_11_02.pkl'),
+            validation_rollout_length=100
         ),
         trainer_kwargs=dict(
             discount=0.99,
@@ -195,12 +200,12 @@ if __name__ == "__main__":
             output_size=32,
             hidden_sizes=[64, 64]
         ),
-        num_obj_network_kwargs = dict(
+        num_obj_network_kwargs=dict(
             # num_objs: 8
             input_size=8,
             output_size=8,
             hidden_sizes=[8]
-    )
+        )
     )
     algo_search_space = copy.deepcopy(algo_variant)
     algo_search_space = {k: [v] for k, v in algo_search_space.items()}
@@ -226,7 +231,9 @@ if __name__ == "__main__":
                     variant=variant,
                     use_gpu=use_gpu,
                     region='us-west-2',
-                    num_exps_per_instance=1,
+                    num_exps_per_instance=3,
                     snapshot_mode='gap',
-                    snapshot_gap=25
+                    snapshot_gap=10,
+                    instance_type='c5.large',
+                    spot_price=0.08
                 )
