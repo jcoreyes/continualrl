@@ -135,6 +135,8 @@ class ToolsEnv(FoodEnvBase):
         self.last_placed_on = None
         # obj type placed on in the last step, if any
         self.just_placed_on = None
+        # obj type just picked up, if any
+        self.just_mined_type = None
         # used for task 'make_lifelong'
         self.num_solves = 0
         self.end_on_task_completion = end_on_task_completion
@@ -301,6 +303,7 @@ class ToolsEnv(FoodEnvBase):
                     mined = self.add_to_shelf(agent_cell)
 
                 if mined:
+                    self.just_mined_type = agent_cell.type
                     self.info_last['pickup_%s' % agent_cell.type] = self.info_last['pickup_%s' % agent_cell.type] + 1
                     self.grid.set(*self.agent_pos, None)
 
@@ -362,6 +365,7 @@ class ToolsEnv(FoodEnvBase):
         self.just_made_obj_type = None
         self.just_eaten_type = None
         self.just_placed_on = None
+        self.just_mined_type = None
         obs, reward, done, info = super().step(action, incl_health=self.include_health)
         shelf_obs = self.gen_shelf_obs()
 
@@ -463,7 +467,7 @@ class ToolsEnv(FoodEnvBase):
             if reward > 0 and 'lifelong' in self.task[0]:
                 self.carrying = None
                 self.num_solves += 1
-        elif self.make_rtype in ['waypoint', 'dense']:
+        elif self.make_rtype == 'dense':
             carry_idx = self.make_sequence.index(
                 self.carrying.type) if self.carrying and self.carrying.type in self.make_sequence else -1
             just_place_idx = self.make_sequence.index(
@@ -486,17 +490,27 @@ class ToolsEnv(FoodEnvBase):
             elif idx == self.max_make_idx + 1:
                 reward = MED_RWD
                 self.max_make_idx = idx
-            elif self.make_rtype == 'dense':
-                if cur_idx < self.last_idx:
-                    reward = NEG_RWD
-                else:
-                    next_pos = self.get_closest_obj_pos(self.make_sequence[true_idx + 1])
-                    if next_pos is not None:
-                        dist = np.linalg.norm(next_pos - self.agent_pos, ord=1)
-                        reward = -0.01 * dist
-                # else there is no obj of that type, so 0 reward
+
+            if cur_idx < self.last_idx:
+                reward = NEG_RWD
+            else:
+                next_pos = self.get_closest_obj_pos(self.make_sequence[true_idx + 1])
+                if next_pos is not None:
+                    dist = np.linalg.norm(next_pos - self.agent_pos, ord=1)
+                    reward = -0.01 * dist
+            # else there is no obj of that type, so 0 reward
             if carry_idx != len(self.make_sequence) - 1:
                 self.last_idx = cur_idx
+        elif self.make_rtype == 'waypoint':
+            just_mined_idx = self.make_sequence.index(
+                self.just_mined_type) if self.just_mined_type in self.make_sequence else -1
+            just_place_idx = self.make_sequence.index(
+                self.just_placed_on.type) if self.just_placed_on and self.just_placed_on.type in self.make_sequence else -1
+            just_made_idx = self.make_sequence.index(
+                self.just_made_obj_type) if self.just_made_obj_type in self.make_sequence else -1
+            idx = max(just_mined_idx, just_place_idx)
+            if idx >= 0:
+                reward = POS_RWD ** (idx // 2)
         elif self.make_rtype in ['one-time', 'dense-fixed']:
             carry_idx = self.make_sequence.index(
                 self.carrying.type) if self.carrying and self.carrying.type in self.make_sequence else -1
