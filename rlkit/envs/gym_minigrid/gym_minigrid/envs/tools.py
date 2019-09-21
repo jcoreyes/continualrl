@@ -594,13 +594,24 @@ class ToolsEnv(FoodEnvBase):
 
 
 class ToolsWallEnv(ToolsEnv):
-    def __init__(self, **kwargs):
+    def __init__(self, wall_type='single', **kwargs):
+        self.wall_type = wall_type
         super().__init__(**kwargs)
 
     def extra_gen_grid(self):
-        self.grid.horz_wall(0, self.grid_size // 2)
-        # make a 2-wide hole in the wall at a random location
-        hole_loc = self._rand_int(1, self.grid_size - 2)
-        self.grid.set(hole_loc, self.grid_size // 2, None)
-        self.grid.set(hole_loc + 1, self.grid_size // 2, None)
+        if self.wall_type == 'single':
+            self.grid.horz_wall(0, self.grid_size // 2)
+            # make a 2-wide hole in the wall at a random location
+            hole_loc = self._rand_int(1, self.grid_size - 2)
+            self.grid.set(hole_loc, self.grid_size // 2, None)
+            self.grid.set(hole_loc + 1, self.grid_size // 2, None)
+        elif self.wall_type == 'double':
+            wall_locs = [0, 0]
+            while -1 <= wall_locs[0] - wall_locs[1] <= 1:
+                wall_locs = self._rand_subset(range(2, self.grid_size - 2), 2)
+            wall_tops = self._rand_bool(), self._rand_bool()
+            for loc, top in zip(wall_locs, wall_tops):
+                self.grid.vert_wall(loc, 1 if top else self.grid_size // 2, self.grid_size // 2 - 1)
+        else:
+            raise NotImplementedError
         super().extra_gen_grid()
