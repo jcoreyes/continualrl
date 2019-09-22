@@ -1,4 +1,7 @@
 import abc
+import csv
+import os
+import time
 
 import gtimer as gt
 from rlkit.core import logger
@@ -6,6 +9,8 @@ from rlkit.core.rl_algorithm import BaseRLAlgorithm
 from rlkit.data_management.replay_buffer import ReplayBuffer
 from rlkit.samplers.data_collector import PathCollector
 import numpy as np
+
+from os.path import join
 
 
 class HumanInputLifetimeRLAlgorithm(BaseRLAlgorithm, metaclass=abc.ABCMeta):
@@ -65,19 +70,23 @@ class HumanInputLifetimeRLAlgorithm(BaseRLAlgorithm, metaclass=abc.ABCMeta):
             next_o, r, d, env_info = env.step(a)
 
             img = env.render() #save=logger.get_snapshot_dir()+ '/gifs/%d.png' % i)
-            imgs.append(img.getArray())
+            imgs.append(img.getArray().transpose(1, 0, 2))
+            time.sleep(0.1)
+        time.sleep(0.3)
 
         # Add blacks frames to end
-        for i in range(5):
-            imgs.append(np.zeros((imgs[0].shape)))
+        for _ in range(5):
+            imgs.append(imgs[-1])
         from array2gif import write_gif
         write_gif(imgs, logger.get_snapshot_dir() + '/train_%d.gif' % human_input_counter, fps=5)
 
     def make_plot(self, key):
         import matplotlib.pyplot as plt
-        data = np.genfromtxt(logger.get_snapshot_dir() + '/progress.csv', delimiter=',', names=True)
+        data = np.genfromtxt(join(logger.get_snapshot_dir(), 'validation_stats.csv'), delimiter=',', names=True)
         y = data[key]
-        plt.plot(np.arange(y.shape[0]), y)
+        if y.shape:
+            # only plot if we have meaningful (>1) validation stats
+            plt.plot(np.arange(y.shape[0]), y)
         plt.savefig(logger.get_snapshot_dir() + '/plot_%s.png' % key)
 
 
@@ -85,20 +94,32 @@ class HumanInputLifetimeRLAlgorithm(BaseRLAlgorithm, metaclass=abc.ABCMeta):
         self.eval_data_collector._env.human_set_place_radius(r)
         self.rollout_env.human_set_place_radius(r)
 
-    def get_human_input(self, human_input_counter):
-
-
+    def get_human_radius_input(self, human_input_counter):
         correct_input = False
         while not correct_input:
-            human_input = input("Input radius resource distance between 2 and 8 (inclusive). Previously at %d: " % self.rollout_env.place_radius())
+            human_input = input("Input radius resource distance between 2 and %d (inclusive). Previously at %d: "
+                                % ((self.rollout_env.grid_size - 2) * 2 - 1, self.rollout_env.place_radius()))
             try:
                 value = int(human_input)
+                if 2 <= value <= 8:
+                    correct_input = True
             except:
                 continue
-            if value < 2 or value > 8:
-                continue
-            break
+        return value
 
+    def get_human_epochs_input(self, num_epochs):
+        correct_input = False
+        while not correct_input:
+            human_input = input("Input number of epochs to train for, or 'rest' to leave this radius permanently. Must be at least %d (%d out of %d epochs completed so far): "
+                                % (self.validation_period, num_epochs, self.num_epochs))
+            try:
+                value = int(human_input)
+                if value >= self.validation_period:
+                    correct_input = True
+            except:
+                if human_input == 'rest':
+                    value = self.num_epochs
+                    correct_input = True
         return value
 
     def _train(self):
@@ -121,10 +142,20 @@ class HumanInputLifetimeRLAlgorithm(BaseRLAlgorithm, metaclass=abc.ABCMeta):
 
         done = False
         num_loops = 0
+        # human-specified number of epochs to train for. initialize to number of initial loops before input
+        human_num_epochs = self.num_loops_before_human_input
+        # number of loops since last human input was collected
+        num_loops_since_input = 0
         human_input_counter = 0
         human_inputs = []
+
+        with open(join(logger.get_snapshot_dir(), 'human_inputs.csv'), 'a') as f:
+            writer = csv.DictWriter(f, fieldnames=['radius', 'num_epochs'])
+            writer.writeheader()
         while not done:
+            print('num_since: %d, human_epoch: %d' % (num_loops_since_input, human_num_epochs))
             num_loops += 1
+            num_loops_since_input += 1
             if hasattr(self.evaluation_env, 'health'):
                 print(
                     'Steps: %d, health: %d' % (num_loops * self.num_expl_steps_per_train_loop, self.evaluation_env.health))
@@ -153,16 +184,19 @@ class HumanInputLifetimeRLAlgorithm(BaseRLAlgorithm, metaclass=abc.ABCMeta):
             self._end_epoch(num_loops - 1, incl_expl=False)
 
             # Human input section
-            if num_loops > self.num_loops_before_human_input and num_loops % self.human_input_interval == 0:
+            if num_loops_since_input == human_num_epochs:
+                num_loops_since_input = 0
                 self.collect_rollout_gif(human_input_counter)
-                for key in ['evaluationenv_infosfinalsolved_Mean']:
+                for key in ['proportion_solved_total']:
                     self.make_plot(key)
-                value = self.get_human_input(human_input_counter)
-                self.set_radius(value)
+                radius = self.get_human_radius_input(human_input_counter)
+                self.set_radius(radius)
+                human_num_epochs = self.get_human_epochs_input(num_loops)
                 human_input_counter += 1
-                human_inputs.append(value)
-                with open(logger.get_snapshot_dir() + '/human_inputs.txt', 'a') as f:
-                    f.write('%d\n' % value)
+                human_inputs.append(radius)
+                with open(join(logger.get_snapshot_dir(), 'human_inputs.csv'), 'a') as f:
+                    writer = csv.DictWriter(f, fieldnames=['radius', 'num_epochs'])
+                    writer.writerow({'radius': radius, 'num_epochs': human_num_epochs})
 
                 # TODO Plot training and validation curves here
 
