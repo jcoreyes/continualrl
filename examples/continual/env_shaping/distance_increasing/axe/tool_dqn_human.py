@@ -26,7 +26,7 @@ from rlkit.samplers.data_collector import MdpPathCollector
 from rlkit.torch.torch_rl_algorithm import TorchBatchRLAlgorithm, TorchLifetimeRLAlgorithm, TorchHumanInputLifetimeRLAlgorithm
 
 # from variants.dqn.dqn_medium_mlp_task_partial_variant import variant as algo_variant, gen_network
-from variants.dqn_lifetime.dqn_medium8_mlp_task_partial_variant import gen_network_num_obj as gen_network
+from variants.dqn_lifetime.dqn_medium8_mlp_task_partial_variant import gen_network#_num_obj as gen_network
 
 
 def schedule(t):
@@ -62,7 +62,7 @@ def experiment(variant):
     eval_policy = ArgmaxDiscretePolicy(qf)
     # eval_policy = SoftmaxQPolicy(qf)
     expl_policy = PolicyWrappedWithExplorationStrategy(
-        EpsilonGreedyDecay(expl_env.action_space, 1e-4, 1, 0.1),
+        EpsilonGreedyDecay(expl_env.action_space, 1e-5, 1, 0.1),
         eval_policy,
     )
     if lifetime:
@@ -175,8 +175,9 @@ if __name__ == "__main__":
             min_num_steps_before_training=200,
             max_path_length=math.inf,
             batch_size=64,
-            validation_envs_pkl=join(get_repo_dir(), 'examples/continual/env_shaping/distance_increasing/axe/validation_envs/dynamic_static_validation_envs_2019_09_18_10_17_55.pkl'),
+            validation_envs_pkl=join(get_repo_dir(), 'examples/continual/env_shaping/distance_increasing/axe/validation_envs/dynamic_static_validation_envs_2019_09_20_00_23_56.pkl'),
             validation_rollout_length=100,
+            validation_period=10
         ),
         trainer_kwargs=dict(
             discount=0.99,
