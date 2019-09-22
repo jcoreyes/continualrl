@@ -86,6 +86,8 @@ class ToolsEnv(FoodEnvBase):
         self.resource_prob_decay = resource_prob_decay or {}
         self.resource_prob_min = resource_prob_min or {}
 
+        self.lifelong = time_horizon == 0
+
         # tuple of (bump, schedule), giving place_radius at time t = (t + bump) // schedule
         self.place_schedule = place_schedule
         # store whether the place_schedule has reached full grid radius yet, at which point it'll stop calling each time
@@ -140,11 +142,10 @@ class ToolsEnv(FoodEnvBase):
         # used for task 'make_lifelong'
         self.num_solves = 0
         self.end_on_task_completion = end_on_task_completion
-        if self.task:
-            if 'lifelong' in self.task[0]:
-                self.end_on_task_completion = False
-            else:
-                self.end_on_task_completion = True
+        if self.lifelong:
+            self.end_on_task_completion = False
+        else:
+            self.end_on_task_completion = True
 
         # Exploration!
         assert not (cbe and rnd), "can't have both CBE and RND"
@@ -393,7 +394,7 @@ class ToolsEnv(FoodEnvBase):
             if self.end_on_task_completion:
                 done = True
             info.update({'solved': True})
-            if 'lifelong' in self.task[0]:
+            if self.lifelong:
                 # remove obj so can keep making
                 self.carrying = None
         else:
@@ -459,12 +460,12 @@ class ToolsEnv(FoodEnvBase):
         reward = 0
         if self.make_rtype == 'sparse':
             reward = POS_RWD * int(self.solved_task())
-            if reward and 'lifelong' in self.task[0]:
+            if reward and self.lifelong:
                 self.carrying = None
                 self.num_solves += 1
         elif self.make_rtype == 'sparse_negstep':
             reward = POS_RWD * int(self.solved_task()) or -0.01
-            if reward > 0 and 'lifelong' in self.task[0]:
+            if reward > 0 and self.lifelong:
                 self.carrying = None
                 self.num_solves += 1
         elif self.make_rtype == 'dense':
@@ -528,7 +529,7 @@ class ToolsEnv(FoodEnvBase):
                 # remove the created goal object
                 self.carrying = None
                 self.last_idx = -1
-                if self.task[0] == 'make_lifelong':
+                if self.lifelong:
                     # otherwise messes with progress metric
                     self.max_make_idx = -1
             elif max_idx != -1 and not self.onetime_reward_sequence[max_idx]:
@@ -594,24 +595,32 @@ class ToolsEnv(FoodEnvBase):
 
 
 class ToolsWallEnv(ToolsEnv):
-    def __init__(self, wall_type='single', **kwargs):
-        self.wall_type = wall_type
+    def __init__(self, num_walls=1, fixed_walls=True, **kwargs):
+        self.num_walls = num_walls
+        self.fixed_walls = fixed_walls
         super().__init__(**kwargs)
 
+        assert 1 <= num_walls <= self.grid_size - 2
+
     def extra_gen_grid(self):
-        if self.wall_type == 'single':
+        # Note: shorter walls used for random env to ensure it's always solvable
+        if self.num_walls == 1:
             self.grid.horz_wall(0, self.grid_size // 2)
-            # make a 2-wide hole in the wall at a random location
-            hole_loc = self._rand_int(1, self.grid_size - 2)
+            if self.fixed_walls:
+                hole_loc = self.grid_size // 2
+            else:
+                # make a 2-wide hole in the wall at a random location
+                hole_loc = self._rand_int(1, self.grid_size - 2)
             self.grid.set(hole_loc, self.grid_size // 2, None)
             self.grid.set(hole_loc + 1, self.grid_size // 2, None)
-        elif self.wall_type == 'double':
-            wall_locs = [0, 0]
-            while -1 <= wall_locs[0] - wall_locs[1] <= 1:
-                wall_locs = self._rand_subset(range(2, self.grid_size - 2), 2)
-            wall_tops = self._rand_bool(), self._rand_bool()
+        elif self.fixed_walls:
+            wall_locs = [(i + 1) * self.grid_size // (self.num_walls + 1) for i in range(self.num_walls)]
+            wall_tops = ([True, False] * (self.grid_size // 2 + 1))[:self.num_walls]
             for loc, top in zip(wall_locs, wall_tops):
                 self.grid.vert_wall(loc, 1 if top else self.grid_size // 2, self.grid_size // 2 - 1)
         else:
-            raise NotImplementedError
+            wall_locs = self._rand_subset(range(2, self.grid_size - 2), self.num_walls)
+            wall_tops = [self._rand_bool() for _ in range(self.num_walls)]
+            for loc, top in zip(wall_locs, wall_tops):
+                self.grid.vert_wall(loc, 1 if top else self.grid_size // 2 + 1, self.grid_size // 2 - 2)
         super().extra_gen_grid()
