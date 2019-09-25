@@ -109,9 +109,9 @@ if __name__ == "__main__":
     3. use_gpu 
     """
     exp_prefix = 'tool-dqn-env-shaping-distance-increase-axe'
-    n_seeds = 3
-    mode = 'ec2'
-    use_gpu = False
+    n_seeds = 1
+    mode = 'local'
+    use_gpu = True
 
 
     env_variant = dict(
@@ -120,7 +120,7 @@ if __name__ == "__main__":
         health_cap=1000,
         gen_resources=True,
         fully_observed=False,
-        task='make_lifelong axe',
+        task='make axe',
         make_rtype='sparse',
         fixed_reset=False,
         only_partial_obs=True,
@@ -141,27 +141,38 @@ if __name__ == "__main__":
     env_search_space = copy.deepcopy(env_variant)
     env_search_space = {k: [v] for k, v in env_search_space.items()}
     env_search_space.update(
+        # dynamicity
         resource_prob=[
+            {'metal': 0.01, 'wood': 0.01},
+            {'metal': 0.02, 'wood': 0.02},
             {'metal': 0.05, 'wood': 0.05}
         ],
+        # env shaping
         place_schedule=[
+            # None is the baseline
             None,
-            (20000, 10000),
-            (40000, 20000)
+            (40000, 20000),
+            (80000, 40000),
+            (120000, 60000)
         ],
+        # resource conditions
         init_resources=[
             {'metal': 1, 'wood': 1},
             {'metal': 2, 'wood': 2},
         ],
+        # reward shaping
         make_rtype=[
             'sparse', 'dense-fixed', 'waypoint', 'one-time',
         ],
+        # reset / reset free
+        time_horizon=[
+            0, 100, 200
+        ]
     )
 
     algo_variant = dict(
-        algorithm="DQN Lifetime",
+        algorithm="DQN",
         version="distance increase - axe",
-        lifetime=True,
         layer_size=16,
         replay_buffer_size=int(5E5),
         eps_decay_rate=1e-5,
@@ -173,9 +184,12 @@ if __name__ == "__main__":
             min_num_steps_before_training=200,
             max_path_length=math.inf,
             batch_size=64,
-            validation_envs_pkl=join(get_repo_dir(), 'examples/continual/env_shaping/distance_increasing/axe/validation_envs/dynamic_static_validation_envs_2019_09_20_00_23_56.pkl'),
+            validation_envs_pkl=join(get_repo_dir(), 'examples/continual/env_shaping/distance_increasing/axe/validation_envs/dynamic_static_validation_envs_2019_09_22_05_34_09.pkl'),
             validation_rollout_length=100,
-            validation_period=10
+            validation_period=10,
+            # store visit count array for heat map
+            viz_maps=True,
+            viz_gap=2
         ),
         trainer_kwargs=dict(
             discount=0.99,
@@ -225,9 +239,9 @@ if __name__ == "__main__":
                     variant=variant,
                     use_gpu=use_gpu,
                     region='us-east-2',
-                    num_exps_per_instance=1,
+                    num_exps_per_instance=3,
                     snapshot_mode='gap',
                     snapshot_gap=10,
-                    instance_type='c5.large',
+                    # instance_type='c5.large',
                     spot_price=0.08
                 )

@@ -41,7 +41,7 @@ def experiment(variant):
     action_dim = expl_env.action_space.n
     print("Action_dim:", action_dim)
 
-    lifetime = variant['algo_kwargs'] .get('lifetime', False)
+    lifetime = variant['env_kwargs'].get('time_horizon', 0) == 0
 
     qf = gen_network(variant['algo_kwargs'] , action_dim)
     target_qf = gen_network(variant['algo_kwargs'] , action_dim)
