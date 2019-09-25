@@ -1,39 +1,39 @@
-import json
 import os
 import pickle
 import datetime
-import numpy as np
-from gym_minigrid.envs.tools import ToolsEnv, ToolsWallEnv
 
+from gym_minigrid.envs.deer import DeerEnv
+import numpy as np
+from gym_minigrid.envs.tools import ToolsEnv
+import json
 
 def gen_validation_envs(n, filename, **kwargs):
     envs = []
     seeds = np.random.randint(0, 100000, n).tolist()
     for idx in range(n):
         env_kwargs = dict(
-            grid_size=10,
+            grid_size=8,
             # start agent at random pos
             agent_start_pos=None,
             health_cap=1000,
-            gen_resources=False,
+            gen_resources=True,
             fully_observed=False,
-            task='make axe',
+            task='make food',
             make_rtype='sparse',
             fixed_reset=False,
             only_partial_obs=True,
             init_resources={
-                'metal': 1,
-                'wood': 1
+                'axe': 1,
+                'deer': 1
             },
+            deer_move_prob=0.1,
             fixed_expected_resources=True,
             end_on_task_completion=True,
-            time_horizon=500,
-            num_walls=3,
-            fixed_walls=True,
+            time_horizon=100,
             seed=seeds[idx]
         )
         env_kwargs.update(**kwargs)
-        env = ToolsWallEnv(
+        env = DeerEnv(
             **env_kwargs
         )
         envs.append(env)

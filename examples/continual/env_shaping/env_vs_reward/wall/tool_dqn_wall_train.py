@@ -46,7 +46,7 @@ def experiment(variant):
     obs_dim = expl_env.observation_space.low.size
     action_dim = eval_env.action_space.n
     layer_size = variant['algo_kwargs']['layer_size']
-    lifetime = variant['algo_kwargs'].get('lifetime', False)
+    lifetime = variant['env_kwargs'].get('time_horizon', 0) == 0
     if lifetime:
         assert eval_env.time_horizon == 0, 'cannot have time horizon for lifetime env'
 
@@ -110,19 +110,19 @@ if __name__ == "__main__":
     2. algo_variant, env_variant, env_search_space
     3. use_gpu 
     """
-    exp_prefix = 'tool-dqn-env-shaping-wall-wall-train'
-    n_seeds = 1
+    exp_prefix = 'tool-dqn-env-shaping-3wall-wall-train'
+    n_seeds = 3
     mode = 'ec2'
     use_gpu = False
 
 
     env_variant = dict(
-        grid_size=8,
+        grid_size=10,
         agent_start_pos=None,
         health_cap=1000,
         gen_resources=True,
         fully_observed=False,
-        task='make_lifelong axe',
+        task='make axe',
         make_rtype='sparse',
         fixed_reset=False,
         only_partial_obs=True,
@@ -131,53 +131,59 @@ if __name__ == "__main__":
             'wood': 1,
         },
         resource_prob={
-            'metal': 0.08,
-            'wood': 0.08,
+            'metal': 0.05,
+            'wood': 0.05,
         },
         replenish_empty_resources=['metal', 'wood'],
-        place_schedule=(2000, 1000),
+        place_schedule=(30000, 10000),
         fixed_expected_resources=True,
         end_on_task_completion=False,
-        time_horizon=0
+        num_walls=3,
+        fixed_walls=True,
+        time_horizon=100,
+        agent_view_size=5
     )
     env_search_space = copy.deepcopy(env_variant)
     env_search_space = {k: [v] for k, v in env_search_space.items()}
     env_search_space.update(
-        resource_prob=[
-            {'metal': 0, 'wood': 0},
-            {'metal': 0.01, 'wood': 0.01},
-            {'metal': 0.05, 'wood': 0.05}
-        ],
         place_schedule=[
             # None is the baseline
             None,
-            (10000, 5000),
-            (20000, 10000),
-            (40000, 20000)
+            (60000, 20000),
+            (120000, 40000)
         ],
         make_rtype=[
-            'sparse', 'dense-fixed', 'one-time'
+            'sparse', 'dense-fixed', 'waypoint', 'one-time'
+        ],
+        init_resources=[
+            {'metal': 1, 'wood': 1},
+            {'metal': 2, 'wood': 2}
+        ],
+        time_horizon=[
+            0, 200
         ]
     )
 
     algo_variant = dict(
         algorithm="DQN Lifetime",
-        version="env vs rwd - wall - wall train",
+        version="env vs rwd - 3 wall - wall train",
         lifetime=True,
         layer_size=16,
         replay_buffer_size=int(5E5),
         eps_decay_rate=1e-5,
         algorithm_kwargs=dict(
-            num_epochs=2500,
+            num_epochs=2000,
             num_eval_steps_per_epoch=6000,
             num_trains_per_train_loop=500,
             num_expl_steps_per_train_loop=500,
             min_num_steps_before_training=200,
             max_path_length=math.inf,
             batch_size=64,
-            validation_envs_pkl=join(get_repo_dir(), 'examples/continual/env_shaping/env_vs_reward/wall/validation_envs/dynamic_static_validation_envs_2019_09_20_07_33_26.pkl'),
-            validation_rollout_length=300,
-            validation_period=10
+            validation_envs_pkl=join(get_repo_dir(), 'examples/continual/env_shaping/env_vs_reward/wall/validation_envs/dynamic_static_validation_envs_2019_09_23_06_46_29.pkl'),
+            validation_rollout_length=500,
+            validation_period=10,
+            viz_maps=True,
+            viz_gap=100
         ),
         trainer_kwargs=dict(
             discount=0.99,
@@ -226,8 +232,8 @@ if __name__ == "__main__":
                     mode=mode,
                     variant=variant,
                     use_gpu=use_gpu,
-                    region='us-west-2',
-                    num_exps_per_instance=3,
+                    region='us-east-2',
+                    num_exps_per_instance=1,
                     snapshot_mode='gap',
                     snapshot_gap=10,
                     instance_type='c5.large',

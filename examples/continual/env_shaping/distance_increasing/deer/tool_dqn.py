@@ -6,6 +6,8 @@ from os.path import join
 
 import gym
 import copy
+
+from gym_minigrid.envs.deer import DeerEnv
 from gym_minigrid.envs.tools import ToolsEnv
 from rlkit.core.logging import get_repo_dir
 from rlkit.samplers.data_collector.path_collector import LifetimeMdpPathCollector, MdpPathCollectorConfig
@@ -26,7 +28,7 @@ from rlkit.samplers.data_collector import MdpPathCollector
 from rlkit.torch.torch_rl_algorithm import TorchBatchRLAlgorithm, TorchLifetimeRLAlgorithm
 
 # from variants.dqn.dqn_medium_mlp_task_partial_variant import variant as algo_variant, gen_network
-from variants.dqn_lifetime.dqn_medium8_mlp_task_partial_variant import variant as algo_variant, gen_network_num_obj as gen_network
+from variants.dqn_lifetime.dqn_medium8_mlp_task_partial_variant import variant as algo_variant, gen_network#_num_obj as gen_network
 
 
 def schedule(t):
@@ -37,18 +39,16 @@ def schedule(t):
 def experiment(variant):
     from rlkit.envs.gym_minigrid.gym_minigrid import envs
 
-    expl_env = ToolsEnv(
+    expl_env = DeerEnv(
         **variant['env_kwargs']
     )
-    eval_env = ToolsEnv(
+    eval_env = DeerEnv(
         **variant['env_kwargs']
     )
     obs_dim = expl_env.observation_space.low.size
     action_dim = eval_env.action_space.n
     layer_size = variant['algo_kwargs']['layer_size']
     lifetime = variant['env_kwargs'].get('time_horizon', 0) == 0
-    if lifetime:
-        assert eval_env.time_horizon == 0, 'cannot have time horizon for lifetime env'
 
     qf = gen_network(variant['algo_kwargs'], action_dim, layer_size)
     target_qf = gen_network(variant['algo_kwargs'], action_dim, layer_size)
@@ -57,7 +57,7 @@ def experiment(variant):
     eval_policy = ArgmaxDiscretePolicy(qf)
     # eval_policy = SoftmaxQPolicy(qf)
     expl_policy = PolicyWrappedWithExplorationStrategy(
-        EpsilonGreedyDecay(expl_env.action_space, 1e-4, 1, 0.1),
+        EpsilonGreedyDecay(expl_env.action_space, variant['algo_kwargs']['eps_decay_rate'], 1, 0.1),
         eval_policy,
     )
     if lifetime:
@@ -73,11 +73,11 @@ def experiment(variant):
     eval_path_collector = collector_class(
         eval_env,
         eval_policy,
-        render=True
+        # render=True
     )
     expl_path_collector = collector_class(
         expl_env,
-        expl_policy
+        expl_policy,
     )
     trainer = DoubleDQNTrainer(
         qf=qf,
@@ -110,26 +110,32 @@ if __name__ == "__main__":
     2. algo_variant, env_variant, env_search_space
     3. use_gpu 
     """
-    exp_prefix = 'tool-dqn-env-shaping-natural-curriculum-food-3'
+    exp_prefix = 'tool-dqn-env-shaping-distance-increase-deer'
     n_seeds = 1
-    mode = 'local'
+    mode = 'ec2'
     use_gpu = False
 
 
     env_variant = dict(
-        grid_size=32,
+        grid_size=8,
         agent_start_pos=None,
         health_cap=1000,
-        gen_resources=False,
+        gen_resources=True,
         fully_observed=False,
-        task='make_lifelong food',
+        task='make food',
         make_rtype='sparse',
         fixed_reset=False,
         only_partial_obs=True,
         init_resources={
-            'food': 100
+            'deer': 1,
+            'axe': 1,
         },
-        default_lifespan=0,
+        replenish_low_resources={
+            'deer': 1,
+            'axe': 1
+        },
+        deer_move_prob=0.1,
+        place_schedule=(3000, 1000),
         fixed_expected_resources=True,
         end_on_task_completion=False,
         time_horizon=0
@@ -137,30 +143,53 @@ if __name__ == "__main__":
     env_search_space = copy.deepcopy(env_variant)
     env_search_space = {k: [v] for k, v in env_search_space.items()}
     env_search_space.update(
+        # dynamicity
+        deer_move_prob=[
+            0, 0.1, 0.2
+        ],
+        # env shaping
+        place_schedule=[
+            # None is the baseline
+            None,
+            (60000, 20000),
+            (120000, 40000),
+            (180000, 60000)
+        ],
+        # resource conditions
         init_resources=[
-            {'food': 50},
-            {'food': 250},
-            {'food': 450},
-            {'food': 650}
+            {'deer': 1, 'axe': 1},
+            {'deer': 2, 'axe': 2},
+        ],
+        # reward shaping
+        make_rtype=[
+            'sparse', 'dense-fixed', 'waypoint', 'one-time',
+        ],
+        # reset / reset free
+        time_horizon=[
+            100
         ]
     )
 
     algo_variant = dict(
-        algorithm="DQN Lifetime",
-        version="natural curriculum - food",
-        lifetime=True,
+        algorithm="DQN",
+        version="distance increase - deer",
         layer_size=16,
         replay_buffer_size=int(5E5),
+        eps_decay_rate=1e-5,
         algorithm_kwargs=dict(
-            num_epochs=2000,
+            num_epochs=2500,
             num_eval_steps_per_epoch=6000,
             num_trains_per_train_loop=500,
             num_expl_steps_per_train_loop=500,
             min_num_steps_before_training=200,
             max_path_length=math.inf,
-            batch_size=256,
-            validation_envs_pkl=join(get_repo_dir(), 'examples/continual/env_shaping/natural_curriculum/food/validation_envs/dynamic_static_validation_envs_2019_09_18_04_43_43.pkl'),
-            validation_rollout_length=300
+            batch_size=64,
+            validation_envs_pkl=join(get_repo_dir(), 'examples/continual/env_shaping/distance_increasing/deer/validation_envs/dynamic_static_validation_envs_2019_09_22_07_16_14.pkl'),
+            validation_rollout_length=100,
+            validation_period=10,
+            # store visit count array for heat map
+            viz_maps=True,
+            viz_gap=100
         ),
         trainer_kwargs=dict(
             discount=0.99,
@@ -209,8 +238,10 @@ if __name__ == "__main__":
                     mode=mode,
                     variant=variant,
                     use_gpu=use_gpu,
-                    region='us-west-2',
-                    num_exps_per_instance=3,
+                    region='us-east-2',
+                    num_exps_per_instance=1,
                     snapshot_mode='gap',
-                    snapshot_gap=10
+                    snapshot_gap=10,
+                    instance_type='c5.large',
+                    spot_price=0.08
                 )

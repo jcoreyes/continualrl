@@ -477,9 +477,10 @@ class Logger(object):
             writer = csv.DictWriter(f, fieldnames=list(sorted(save_stats.keys())))
             writer.writerow(save_stats)
 
+    def save_viz(self, epoch, params, array):
+        np.save(join(self._snapshot_dir, 'visit_%d.npy' % epoch), array)
 
-
-    def save_viz(self, epoch, params):
+    def save_viz_old(self, epoch, params):
         def trim(arr):
             return arr[1:-1, 1:-1]
 

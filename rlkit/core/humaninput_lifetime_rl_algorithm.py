@@ -87,7 +87,7 @@ class HumanInputLifetimeRLAlgorithm(BaseRLAlgorithm, metaclass=abc.ABCMeta):
         if y.shape:
             # only plot if we have meaningful (>1) validation stats
             plt.plot(np.arange(y.shape[0]), y)
-        plt.savefig(logger.get_snapshot_dir() + '/plot_%s.png' % key)
+            plt.savefig(join(logger.get_snapshot_dir(), 'plot_%s.png' % key))
 
 
     def set_radius(self, r):
@@ -101,7 +101,7 @@ class HumanInputLifetimeRLAlgorithm(BaseRLAlgorithm, metaclass=abc.ABCMeta):
                                 % ((self.rollout_env.grid_size - 2) * 2 - 1, self.rollout_env.place_radius()))
             try:
                 value = int(human_input)
-                if 2 <= value <= 8:
+                if 2 <= value <= (self.rollout_env.grid_size - 2) * 2 - 1:
                     correct_input = True
             except:
                 continue
@@ -184,7 +184,7 @@ class HumanInputLifetimeRLAlgorithm(BaseRLAlgorithm, metaclass=abc.ABCMeta):
             self._end_epoch(num_loops - 1, incl_expl=False)
 
             # Human input section
-            if num_loops_since_input == human_num_epochs:
+            if num_loops_since_input == human_num_epochs or done:
                 num_loops_since_input = 0
                 self.collect_rollout_gif(human_input_counter)
                 for key in ['proportion_solved_total']:
