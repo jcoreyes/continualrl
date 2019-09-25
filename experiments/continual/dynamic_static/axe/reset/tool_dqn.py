@@ -162,7 +162,7 @@ if __name__ == "__main__":
         replay_buffer_size=int(5E5),
         reset_diff_envs=True,
         algorithm_kwargs=dict(
-            num_epochs=3000,
+            num_epochs=2000,
             num_eval_steps_per_epoch=6000,
             num_trains_per_train_loop=500,
             num_expl_steps_per_train_loop=500,
