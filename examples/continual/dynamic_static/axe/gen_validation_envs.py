@@ -21,8 +21,8 @@ def gen_validation_envs(n, filename, **kwargs):
             fixed_reset=False,
             only_partial_obs=True,
             init_resources={
-                'metal': 2,
-                'wood': 2
+                'metal': 1,
+                'wood': 1
             },
             resource_prob={
                 'metal': 0.0,
