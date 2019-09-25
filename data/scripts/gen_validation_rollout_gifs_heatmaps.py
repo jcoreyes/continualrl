@@ -1,22 +1,14 @@
 import os
-from os.path import join, basename, isfile
-import time
-import pathlib
-
-from gym import spaces
-import numpy as np
-import matplotlib.pyplot as plt
+from os.path import join, basename
 from glob import glob
-import math
-from itertools import chain
 import json
 import pickle
 import random
+from gym import spaces
+import matplotlib.pyplot as plt
 from rlkit.core.logging import get_repo_dir
-from array2gif import write_gif
-from PIL import Image
 from rlkit.exploration_strategies.base import PolicyWrappedWithExplorationStrategy
-from rlkit.exploration_strategies.epsilon_greedy import EpsilonGreedyDecay, EpsilonGreedy
+from rlkit.exploration_strategies.epsilon_greedy import EpsilonGreedy
 from rlkit.samplers.rollout_functions import rollout
 
 
@@ -111,8 +103,8 @@ def get_gifs_heatmaps(exps_dir_name, seeds, save_dir, titles):
 
 if __name__ == '__main__':
     exps_dir_name = '09-22-07-tool-dqn-env-shaping-distance-increase-deer'
-    seeds = [15142]#, 49761, 16103]
+    seeds = [15142]
     # titles of exps in positions corresponding to those in `seeds`
-    titles = ['One-time reward shaping']#, 'One-time reward shaping', 'Environment shaping']
+    titles = ['One-time reward shaping']
     save_dir = 'deer_shaping'
     get_gifs_heatmaps(exps_dir_name, seeds, save_dir, titles)

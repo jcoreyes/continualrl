@@ -1,10 +1,5 @@
-from enum import IntEnum
-
 from rlkit.envs.gym_minigrid.gym_minigrid.minigrid_absolute import *
-from rlkit.envs.gym_minigrid.gym_minigrid.register import register
 from rlkit.envs.gym_minigrid.gym_minigrid.envs.getfood_base import FoodEnvBase
-from rlkit.envs.gym_minigrid.gym_minigrid.minigrid_absolute import CELL_PIXELS, MiniGridAbsoluteEnv, DIR_TO_VEC, \
-    GridAbsolute
 from rlkit.torch.core import torch_ify
 from rlkit.torch.networks import Mlp
 from torch.optim import Adam
@@ -472,40 +467,6 @@ class ToolsEnv(FoodEnvBase):
             if reward > 0 and self.lifelong:
                 self.carrying = None
                 self.num_solves += 1
-        elif self.make_rtype == 'dense':
-            carry_idx = self.make_sequence.index(
-                self.carrying.type) if self.carrying and self.carrying.type in self.make_sequence else -1
-            just_place_idx = self.make_sequence.index(
-                self.just_placed_on.type) if self.just_placed_on and self.just_placed_on.type in self.make_sequence else -1
-            just_made_idx = self.make_sequence.index(
-                self.just_made_obj_type) if self.just_made_obj_type in self.make_sequence else -1
-            idx = max(carry_idx, just_place_idx)
-            true_idx = max(idx, self.max_make_idx - 1)
-            cur_idx = max(carry_idx, just_made_idx)
-            # print('carry: %d, place: %d, made: %d, j_made: %d, idx: %d, true: %d, cur: %d'
-            #       % (carry_idx, just_place_idx, just_made_idx, just_made_idx, idx, true_idx, cur_idx))
-            if carry_idx == len(self.make_sequence) - 1:
-                reward = POS_RWD
-                self.max_make_idx = -1
-                self.num_solves += 1
-                self.last_idx = -1
-            elif just_made_idx > self.max_make_idx:
-                reward = MED_RWD
-                self.max_make_idx = just_made_idx
-            elif idx == self.max_make_idx + 1:
-                reward = MED_RWD
-                self.max_make_idx = idx
-
-            if cur_idx < self.last_idx:
-                reward = NEG_RWD
-            else:
-                next_pos = self.get_closest_obj_pos(self.make_sequence[true_idx + 1])
-                if next_pos is not None:
-                    dist = np.linalg.norm(next_pos - self.agent_pos, ord=1)
-                    reward = -0.01 * dist
-            # else there is no obj of that type, so 0 reward
-            if carry_idx != len(self.make_sequence) - 1:
-                self.last_idx = cur_idx
         elif self.make_rtype == 'waypoint':
             just_mined_idx = self.make_sequence.index(
                 self.just_mined_type) if self.just_mined_type in self.make_sequence else -1
@@ -516,7 +477,7 @@ class ToolsEnv(FoodEnvBase):
             idx = max(just_mined_idx, just_place_idx)
             if idx >= 0:
                 reward = POS_RWD ** (idx // 2)
-        elif self.make_rtype in ['one-time', 'dense-fixed']:
+        elif self.make_rtype in ['one-time', 'dense']:
             carry_idx = self.make_sequence.index(
                 self.carrying.type) if self.carrying and self.carrying.type in self.make_sequence else -1
             just_place_idx = self.make_sequence.index(
@@ -524,7 +485,6 @@ class ToolsEnv(FoodEnvBase):
             just_made_idx = self.make_sequence.index(
                 self.just_made_obj_type) if self.just_made_obj_type in self.make_sequence else -1
             max_idx = max(carry_idx, just_place_idx)
-            # print('carry: %d, j_place: %d, j_made: %d, max: %d, last: %d' % (carry_idx, just_place_idx, just_made_idx, max_idx, self.last_idx))
             if carry_idx == len(self.make_sequence) - 1:
                 # exponent reasoning: 3rd obj in list should yield 100, 5th yields 10000, etc.
                 reward = POS_RWD ** (carry_idx // 2)
@@ -542,7 +502,7 @@ class ToolsEnv(FoodEnvBase):
                 self.onetime_reward_sequence[max_idx] = True
             elif max(max_idx, just_made_idx) < self.last_idx:
                 reward = -np.abs(NEG_RWD ** (self.last_idx // 2 + 1))
-            elif self.make_rtype == 'dense-fixed':
+            elif self.make_rtype == 'dense':
                 next_pos = self.get_closest_obj_pos(self.make_sequence[self.onetime_reward_sequence.index(False)])
                 if next_pos is not None:
                     dist = np.linalg.norm(next_pos - self.agent_pos, ord=1)
