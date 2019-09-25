@@ -6,7 +6,7 @@ import pickle
 import sys
 
 from gym_minigrid.envs.deer import DeerEnv
-from gym_minigrid.envs.tools import ToolsEnv
+from gym_minigrid.envs.tools import ToolsEnv, ToolsWallEnv
 import numpy
 import gym
 import time
@@ -36,52 +36,60 @@ def main():
 
     # Load the gym environment
     # env = gym.make(options.env_name)
-    env = DeerEnv(
-        grid_size=8,
-        # start agent at random pos
-        agent_start_pos=None,
-        health_cap=1000,
-        gen_resources=True,
-        fully_observed=False,
-        task='make food',
-        make_rtype='dense-fixed',
-        fixed_reset=False,
-        only_partial_obs=True,
-        init_resources={
-            'deer': 3,
-            'axe': 2
-        },
-        replenish_low_resources={
-            'axe': 2
-        },
-        deer_move_prob=0.2,
-        fixed_expected_resources=True,
-        end_on_task_completion=False,
-        time_horizon=250
-    )
-    # env = ToolsEnv(
-    #     grid_size=16,
+    # env = DeerEnv(
+    #     grid_size=8,
     #     agent_start_pos=None,
     #     health_cap=1000,
     #     gen_resources=True,
     #     fully_observed=False,
-    #     task='make_lifelong axe',
+    #     task='make food',
     #     make_rtype='sparse',
     #     fixed_reset=False,
     #     only_partial_obs=True,
     #     init_resources={
-    #         'metal': 15,
-    #         'wood': 15,
+    #         'deer': 1,
+    #         'axe': 1,
     #     },
-    #     default_lifespan=0,
+    #     resource_prob={
+    #         'axe': 0.08,
+    #     },
+    #     replenish_low_resources={
+    #         'deer': 1
+    #     },
+    #     deer_move_prob=0.1,
+    #     replenish_empty_resources=['axe'],
+    #     place_schedule=(2000, 1000),
     #     fixed_expected_resources=True,
     #     end_on_task_completion=False,
-    #     time_horizon=1000,
-    #     replenish_low_resources={
-    #         'metal': 15,
-    #         'wood': 15
-    #     },
+    #     time_horizon=0
     # )
+    env = ToolsWallEnv(
+        grid_size=8,
+        agent_start_pos=None,
+        health_cap=1000,
+        gen_resources=True,
+        fully_observed=False,
+        task='make_lifelong axe',
+        make_rtype='sparse',
+        fixed_reset=False,
+        only_partial_obs=True,
+        init_resources={
+            'metal': 1,
+            'wood': 1,
+        },
+        resource_prob={
+            'metal': 0.05,
+            'wood': 0.05,
+        },
+        replenish_empty_resources=['metal', 'wood'],
+        place_schedule=(30000, 10000),
+        fixed_expected_resources=True,
+        end_on_task_completion=False,
+        num_walls=3,
+        fixed_walls=True,
+        time_horizon=0,
+        agent_view_size=5
+    )
     pkl = options.qf
     if pkl is not None:
         params = pickle.load(open(pkl, 'rb'))
@@ -144,7 +152,6 @@ def main():
             qs = qf(torch_ify(obs)).data.numpy()[0]
             print(qs)
             print(qs.argmax())
-
         if hasattr(env, 'health'):
             print('step=%s, reward=%.2f, health=%d' % (env.step_count, reward, env.health))
         else:

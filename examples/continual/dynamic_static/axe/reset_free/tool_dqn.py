@@ -45,7 +45,7 @@ def experiment(variant):
     obs_dim = expl_env.observation_space.low.size
     action_dim = eval_env.action_space.n
     layer_size = variant['algo_kwargs']['layer_size']
-    lifetime = variant['algo_kwargs'].get('lifetime', False)
+    lifetime = variant['env_kwargs'].get('time_horizon', 0) == 0
     if lifetime:
         assert eval_env.time_horizon == 0, 'cannot have time horizon for lifetime env'
 

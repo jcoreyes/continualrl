@@ -51,7 +51,7 @@ def experiment(variant):
     obs_dim = expl_env.observation_space.low.size
     action_dim = eval_env.action_space.n
     layer_size = variant['algo_kwargs']['layer_size']
-    lifetime = variant['algo_kwargs'].get('lifetime', False)
+    lifetime = variant['env_kwargs'].get('time_horizon', 0) == 0
     if lifetime:
         assert eval_env.time_horizon == 0, 'cannot have time horizon for lifetime env'
 
@@ -120,7 +120,7 @@ if __name__ == "__main__":
     exp_prefix = 'tool-dqn-env-shaping-distance-increase-axe'
     n_seeds = 1
     mode = 'local'
-    use_gpu = False
+    use_gpu = True
 
 
     env_variant = dict(
@@ -152,11 +152,11 @@ if __name__ == "__main__":
     env_search_space.update(
         resource_prob=[
             # {'metal': 0.01, 'wood': 0.01},
-            {'metal': 0.1, 'wood': 0.1},
+            {'metal': 0.05, 'wood': 0.05},
         ],
         init_resources=[
-            # {'metal': 1, 'wood': 1},
-             {'metal': 2, 'wood': 2},
+            {'metal': 1, 'wood': 1},
+             # {'metal': 2, 'wood': 2},
             # {'metal': 4, 'wood': 4},
         ]
     )
@@ -175,7 +175,8 @@ if __name__ == "__main__":
             min_num_steps_before_training=200,
             max_path_length=math.inf,
             batch_size=64,
-            validation_envs_pkl=join(get_repo_dir(), 'examples/continual/env_shaping/distance_increasing/axe/validation_envs/dynamic_static_validation_envs_2019_09_20_00_23_56.pkl'),
+            # validation_envs_pkl=join(get_repo_dir(), 'examples/continual/env_shaping/distance_increasing/axe/validation_envs/dynamic_static_validation_envs_2019_09_20_00_23_56.pkl'),
+            validation_envs_pkl=join(get_repo_dir(), 'examples/continual/env_shaping/distance_increasing/axe/validation_envs/dynamic_static_validation_envs_2019_09_22_23_03_48.pkl'),
             validation_rollout_length=100,
             validation_period=10
         ),

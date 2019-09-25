@@ -69,8 +69,8 @@ class ToolsEnv(FoodEnvBase):
             **kwargs
     ):
         assert task is not None, 'Must specify task of form "make berry", "navigate 3 5", "pickup axe", etc.'
-        # assert resource_prob is not None, 'Must specify resource generation probabilities'
-
+        # a step count that isn't reset across resets
+        self.env_shaping_step_count = 0
         self.init_resources = init_resources or {}
         self.lifespans = lifespans or {}
         self.default_lifespan = default_lifespan
@@ -142,10 +142,7 @@ class ToolsEnv(FoodEnvBase):
         # used for task 'make_lifelong'
         self.num_solves = 0
         self.end_on_task_completion = end_on_task_completion
-        if self.lifelong:
-            self.end_on_task_completion = False
-        else:
-            self.end_on_task_completion = True
+        self.end_on_task_completion = not self.lifelong
 
         # Exploration!
         assert not (cbe and rnd), "can't have both CBE and RND"
@@ -168,6 +165,9 @@ class ToolsEnv(FoodEnvBase):
         self.info_last = {'pickup_%s' % k: 0 for k in self.object_to_idx.keys()
                           if k not in ['empty', 'wall', 'tree']}
         self.info_last.update({'made_%s' % v: 0 for v in self.interactions.values()})
+
+        # stores visited locations for heat map
+        self.visit_count = np.zeros((grid_size, grid_size), dtype=np.uint32)
 
         super().__init__(
             grid_size=grid_size,
@@ -242,7 +242,7 @@ class ToolsEnv(FoodEnvBase):
         if self.human_radius is not None:
             return self.human_radius
         else:
-            return (self.step_count + self.place_schedule[0]) // self.place_schedule[1]
+            return (self.env_shaping_step_count + self.place_schedule[0]) // self.place_schedule[1]
 
     def place_items(self):
         if not self.gen_resources:
@@ -363,6 +363,7 @@ class ToolsEnv(FoodEnvBase):
         return shelf_obs
 
     def step(self, action):
+        self.env_shaping_step_count += 1
         self.just_made_obj_type = None
         self.just_eaten_type = None
         self.just_placed_on = None
@@ -420,6 +421,9 @@ class ToolsEnv(FoodEnvBase):
             self.sum_square_rnd += loss ** 2
             stdev = (self.sum_square_rnd / self.step_count) - (self.sum_rnd / self.step_count) ** 2
             reward += loss / (stdev * self.health_cap)
+
+        # funny ordering because otherwise we'd get the transpose due to how the grid indices work
+        self.visit_count[self.agent_pos[1], self.agent_pos[0]] += 1
         return obs, reward, done, info
 
     def reset(self, seed=None, return_seed=False):

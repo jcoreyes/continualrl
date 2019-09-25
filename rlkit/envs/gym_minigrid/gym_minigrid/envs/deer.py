@@ -86,6 +86,8 @@ class DeerEnv(FoodEnvBase):
         self.resource_prob_decay = resource_prob_decay or {}
         self.resource_prob_min = resource_prob_min or {}
 
+        self.lifelong = time_horizon == 0
+
         # deer stuff
         self.deer = []
         self.deer_move_prob = deer_move_prob
@@ -140,12 +142,7 @@ class DeerEnv(FoodEnvBase):
         self.just_placed_on = None
         # used for task 'make_lifelong'
         self.num_solves = 0
-        self.end_on_task_completion = end_on_task_completion
-        if self.task:
-            if 'lifelong' in self.task[0]:
-                self.end_on_task_completion = False
-            else:
-                self.end_on_task_completion = True
+        self.end_on_task_completion = not self.lifelong
 
         # Exploration!
         assert not (cbe and rnd), "can't have both CBE and RND"
@@ -168,6 +165,9 @@ class DeerEnv(FoodEnvBase):
         self.info_last = {'pickup_%s' % k: 0 for k in self.object_to_idx.keys()
                           if k not in ['empty', 'wall', 'tree']}
         self.info_last.update({'made_%s' % v: 0 for v in self.interactions.values()})
+
+        # stores visited locations for heat map
+        self.visit_count = np.zeros((grid_size, grid_size), dtype=np.uint32)
 
         super().__init__(
             grid_size=grid_size,
@@ -240,7 +240,19 @@ class DeerEnv(FoodEnvBase):
         placed = set()
         for type, thresh in self.replenish_low_resources.items():
             if counts.get(type, 0) < thresh:
-                self.place_prob(TYPE_TO_CLASS_ABS[type](lifespan=self.lifespans.get(type, self.default_lifespan)), 1)
+                new_obj = TYPE_TO_CLASS_ABS[type](lifespan=self.lifespans.get(type, self.default_lifespan))
+                if self.place_schedule and not self.full_grid:
+                    diam = self.place_radius()
+                    if diam >= 2 * self.grid_size:
+                        self.full_grid = True
+                    self.place_prob(new_obj,
+                                    1,
+                                    top=(np.clip(self.agent_pos - diam // 2, 0, self.grid_size - 1)),
+                                    size=(diam, diam))
+                else:
+                    self.place_prob(new_obj, 1)
+                if type == 'deer':
+                    self.deer.append(new_obj)
                 placed.add(type)
         for type, prob in self.resource_prob.items():
             place_prob = max(self.resource_prob_min.get(type, 0),
@@ -261,12 +273,12 @@ class DeerEnv(FoodEnvBase):
                 if self.place_prob(new_obj,
                                 place_prob,
                                 top=(np.clip(self.agent_pos - diam // 2, 0, self.grid_size-1)),
-                                size=(diam, diam)):
+                                size=(diam, diam)) and type == 'deer':
                     self.deer.append(new_obj)
             else:
                 new_obj = TYPE_TO_CLASS_ABS[type](lifespan=self.lifespans.get(type, self.default_lifespan))
                 if self.place_prob(new_obj,
-                                place_prob):
+                                place_prob) and type == 'deer':
                     self.deer.append(new_obj)
 
     def extra_gen_grid(self):
@@ -288,12 +300,11 @@ class DeerEnv(FoodEnvBase):
         # Let deer move
         for deer in self.deer:
             if random.random() < self.deer_move_prob:
-                new_pos = np.clip(deer.cur_pos + random.choice(list(DIR_TO_VEC.values())), 1, self.grid_size - 1)
+                new_pos = np.clip(deer.cur_pos + random.choice(list(DIR_TO_VEC.values())), 1, self.grid_size - 2)
                 if not self.grid.get(*new_pos):
                     self.grid.set(*new_pos, deer)
                     self.grid.set(*deer.cur_pos, None)
                     deer.cur_pos = new_pos
-
         if matched:
             return matched
 
@@ -346,6 +357,8 @@ class DeerEnv(FoodEnvBase):
                 # the objects cannot be combined, no-op
                 return
             else:
+                if agent_cell.type == 'deer':
+                    self.deer.remove(agent_cell)
                 self.last_placed_on = agent_cell
                 self.just_placed_on = agent_cell
                 # replace existing obj with new obj
@@ -403,7 +416,7 @@ class DeerEnv(FoodEnvBase):
             if self.end_on_task_completion:
                 done = True
             info.update({'solved': True})
-            if 'lifelong' in self.task[0]:
+            if self.lifelong:
                 # remove obj so can keep making
                 self.carrying = None
         else:
@@ -429,6 +442,9 @@ class DeerEnv(FoodEnvBase):
             self.sum_square_rnd += loss ** 2
             stdev = (self.sum_square_rnd / self.step_count) - (self.sum_rnd / self.step_count) ** 2
             reward += loss / (stdev * self.health_cap)
+
+        # funny ordering because otherwise we'd get the transpose due to how the grid indices work
+        self.visit_count[self.agent_pos[1], self.agent_pos[0]] += 1
         return obs, reward, done, info
 
     def reset(self, seed=None, return_seed=False):
@@ -470,7 +486,7 @@ class DeerEnv(FoodEnvBase):
         reward = 0
         if self.make_rtype == 'sparse':
             reward = POS_RWD * int(self.solved_task())
-            if reward and 'lifelong' in self.task[0]:
+            if reward and self.lifelong:
                 self.carrying = None
                 self.num_solves += 1
         elif self.make_rtype in ['waypoint', 'dense']:
@@ -524,7 +540,7 @@ class DeerEnv(FoodEnvBase):
                 # remove the created goal object
                 self.carrying = None
                 self.last_idx = -1
-                if self.task[0] == 'make_lifelong':
+                if self.lifelong:
                     # otherwise messes with progress metric
                     self.max_make_idx = -1
             elif max_idx != -1 and not self.onetime_reward_sequence[max_idx]:

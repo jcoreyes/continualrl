@@ -80,7 +80,7 @@ class BaseRLAlgorithm(object, metaclass=abc.ABCMeta):
     def _end_epoch(self, epoch, incl_expl=True):
         snapshot = self._get_snapshot()
         if self.viz_maps and epoch % self.viz_gap == 0:
-            logger.save_viz(epoch, snapshot)
+            logger.save_viz(epoch, snapshot, self.eval_env.visit_count)
         if self.validation and epoch % self.validation_period == 0:
             stats = self.validate(snapshot)
             logger.save_stats(epoch, stats)
