@@ -555,7 +555,9 @@ class Axe(WorldObj):
         return True
 
     def render(self, r):
-        self._set_color(r)
+        # self._set_color(r)
+        # TODO suvansh render change
+        r.setColor(255, 200, 0)
         r.drawPolygon([
             (CELL_PIXELS * 0.2, CELL_PIXELS * 0.2),
             (CELL_PIXELS * 0.2, CELL_PIXELS * 0.8),
@@ -596,12 +598,26 @@ class Wood(WorldObj):
         return True
 
     def render(self, r):
+        # self._set_color(r)
+        # r.drawPolygon([
+        #     (CELL_PIXELS * 0.2, CELL_PIXELS * 0.3),
+        #     (CELL_PIXELS * 0.2, CELL_PIXELS * 0.7),
+        #     (CELL_PIXELS * 0.8, CELL_PIXELS * 0.7),
+        #     (CELL_PIXELS * 0.8, CELL_PIXELS * 0.3)
+        # ])
+        # TODO suvansh render change
+        r.setColor(0, 255, 0)
+        r.drawPolygon([
+            (0.5 * CELL_PIXELS, 0.2 * CELL_PIXELS),
+            (0.8 * CELL_PIXELS, 0.6 * CELL_PIXELS),
+            (0.2 * CELL_PIXELS, 0.6 * CELL_PIXELS)
+        ])
         self._set_color(r)
         r.drawPolygon([
-            (CELL_PIXELS * 0.2, CELL_PIXELS * 0.3),
-            (CELL_PIXELS * 0.2, CELL_PIXELS * 0.7),
-            (CELL_PIXELS * 0.8, CELL_PIXELS * 0.7),
-            (CELL_PIXELS * 0.8, CELL_PIXELS * 0.3)
+            (0.4 * CELL_PIXELS, 0.6 * CELL_PIXELS),
+            (0.4 * CELL_PIXELS, 0.8 * CELL_PIXELS),
+            (0.6 * CELL_PIXELS, 0.8 * CELL_PIXELS),
+            (0.6 * CELL_PIXELS, 0.6 * CELL_PIXELS)
         ])
 
 
@@ -917,7 +933,7 @@ class GridAbsolute:
 
         return grid
 
-    def render(self, r, tile_size):
+    def render(self, r, tile_size, white=True):
         """
         Render this grid at a given scale
         :param r: target renderer object
@@ -937,13 +953,22 @@ class GridAbsolute:
         r.scale(tile_size / CELL_PIXELS, tile_size / CELL_PIXELS)
 
         # Draw the background of the in-world cells black
-        r.fillRect(
-            0,
-            0,
-            widthPx,
-            heightPx,
-            0, 0, 0
-        )
+        if white:
+            r.fillRect(
+                0,
+                0,
+                widthPx,
+                heightPx,
+                255, 255, 255
+            )
+        else:
+            r.fillRect(
+                0,
+                0,
+                widthPx,
+                heightPx,
+                0, 0, 0
+            )
 
         # Draw grid lines
         r.setLineColor(100, 100, 100)
@@ -1829,7 +1854,7 @@ class MiniGridAbsoluteEnv(gym.Env):
             if self.grid_render:
                 self.grid_render.close()
             return
-        if self.grid_render is None:
+        if not hasattr(self, 'grid_render') or self.grid_render is None:
             self.grid_render = Renderer(
                 self.grid_size * CELL_PIXELS,
                 self.grid_size * CELL_PIXELS,
@@ -1894,7 +1919,9 @@ class MiniGridAbsoluteEnv(gym.Env):
                         abs_j * CELL_PIXELS,
                         CELL_PIXELS,
                         CELL_PIXELS,
-                        255, 255, 255, 75
+                        #255, 255, 255, 75
+                        # TODO suvansh render change
+                        0, 0, 0, 75
                     )
 
         r.endFrame()

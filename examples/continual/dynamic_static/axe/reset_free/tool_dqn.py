@@ -126,8 +126,8 @@ if __name__ == "__main__":
         fixed_reset=False,
         only_partial_obs=True,
         init_resources={
-            'metal': 2,
-            'wood': 2
+            'metal': 1,
+            'wood': 1
         },
         resource_prob={
             'metal': 0,
@@ -148,7 +148,7 @@ if __name__ == "__main__":
             {'metal': 0.1, 'wood': 0.1},
             {'metal': 0.5, 'wood': 0.5}
         ],
-        make_rtype=['sparse', 'dense-fixed']
+        make_rtype=['sparse', 'dense-fixed', 'waypoint']
     )
 
     algo_variant = dict(
@@ -165,7 +165,7 @@ if __name__ == "__main__":
             min_num_steps_before_training=200,
             max_path_length=math.inf,
             batch_size=64,
-            validation_envs_pkl=join(get_repo_dir(), 'examples/continual/dynamic_static/axe/validation_envs/dynamic_static_validation_envs_2019_09_19_17_46_35.pkl'),
+            validation_envs_pkl=join(get_repo_dir(), 'examples/continual/dynamic_static/axe/validation_envs/dynamic_static_validation_envs_2019_09_25_01_23_54.pkl'),
             validation_rollout_length=200,
             validation_period=10
         ),
