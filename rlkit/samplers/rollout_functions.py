@@ -1,7 +1,10 @@
 import time
 
+from array2gif import write_gif
 import numpy as np
-
+from PIL import Image
+import os
+from os.path import join
 
 def multitask_rollout(
         env,
@@ -237,7 +240,9 @@ def rollout(
         render_kwargs=None,
         return_env_obs=False,
         continuing=False,
-        obs=None
+        obs=None,
+        save=False,
+        save_dir=None
 ):
     """
     The following value for the following keys will be a 2D array, with the
@@ -257,6 +262,17 @@ def rollout(
     If `continuing` is True, then roll out without resetting env. `obs` must then be the most recent obs from the env
     """
     assert not (continuing and obs is None), 'if continuing, then must provide the most recent obs from the env'
+    assert not (save and save_dir is None), 'if saving, must provide dir to save to'
+
+    def save_img(img, path):
+        img = img.getArray()
+        im = Image.fromarray(img)
+        im.save(path)
+        return img.transpose(1, 0, 2)
+
+    if save:
+        img_dir = join(save_dir, 'imgs')
+        os.makedirs(img_dir, exist_ok=True)
 
     if render_kwargs is None:
         render_kwargs = {}
@@ -266,6 +282,8 @@ def rollout(
     terminals = []
     agent_infos = []
     env_infos = []
+
+    imgs = []
     if continuing:
         o = obs
     else:
@@ -274,7 +292,10 @@ def rollout(
     next_o = None
     path_length = 0
     if render:
-        env.render(**render_kwargs)
+        img = env.render(**render_kwargs)
+        if save:
+            img = save_img(img, join(img_dir, '%d.png' % path_length))
+            imgs.append(img)
         time.sleep(0.25)
     while path_length < max_path_length:
         a, agent_info = agent.get_action(o)
@@ -290,10 +311,15 @@ def rollout(
         path_length += 1
         o = next_o
         if render:
-            env.render(**render_kwargs)
+            img = env.render(**render_kwargs)
+            if save:
+                img = save_img(img, join(img_dir, '%d.png' % path_length))
+                imgs.append(img)
             time.sleep(0.1)
         if d:
             break
+    if save:
+        write_gif(imgs, join(save_dir, 'full.gif'), fps=5)
     actions = np.array(actions)
     if len(actions.shape) == 1:
         actions = np.expand_dims(actions, 1)
