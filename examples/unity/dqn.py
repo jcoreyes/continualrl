@@ -20,6 +20,8 @@ from gym_unity.envs import UnityEnv
 from gym.spaces import Discrete
 import numpy as np
 from gym import Env
+from rlkit.core.logging import get_repo_dir
+import os.path as path
 
 class ProxyEnv(Env):
     def __init__(self, wrapped_env):
@@ -97,8 +99,11 @@ class MultiDiscreteActionEnv(ProxyEnv, Env):
 
 
 def experiment(variant):
-    env_name = "/home/jcoreyes/continual/ml-agents/env_builds/food_collector"  # Name of the Unity environment binary to launch
-    env = UnityEnv(env_name, worker_id=11, use_visual=False, multiagent=False)
+
+    ml_agents_dir = path.join(path.dirname(get_repo_dir()), 'ml-agents') # assume that ml-agents repo is in same dir as continualrl
+    env_build_dir = path.join(ml_agents_dir, 'env_builds')
+    env_name = "food_collector"  # Name of the Unity environment binary to launch
+    env = UnityEnv(path.join(env_build_dir, env_name), worker_id=11, use_visual=False, multiagent=False)
     env = MultiDiscreteActionEnv(env, env.action_space.nvec)
     expl_env = env
     eval_env = env
