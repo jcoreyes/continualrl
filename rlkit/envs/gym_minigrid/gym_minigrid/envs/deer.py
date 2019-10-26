@@ -77,7 +77,7 @@ class DeerEnv(FoodEnvBase):
         self.food_rate_decay = food_rate_decay
         self.interactions = {
             # the 2 ingredients must be in alphabetical order
-            # ('metal', 'wood'): 'axe',
+            ('metal', 'wood'): 'axe',
             ('axe', 'deer'): 'food',
         }
         self.ingredients = {v: k for k, v in self.interactions.items()}

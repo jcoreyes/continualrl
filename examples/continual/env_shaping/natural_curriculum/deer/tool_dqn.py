@@ -4,11 +4,12 @@ Run DQN on grid world.
 import math
 from os.path import join
 
-from gym_minigrid.envs.deer import DeerEnv
-from rlkit.core.logging import get_repo_dir
 import gym
 import copy
+
+from gym_minigrid.envs.deer import DeerEnv
 from gym_minigrid.envs.tools import ToolsEnv
+from rlkit.core.logging import get_repo_dir
 from rlkit.samplers.data_collector.path_collector import LifetimeMdpPathCollector, MdpPathCollectorConfig
 from rlkit.torch.dqn.double_dqn import DoubleDQNTrainer
 from rlkit.torch.sac.policies import SoftmaxQPolicy
@@ -27,7 +28,7 @@ from rlkit.samplers.data_collector import MdpPathCollector
 from rlkit.torch.torch_rl_algorithm import TorchBatchRLAlgorithm, TorchLifetimeRLAlgorithm
 
 # from variants.dqn.dqn_medium_mlp_task_partial_variant import variant as algo_variant, gen_network
-from variants.dqn_lifetime.dqn_medium8_mlp_task_partial_variant import variant as algo_variant, gen_network as gen_network
+from variants.dqn_lifetime.dqn_medium8_mlp_task_partial_variant import variant as algo_variant, gen_network#_num_obj as gen_network
 
 
 def schedule(t):
@@ -58,7 +59,7 @@ def experiment(variant):
     eval_policy = ArgmaxDiscretePolicy(qf)
     # eval_policy = SoftmaxQPolicy(qf)
     expl_policy = PolicyWrappedWithExplorationStrategy(
-        EpsilonGreedyDecay(expl_env.action_space, variant['algo_kwargs']['eps_decay_rate'], 1, 0.1),
+        EpsilonGreedyDecay(expl_env.action_space, 1e-5, 1, 0.1),
         eval_policy,
     )
     if lifetime:
@@ -78,7 +79,7 @@ def experiment(variant):
     )
     expl_path_collector = collector_class(
         expl_env,
-        expl_policy,
+        expl_policy
     )
     trainer = DoubleDQNTrainer(
         qf=qf,
@@ -111,66 +112,65 @@ if __name__ == "__main__":
     2. algo_variant, env_variant, env_search_space
     3. use_gpu 
     """
-    exp_prefix = 'tool-dqn-dynamic-static-deer-resetfree'
+    exp_prefix = 'tool-dqn-env-shaping-natural-curriculum-deer-intermediate'
     n_seeds = 1
     mode = 'ec2'
     use_gpu = False
 
+
     env_variant = dict(
-        grid_size=8,
-        # start agent at random pos
+        grid_size=10,
         agent_start_pos=None,
         health_cap=1000,
         gen_resources=True,
         fully_observed=False,
-        task='make_lifelong food',
+        task='make food',
         make_rtype='sparse',
         fixed_reset=False,
         only_partial_obs=True,
         init_resources={
-            'deer': 2,
-            'axe': 2
+            'metal': 1,
+            'wood': 1
         },
-        replenish_low_resources={
-            'axe': 2,
-            'deer': 2
-        },
-        deer_move_prob=0.2,
-        replenish_empty_resources=['metal', 'wood'],
+        default_lifespan=0,
         fixed_expected_resources=True,
         end_on_task_completion=False,
-        time_horizon=0
+        time_horizon=0,
+        replenish_low_resources={
+            'metal': 3,
+            'wood': 3
+        }
     )
     env_search_space = copy.deepcopy(env_variant)
     env_search_space = {k: [v] for k, v in env_search_space.items()}
     env_search_space.update(
-        deer_move_prob=[
-            # 0, 0.1, 0.2, 0.4, 0.6
-            0, 0.2
+        init_resources=[
+            # 3 and 3 case with no axes is baseline
+            {'metal': 3, 'wood': 3, 'axe': 0, 'deer': 3},
+            {'metal': 3, 'wood': 3, 'axe': 3, 'deer': 3},
+            {'metal': 6, 'wood': 6, 'axe': 6, 'deer': 3},
+            {'metal': 9, 'wood': 9, 'axe': 9, 'deer': 3}
         ],
-        make_rtype=[
-            # 'sparse', 'dense-fixed', 'waypoint'
-            'dense-fixed'
-        ]
+        make_rtype=['sparse', 'dense-fixed', 'one-time', 'waypoint'],
+        grid_size=[10, 16]
     )
 
     algo_variant = dict(
         algorithm="DQN Lifetime",
-        version="dynamic static - resetfree deer",
+        version="natural curriculum - deer intermediate",
         lifetime=True,
         layer_size=16,
         replay_buffer_size=int(5E5),
         algorithm_kwargs=dict(
-            num_epochs=3000,
-            num_eval_steps_per_epoch=500,
+            num_epochs=2000,
+            num_eval_steps_per_epoch=6000,
             num_trains_per_train_loop=500,
             num_expl_steps_per_train_loop=500,
             min_num_steps_before_training=200,
             max_path_length=math.inf,
             batch_size=64,
-            validation_envs_pkl=join(get_repo_dir(), 'examples/continual/dynamic_static/deer/validation_envs/dynamic_static_validation_envs_2019_10_07_00_26_28.pkl'),
-            validation_rollout_length=200,
-            validation_period=10,
+            validation_envs_pkl=join(get_repo_dir(), 'examples/continual/env_shaping/natural_curriculum/deer/validation_envs/dynamic_static_validation_envs_2019_10_10_06_14_08.pkl'),
+            validation_rollout_length=1000,
             viz_maps=True,
             viz_gap=100
         ),
@@ -190,14 +190,18 @@ if __name__ == "__main__":
             input_size=200,
             output_size=32,
             hidden_sizes=[64, 64]
+        ),
+        num_obj_network_kwargs=dict(
+            # num_objs: 8
+            input_size=8,
+            output_size=8,
+            hidden_sizes=[8]
         )
     )
     algo_search_space = copy.deepcopy(algo_variant)
     algo_search_space = {k: [v] for k, v in algo_search_space.items()}
     algo_search_space.update(
-        eps_decay_rate=[
-            1e-5
-        ]
+        # insert sweep params here
     )
 
     env_sweeper = hyp.DeterministicHyperparameterSweeper(
@@ -222,5 +226,5 @@ if __name__ == "__main__":
                     snapshot_mode='gap',
                     snapshot_gap=10,
                     instance_type='c5.large',
-                    spot_price=0.07
+                    spot_price=0.08
                 )

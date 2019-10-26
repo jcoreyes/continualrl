@@ -1,6 +1,8 @@
 import os
 import pickle
 import datetime
+
+from gym_minigrid.envs.deer import DeerEnv
 import numpy as np
 from gym_minigrid.envs.tools import ToolsEnv
 
@@ -15,13 +17,14 @@ def gen_validation_envs(n, filename, **kwargs):
             health_cap=1000,
             gen_resources=True,
             fully_observed=False,
-            task='make axe',
+            task='make food',
             make_rtype='sparse',
             fixed_reset=False,
             only_partial_obs=True,
             init_resources={
                 'metal': 3,
                 'wood': 3,
+                'deer': 3
             },
             default_lifespan=0,
             fixed_expected_resources=True,
@@ -34,7 +37,7 @@ def gen_validation_envs(n, filename, **kwargs):
             seed=seeds[idx]
         )
         env_kwargs.update(**kwargs)
-        env = ToolsEnv(
+        env = DeerEnv(
             **env_kwargs
         )
         envs.append(env)
