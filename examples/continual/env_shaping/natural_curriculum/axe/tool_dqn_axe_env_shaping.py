@@ -57,7 +57,7 @@ def experiment(variant):
     eval_policy = ArgmaxDiscretePolicy(qf)
     # eval_policy = SoftmaxQPolicy(qf)
     expl_policy = PolicyWrappedWithExplorationStrategy(
-        EpsilonGreedyDecay(expl_env.action_space, 1e-4, 1, 0.1),
+        EpsilonGreedyDecay(expl_env.action_space, 1e-5, 1, 0.1),
         eval_policy,
     )
     if lifetime:
@@ -135,22 +135,20 @@ if __name__ == "__main__":
         end_on_task_completion=False,
         time_horizon=0,
         replenish_low_resources={
-            'metal': 1,
-            'wood': 1
+            'metal': 3,
+            'wood': 3
         }
     )
     env_search_space = copy.deepcopy(env_variant)
     env_search_space = {k: [v] for k, v in env_search_space.items()}
     env_search_space.update(
         init_resources=[
-            # 1 and 1 case is baseline
-            {'metal': 1, 'wood': 1},
-            {'metal': 4, 'wood': 4},
-            {'metal': 7, 'wood': 7},
-            {'metal': 10, 'wood': 10},
-            {'metal': 13, 'wood': 13}
+            # 3 and 3 case is baseline
+            {'metal': 3, 'wood': 3},
+            {'metal': 6, 'wood': 6},
+            {'metal': 9, 'wood': 9}
         ],
-        make_rtype=['sparse', 'dense-fixed', 'one-time']
+        make_rtype=['sparse', 'dense-fixed', 'one-time', 'waypoint']
     )
 
     algo_variant = dict(
@@ -167,8 +165,10 @@ if __name__ == "__main__":
             min_num_steps_before_training=200,
             max_path_length=math.inf,
             batch_size=64,
-            validation_envs_pkl=join(get_repo_dir(), 'examples/continual/env_shaping/natural_curriculum/axe/validation_envs/dynamic_static_validation_envs_2019_09_20_06_25_47.pkl'),
-            validation_rollout_length=1000
+            validation_envs_pkl=join(get_repo_dir(), 'examples/continual/env_shaping/natural_curriculum/axe/validation_envs/dynamic_static_validation_envs_2019_10_07_15_54_45.pkl'),
+            validation_rollout_length=1000,
+            viz_maps=True,
+            viz_gap=100
         ),
         trainer_kwargs=dict(
             discount=0.99,
@@ -217,7 +217,7 @@ if __name__ == "__main__":
                     mode=mode,
                     variant=variant,
                     use_gpu=use_gpu,
-                    region='us-west-2',
+                    region='us-east-2',
                     num_exps_per_instance=3,
                     snapshot_mode='gap',
                     snapshot_gap=10,

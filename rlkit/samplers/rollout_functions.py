@@ -1,6 +1,6 @@
 import time
 
-from array2gif import write_gif
+# from array2gif import write_gif
 import numpy as np
 from PIL import Image
 import os

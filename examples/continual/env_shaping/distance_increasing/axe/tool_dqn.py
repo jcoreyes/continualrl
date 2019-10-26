@@ -110,8 +110,8 @@ if __name__ == "__main__":
     """
     exp_prefix = 'tool-dqn-env-shaping-distance-increase-axe'
     n_seeds = 1
-    mode = 'local'
-    use_gpu = True
+    mode = 'ec2'
+    use_gpu = False
 
 
     env_variant = dict(
@@ -143,30 +143,32 @@ if __name__ == "__main__":
     env_search_space.update(
         # dynamicity
         resource_prob=[
-            {'metal': 0.01, 'wood': 0.01},
-            {'metal': 0.02, 'wood': 0.02},
+            # {'metal': 0.01, 'wood': 0.01},
+            # {'metal': 0.02, 'wood': 0.02},
             {'metal': 0.05, 'wood': 0.05}
         ],
         # env shaping
         place_schedule=[
             # None is the baseline
             None,
-            (40000, 20000),
+            # (40000, 20000),
             (80000, 40000),
-            (120000, 60000)
+            # (120000, 60000)
         ],
         # resource conditions
         init_resources=[
             {'metal': 1, 'wood': 1},
-            {'metal': 2, 'wood': 2},
+            # {'metal': 2, 'wood': 2},
         ],
         # reward shaping
         make_rtype=[
-            'sparse', 'dense-fixed', 'waypoint', 'one-time',
+            # 'sparse', 'dense-fixed', 'waypoint', 'one-time',
+            'sparse', 'dense-fixed'
         ],
         # reset / reset free
         time_horizon=[
-            0, 100, 200
+            # 0, 100, 200
+            0, 200
         ]
     )
 
@@ -189,7 +191,7 @@ if __name__ == "__main__":
             validation_period=10,
             # store visit count array for heat map
             viz_maps=True,
-            viz_gap=2
+            viz_gap=100
         ),
         trainer_kwargs=dict(
             discount=0.99,

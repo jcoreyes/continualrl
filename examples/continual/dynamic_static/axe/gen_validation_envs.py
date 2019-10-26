@@ -9,6 +9,28 @@ def gen_validation_envs(n, filename, **kwargs):
     envs = []
     seeds = np.random.randint(0, 100000, n).tolist()
     for idx in range(n):
+        env_kwargs = {
+           "agent_start_pos": None,
+           "end_on_task_completion": True,
+           "fixed_expected_resources": True,
+           "fixed_reset": False,
+           "fully_observed": False,
+           "gen_resources": False,
+           "grid_size": 8,
+           "health_cap": 1000,
+           "init_resources": {
+              "metal": 2,
+              "wood": 2
+           },
+           "make_rtype": "sparse",
+           "only_partial_obs": True,
+           "resource_prob": {
+              "metal": 0.0,
+              "wood": 0.0
+           },
+           "task": "make axe",
+           "time_horizon": 200
+        }
         env_kwargs = dict(
             grid_size=8,
             # start agent at random pos

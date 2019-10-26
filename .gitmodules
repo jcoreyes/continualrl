@@ -4,3 +4,6 @@
 [submodule "rlkit/envs/gym-minecraft"]
 	path = rlkit/envs/gym-minecraft
 	url = https://github.com/tambetm/gym-minecraft.git
+[submodule "rlkit/envs/ml-agents"]
+	path = rlkit/envs/ml-agents
+	url = https://github.com/Unity-Technologies/ml-agents.git

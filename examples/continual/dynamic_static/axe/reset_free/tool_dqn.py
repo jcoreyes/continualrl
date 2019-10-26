@@ -110,7 +110,7 @@ if __name__ == "__main__":
     3. use_gpu 
     """
     exp_prefix = 'tool-dqn-dynamic-static-resetfree'
-    n_seeds = 3
+    n_seeds = 1
     mode = 'ec2'
     use_gpu = False
 
@@ -143,12 +143,15 @@ if __name__ == "__main__":
     env_search_space.update(
         resource_prob=[
             {'metal': 0, 'wood': 0},
-            {'metal': 0.01, 'wood': 0.01},
-            {'metal': 0.05, 'wood': 0.05},
+            # {'metal': 0.01, 'wood': 0.01},
+            # {'metal': 0.05, 'wood': 0.05},
             {'metal': 0.1, 'wood': 0.1},
-            {'metal': 0.5, 'wood': 0.5}
+            # {'metal': 0.5, 'wood': 0.5}
         ],
-        make_rtype=['sparse', 'dense-fixed', 'waypoint']
+        make_rtype=[
+            # 'sparse', 'dense-fixed', 'waypoint'
+            'dense-fixed'
+        ]
     )
 
     algo_variant = dict(
@@ -167,7 +170,9 @@ if __name__ == "__main__":
             batch_size=64,
             validation_envs_pkl=join(get_repo_dir(), 'examples/continual/dynamic_static/axe/validation_envs/dynamic_static_validation_envs_2019_09_25_01_23_54.pkl'),
             validation_rollout_length=200,
-            validation_period=10
+            validation_period=10,
+            viz_maps=True,
+            viz_gap=100
         ),
         trainer_kwargs=dict(
             discount=0.99,
@@ -211,7 +216,7 @@ if __name__ == "__main__":
                     variant=variant,
                     use_gpu=use_gpu,
                     region='us-east-2',
-                    num_exps_per_instance=1,
+                    num_exps_per_instance=3,
                     snapshot_mode='gap',
                     snapshot_gap=10,
                     instance_type='c5.large',
