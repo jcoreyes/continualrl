@@ -1,3 +1,4 @@
+import argparse
 import os
 from os.path import join, basename, isfile
 import time
@@ -21,6 +22,9 @@ from rlkit.samplers.rollout_functions import rollout
 
 
 def get_val_envs(val_envs_path):
+    print('OVERRIDING VAL ENVS')
+    val_envs_path = '/home/suvansh/levine/continualrl/examples/continual/dynamic_static/deer/validation_envs/dynamic_static_validation_envs_2019_09_29_14_58_50.pkl'
+    val_envs_path = '/home/suvansh/levine/continualrl/examples/continual/dynamic_static/axe/validation_envs/dynamic_static_validation_envs_2019_09_29_13_59_09.pkl'
     with open(val_envs_path, 'rb') as f:
         envs = pickle.load(f)['envs']
     return envs
@@ -49,7 +53,7 @@ def get_gifs_heatmaps(exps_dir_name, seeds, save_dir, titles):
         """ Get policy """
         pol_file = max(glob(join(exp_dir, 'itr_*.pkl')), key=lambda pol_path: int(basename(pol_path)[4:-4]))
         # to override policy itr number
-        pol_file = join(exp_dir, 'itr_%d.pkl' % 2200)
+        # pol_file = join(exp_dir, 'itr_%d.pkl' % 2990)
         print(pol_file)
         with open(pol_file, 'rb') as f:
             policy = pickle.load(f)['evaluation/policy']
@@ -62,38 +66,40 @@ def get_gifs_heatmaps(exps_dir_name, seeds, save_dir, titles):
         )
 
         # re-fetch the val envs each time so that envs are fresh
-        val_envs = get_val_envs(val_envs_path)
-        """ Get gifs """
-        stats = [{} for _ in range(len(val_env_idxs))]
-        for meta_idx, env_idx in enumerate(val_env_idxs):
-            env = val_envs[env_idx]
-            path = rollout(env, policy, val_rollout_len, render=True, save=True,
-                           save_dir=join(gifs_dir, exps_dir_name, save_dir, str(seed), str(env_idx)))
-            for typ in env.object_to_idx.keys():
-                if typ not in ['empty', 'wall', 'tree']:
-                    key = 'pickup_%s' % typ
-                    last_val = 0
-                    pickup_idxs = []
-                    for t, env_info in enumerate(path['env_infos']):
-                        count = env_info[key] - last_val
-                        pickup_idxs.extend([t for _ in range(count)])
-                        last_val = env_info[key]
-                    stats[meta_idx][key] = pickup_idxs
-            for typ in env.interactions.values():
-                key = 'made_%s' % typ
-                last_val = 0
-                made_idxs = []
-                for t, env_info in enumerate(path['env_infos']):
-                    count = env_info[key] - last_val
-                    made_idxs.extend([t for _ in range(count)])
-                    last_val = env_info[key]
-                stats[meta_idx][key] = made_idxs
-        solved = [i for i, stat in enumerate(stats) if stat['pickup_%s' % task_obj]]
-        print('seed %d solved %d percent:' % (seed, 100 * len(solved) // len(val_env_idxs)))
-        print(solved)
+        # val_envs = get_val_envs(val_envs_path)
+        # """ Get gifs """
+        # stats = [{} for _ in range(len(val_env_idxs))]
+        # for meta_idx, env_idx in enumerate(val_env_idxs):
+        #     env = val_envs[env_idx]
+        #     path = rollout(env, policy, val_rollout_len, render=True, save=True,
+        #                    save_dir=join(gifs_dir, exps_dir_name, save_dir, str(seed), str(env_idx)))
+        #     env.render(close=True)
+        #     for typ in env.object_to_idx.keys():
+        #         if typ not in ['empty', 'wall', 'tree']:
+        #             key = 'pickup_%s' % typ
+        #             last_val = 0
+        #             pickup_idxs = []
+        #             for t, env_info in enumerate(path['env_infos']):
+        #                 count = env_info[key] - last_val
+        #                 pickup_idxs.extend([t for _ in range(count)])
+        #                 last_val = env_info[key]
+        #             stats[meta_idx][key] = pickup_idxs
+        #     for typ in env.interactions.values():
+        #         key = 'made_%s' % typ
+        #         last_val = 0
+        #         made_idxs = []
+        #         for t, env_info in enumerate(path['env_infos']):
+        #             count = env_info[key] - last_val
+        #             made_idxs.extend([t for _ in range(count)])
+        #             last_val = env_info[key]
+        #         stats[meta_idx][key] = made_idxs
+        # solved = [val_env_idxs[i] for i, stat in enumerate(stats) if stat['pickup_%s' % task_obj]]
+        # print('seed %d solved %d percent:' % (seed, 100 * len(solved) // len(val_env_idxs)))
+        # print(solved)
 
         # re-fetch the val envs each time so that envs are fresh
         val_envs = get_val_envs(val_envs_path)
+        print('refetched envs')
         """ Get heatmaps """
         vcs = []
         for env_idx, env in enumerate(val_envs):
@@ -110,9 +116,18 @@ def get_gifs_heatmaps(exps_dir_name, seeds, save_dir, titles):
 
 
 if __name__ == '__main__':
-    exps_dir_name = '09-22-07-tool-dqn-env-shaping-distance-increase-deer'
-    seeds = [15142]#, 49761, 16103]
-    # titles of exps in positions corresponding to those in `seeds`
-    titles = ['One-time reward shaping']#, 'One-time reward shaping', 'Environment shaping']
-    save_dir = 'deer_shaping'
-    get_gifs_heatmaps(exps_dir_name, seeds, save_dir, titles)
+    # exps_dir_name = '09-19-17-tool-dqn-dynamic-static-resetfree'
+    # seeds = [14186]#, 49761, 16103]
+    # # titles of exps in positions corresponding to those in `seeds`
+    # titles = ['One-time reward shaping']#, 'One-time reward shaping', 'Environment shaping']
+    # save_dir = 'deer_shaping'
+    # get_gifs_heatmaps(exps_dir_name, seeds, save_dir, titles)
+
+    parser = argparse.ArgumentParser(
+        description='generate rollout gifs and heatmaps from running the policies in validation envs')
+    parser.add_argument('dir', help='full path to dir of exp dirs')
+    parser.add_argument('seed', type=int, help='seed specifying which exp dir to use')
+    parser.add_argument('save_dir', help='an identifier that the save dir will be named after')
+    parser.add_argument('title', help='the title to be put on the generated heatmap (e.g. "Distance-based reward shaping")')
+    args = parser.parse_args()
+    get_gifs_heatmaps(args.dir, [args.seed], args.save_dir, [args.title])
