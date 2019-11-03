@@ -117,7 +117,6 @@ if __name__ == "__main__":
     mode = 'ec2'
     use_gpu = False
 
-
     env_variant = dict(
         grid_size=10,
         agent_start_pos=None,
@@ -138,8 +137,10 @@ if __name__ == "__main__":
         time_horizon=0,
         replenish_low_resources={
             'metal': 3,
-            'wood': 3
-        }
+            'wood': 3,
+            'deer': 3
+        },
+        deer_kill_easy_decay=1e-5
     )
     env_search_space = copy.deepcopy(env_variant)
     env_search_space = {k: [v] for k, v in env_search_space.items()}
@@ -152,7 +153,8 @@ if __name__ == "__main__":
             {'metal': 9, 'wood': 9, 'axe': 9, 'deer': 3}
         ],
         make_rtype=['sparse', 'dense-fixed', 'one-time', 'waypoint'],
-        grid_size=[10, 16]
+        grid_size=[10, 16],
+        deer_kill_easy_prob=[0, 0.3]
     )
 
     algo_variant = dict(

@@ -40,6 +40,8 @@ class DeerEnv(FoodEnvBase):
             food_rate=4,
             max_pantry_size=50,
             deer_move_prob=0.2,
+            deer_kill_easy_prob=0,
+            deer_kill_easy_decay=1e-5,
             obs_vision=False,
             food_rate_decay=0.0,
             init_resources=None,
@@ -91,6 +93,8 @@ class DeerEnv(FoodEnvBase):
         # deer stuff
         self.deer = []
         self.deer_move_prob = deer_move_prob
+        self.deer_kill_easy_prob = deer_kill_easy_prob
+        self.deer_kill_easy_decay = deer_kill_easy_decay
 
         # tuple of (bump, schedule), giving place_radius at time t = (t + bump) // schedule
         self.place_schedule = place_schedule
@@ -343,20 +347,23 @@ class DeerEnv(FoodEnvBase):
     def place_act(self):
         agent_cell = self.grid.get(*self.agent_pos)
         if self.carrying is None:
-            # TODO suvansh adding this to test changing dynamics as alternative to changing reward to make 3-tier task easier
-            # killing deer without axe should have some (low) probability of success
-            if agent_cell.type == 'deer':
-                if self._rand_float(0, 1) < 0.3:
-                    new_type = 'food'
-                    self.last_placed_on = agent_cell
-                    self.just_placed_on = agent_cell
-                    # replace existing obj with new obj
-                    new_obj = TYPE_TO_CLASS_ABS[new_type](lifespan=self.lifespans.get(new_type, self.default_lifespan))
-                    self.grid.set(*self.agent_pos, new_obj)
-                    new_obj.cur_pos = self.agent_pos
-                    self.made_obj_type = new_obj.type
-                    self.just_made_obj_type = new_obj.type
-                    self.info_last['made_%s' % new_type] = self.info_last['made_%s' % new_type] + 1
+            deer_kill_easy_prob = self.deer_kill_easy_prob - self.step_count * self.deer_kill_easy_decay
+            if deer_kill_easy_prob:
+                # TODO suvansh adding this to test changing dynamics as alternative to changing reward to make 3-tier task easier
+                # killing deer without axe should have some (low) probability of success
+                if agent_cell and agent_cell.type == 'deer':
+                    if self._rand_float(0, 1) < deer_kill_easy_prob:
+                        self.deer.remove(agent_cell)
+                        new_type = 'food'
+                        self.last_placed_on = agent_cell
+                        self.just_placed_on = agent_cell
+                        # replace existing obj with new obj
+                        new_obj = TYPE_TO_CLASS_ABS[new_type](lifespan=self.lifespans.get(new_type, self.default_lifespan))
+                        self.grid.set(*self.agent_pos, new_obj)
+                        new_obj.cur_pos = self.agent_pos
+                        self.made_obj_type = new_obj.type
+                        self.just_made_obj_type = new_obj.type
+                        self.info_last['made_%s' % new_type] = self.info_last['made_%s' % new_type] + 1
 
             # there's nothing to place
             return
