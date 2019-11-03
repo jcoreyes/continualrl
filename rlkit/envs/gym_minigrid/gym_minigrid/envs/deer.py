@@ -299,7 +299,7 @@ class DeerEnv(FoodEnvBase):
     def extra_step(self, action, matched):
         # Let deer move
         for deer in self.deer:
-            if random.random() < self.deer_move_prob:
+            if self._rand_float(0, 1) < self.deer_move_prob:
                 new_pos = np.clip(deer.cur_pos + random.choice(list(DIR_TO_VEC.values())), 1, self.grid_size - 2)
                 if not self.grid.get(*new_pos):
                     self.grid.set(*new_pos, deer)
@@ -343,6 +343,21 @@ class DeerEnv(FoodEnvBase):
     def place_act(self):
         agent_cell = self.grid.get(*self.agent_pos)
         if self.carrying is None:
+            # TODO suvansh adding this to test changing dynamics as alternative to changing reward to make 3-tier task easier
+            # killing deer without axe should have some (low) probability of success
+            if agent_cell.type == 'deer':
+                if self._rand_float(0, 1) < 0.3:
+                    new_type = 'food'
+                    self.last_placed_on = agent_cell
+                    self.just_placed_on = agent_cell
+                    # replace existing obj with new obj
+                    new_obj = TYPE_TO_CLASS_ABS[new_type](lifespan=self.lifespans.get(new_type, self.default_lifespan))
+                    self.grid.set(*self.agent_pos, new_obj)
+                    new_obj.cur_pos = self.agent_pos
+                    self.made_obj_type = new_obj.type
+                    self.just_made_obj_type = new_obj.type
+                    self.info_last['made_%s' % new_type] = self.info_last['made_%s' % new_type] + 1
+
             # there's nothing to place
             return
         elif agent_cell is None:
