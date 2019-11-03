@@ -37,7 +37,7 @@ def main():
     # Load the gym environment
     # env = gym.make(options.env_name)
     env = DeerEnv(
-        grid_size=16,
+        grid_size=10,
         agent_start_pos=None,
         health_cap=1000,
         gen_resources=True,
@@ -54,11 +54,14 @@ def main():
         default_lifespan=0,
         fixed_expected_resources=True,
         end_on_task_completion=False,
-        time_horizon=1000,
+        time_horizon=0,
         replenish_low_resources={
             'metal': 3,
-            'wood': 3
-        }
+            'wood': 3,
+            'deer': 3
+        },
+        deer_kill_easy_prob=0.3,
+        deer_kill_easy_decay=1e-3
     )
     # env = ToolsWallEnv(
     #     grid_size=10,
@@ -153,7 +156,6 @@ def main():
             print('step=%s, reward=%.2f, health=%d' % (env.step_count, reward, env.health))
         else:
             print('step=%s, reward=%.2f' % (env.step_count, reward))
-
         if done:
             print('done!')
             resetEnv()
