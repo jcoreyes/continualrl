@@ -1,7 +1,8 @@
 """
 Run DQN on grid world.
 """
-
+import copy
+import rlkit.util.hyperparameter as hyp
 import gym
 from torch import nn as nn
 
@@ -13,7 +14,7 @@ from rlkit.torch.dqn.dqn import DQNTrainer
 from rlkit.torch.networks import Mlp
 import rlkit.torch.pytorch_util as ptu
 from rlkit.data_management.env_replay_buffer import EnvReplayBuffer
-from rlkit.launchers.launcher_util import setup_logger
+from rlkit.launchers.launcher_util import setup_logger, run_experiment
 from rlkit.samplers.data_collector import MdpPathCollector
 from rlkit.torch.torch_rl_algorithm import TorchBatchRLAlgorithm
 from gym_unity.envs import UnityEnv
@@ -100,11 +101,13 @@ class MultiDiscreteActionEnv(ProxyEnv, Env):
 
 def experiment(variant):
 
-    ml_agents_dir = path.join(path.dirname(get_repo_dir()), 'ml-agents') # assume that ml-agents repo is in same dir as continualrl
+    # ml_agents_dir = path.join(path.dirname(get_repo_dir()), 'ml-agents') # assume that ml-agents repo is in same dir as continualrl
+    ml_agents_dir = path.join(path.dirname(get_repo_dir()), 'continualrl/rlkit/envs/ml-agents') # assume that ml-agents repo is in same dir as continualrl
     env_build_dir = path.join(ml_agents_dir, 'env_builds')
-    env_name = "food_collector"  # Name of the Unity environment binary to launch
-    env = UnityEnv(path.join(env_build_dir, env_name), worker_id=11, use_visual=False, multiagent=False)
-    env = MultiDiscreteActionEnv(env, env.action_space.nvec)
+    env_name = variant['env_name']  # Name of the Unity environment binary to launch
+    # import pdb; pdb.set_trace()
+    env = UnityEnv(path.join(env_build_dir, env_name), worker_id=12, use_visual=False, multiagent=False, no_graphics=True)
+    # env = MultiDiscreteActionEnv(env, env.action_space.nvec)
     expl_env = env
     eval_env = env
 
@@ -162,7 +165,17 @@ def experiment(variant):
 
 
 if __name__ == "__main__":
-    # noinspection PyTypeChecker
+    """
+        NOTE: Things to check for running exps:
+        1. Mode (local vs ec2)
+        2. algo_variant, env_variant, env_search_space
+        3. use_gpu 
+        """
+    exp_prefix = 'unity-food-collector-dqn-test'
+    n_seeds = 3
+    mode = 'ec2'
+    use_gpu = False
+
     variant = dict(
         algorithm="DQN",
         version="normal",
@@ -181,6 +194,33 @@ if __name__ == "__main__":
             learning_rate=3E-4,
         ),
     )
-    setup_logger('unity-food-collector-dqn-test', variant=variant)
-    # ptu.set_gpu_mode(True)  # optionally set the GPU (default=False)
-    experiment(variant)
+    search_space = copy.deepcopy(variant)
+    search_space = {k: [v] for k, v in search_space.items()}
+    search_space.update(
+        # insert sweep params here
+        env_name=['SoccerSolo.x86_64']
+    )
+
+    sweeper = hyp.DeterministicHyperparameterSweeper(
+        search_space, default_parameters=variant,
+    )
+
+    # setup_logger('unity-food-collector-dqn-test', variant=variant)
+    # # ptu.set_gpu_mode(True)  # optionally set the GPU (default=False)
+    # experiment(variant)
+
+    for exp_id, vari in enumerate(sweeper.iterate_hyperparameters()):
+        for _ in range(n_seeds):
+            run_experiment(
+                experiment,
+                exp_prefix=exp_prefix,
+                mode=mode,
+                variant=variant,
+                use_gpu=use_gpu,
+                region='us-west-1',
+                num_exps_per_instance=1,
+                snapshot_mode='gap',
+                snapshot_gap=10,
+                instance_type='c5.large',
+                spot_price=0.07
+            )
