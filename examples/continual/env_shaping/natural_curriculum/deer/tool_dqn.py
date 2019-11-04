@@ -171,7 +171,7 @@ if __name__ == "__main__":
             min_num_steps_before_training=200,
             max_path_length=math.inf,
             batch_size=64,
-            validation_envs_pkl=join(get_repo_dir(), 'examples/continual/env_shaping/natural_curriculum/deer/validation_envs/dynamic_static_validation_envs_2019_10_10_06_14_08.pkl'),
+            validation_envs_pkl=join(get_repo_dir(), 'examples/continual/env_shaping/natural_curriculum/deer/validation_envs/dynamic_static_validation_envs_2019_11_03_15_43_40.pkl'),
             validation_rollout_length=1000,
             viz_maps=True,
             viz_gap=100

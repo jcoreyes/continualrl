@@ -32,7 +32,8 @@ def gen_validation_envs(n, filename, **kwargs):
             time_horizon=1000,
             replenish_low_resources={
                 'metal': 3,
-                'wood': 3
+                'wood': 3,
+                'deer': 3
             },
             seed=seeds[idx]
         )
