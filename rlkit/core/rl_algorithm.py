@@ -4,6 +4,7 @@ import pickle
 
 from gym.spaces import Discrete
 from gym_minigrid.minigrid_absolute import TYPE_TO_CLASS_ABS
+from rlkit.core.logging import get_repo_dir
 from rlkit.exploration_strategies.base import PolicyWrappedWithExplorationStrategy
 from rlkit.exploration_strategies.epsilon_greedy import EpsilonGreedy
 from rlkit.policies.argmax import ArgmaxDiscretePolicy
@@ -17,6 +18,8 @@ import gtimer as gt
 from rlkit.core import logger, eval_util
 from rlkit.data_management.replay_buffer import ReplayBuffer
 from rlkit.samplers.data_collector import DataCollector
+# from gym_unity.envs import UnityEnv
+from os.path import join, dirname
 
 
 def _get_epoch_timings():
@@ -45,6 +48,7 @@ class BaseRLAlgorithm(object, metaclass=abc.ABCMeta):
             viz_gap=50,
             # suvansh: validation tasks for continual proj
             validation_envs_pkl=None,
+            validation_unity_file=None,
             validation_period=10,
             validation_rollout_length=100
     ):
@@ -57,12 +61,17 @@ class BaseRLAlgorithm(object, metaclass=abc.ABCMeta):
         self.viz_maps = viz_maps
         self.viz_gap = viz_gap
         if validation_envs_pkl is not None:
-            self.validation = True
-            self.validation_envs_pkl = validation_envs_pkl
-            self.validation_period = validation_period
-            self.validation_rollout_length = validation_rollout_length
+            self.validation = 'pkl'
+        elif validation_unity_file is not None:
+            self.validation = 'unity'
         else:
             self.validation = False
+        self.validation_envs_pkl = validation_envs_pkl
+        self.validation_unity_file = validation_unity_file
+        # just need this number to be diff most of the time to avoid conflicts when rolling out. random num
+        self.unity_worker_id = 12
+        self.validation_period = validation_period
+        self.validation_rollout_length = validation_rollout_length
         self._start_epoch = 0
 
         self.post_epoch_funcs = []
@@ -110,29 +119,41 @@ class BaseRLAlgorithm(object, metaclass=abc.ABCMeta):
             policy
         )
 
-        validation_envs = pickle.load(open(self.validation_envs_pkl, 'rb'))
-        stats = [{} for _ in range(len(validation_envs['envs']))]
-        for env_idx, env in enumerate(validation_envs['envs']):
-            path = rollout(env, policy, self.validation_rollout_length)
-            for typ in env.object_to_idx.keys():
-                if typ not in ['empty', 'wall', 'tree']:
-                    key = 'pickup_%s' % typ
+        if self.validation == 'pkl':
+            validation_envs = pickle.load(open(self.validation_envs_pkl, 'rb'))
+            stats = [{} for _ in range(len(validation_envs['envs']))]
+            for env_idx, env in enumerate(validation_envs['envs']):
+                path = rollout(env, policy, self.validation_rollout_length)
+                for typ in env.object_to_idx.keys():
+                    if typ not in ['empty', 'wall', 'tree']:
+                        key = 'pickup_%s' % typ
+                        last_val = 0
+                        pickup_idxs = []
+                        for t, env_info in enumerate(path['env_infos']):
+                            count = env_info[key] - last_val
+                            pickup_idxs.extend([t for _ in range(count)])
+                            last_val = env_info[key]
+                        stats[env_idx][key] = pickup_idxs
+                for typ in env.interactions.values():
+                    key = 'made_%s' % typ
                     last_val = 0
-                    pickup_idxs = []
+                    made_idxs = []
                     for t, env_info in enumerate(path['env_infos']):
                         count = env_info[key] - last_val
-                        pickup_idxs.extend([t for _ in range(count)])
+                        made_idxs.extend([t for _ in range(count)])
                         last_val = env_info[key]
-                    stats[env_idx][key] = pickup_idxs
-            for typ in env.interactions.values():
-                key = 'made_%s' % typ
-                last_val = 0
-                made_idxs = []
-                for t, env_info in enumerate(path['env_infos']):
-                    count = env_info[key] - last_val
-                    made_idxs.extend([t for _ in range(count)])
-                    last_val = env_info[key]
-                stats[env_idx][key] = made_idxs
+                    stats[env_idx][key] = made_idxs
+        elif self.validation == 'unity':
+            # TODO change number of rollouts to 25 or 50
+            num_validation_rollouts = 5
+            for _ in range(num_validation_rollouts):
+                self.unity_worker_id = (self.unity_worker_id + 1) % 1000
+                env = UnityEnv(self.validation_unity_file, worker_id=self.unity_worker_id, use_visual=False, multiagent=False, no_graphics=True)
+                path = rollout(env, policy, self.validation_rollout_length)
+                import pdb; pdb.set_trace()
+
+        else:
+            raise NotImplementedError
         return stats
 
     def _get_snapshot(self):

@@ -23,6 +23,8 @@ import numpy as np
 from gym import Env
 from rlkit.core.logging import get_repo_dir
 import os.path as path
+from os.path import join
+
 
 class ProxyEnv(Env):
     def __init__(self, wrapped_env):
@@ -71,6 +73,7 @@ class ProxyEnv(Env):
 
     def __str__(self):
         return '{}({})'.format(type(self).__name__, self.wrapped_env)
+
 
 class MultiDiscreteActionEnv(ProxyEnv, Env):
     def __init__(self, wrapped_env, nvec):
@@ -188,11 +191,17 @@ if __name__ == "__main__":
             min_num_steps_before_training=1000,
             max_path_length=1000,
             batch_size=256,
+            # validation
+            validation_envs_pkl=join(get_repo_dir(),
+                                     'rlkit/envs/ml-agents/env_builds/FoodCollectorValidation/FoodCollector1.x86_64'),
+            validation_rollout_length=200,
+            validation_period=1
         ),
         trainer_kwargs=dict(
             discount=0.99,
             learning_rate=3E-4,
         ),
+        env_shaping=''
     )
     search_space = copy.deepcopy(variant)
     search_space = {k: [v] for k, v in search_space.items()}

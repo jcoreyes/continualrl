@@ -35,7 +35,6 @@ def get_generic_path_information(paths, stat_prefix=''):
     statistics[stat_prefix + 'Average Time'] = avg_time
     statistics[stat_prefix + 'Average Solve Time'] = avg_solve_time
     statistics[stat_prefix + 'Number of Solves'] = num_solves
-
     for info_key in ['env_infos', 'agent_infos']:
         if info_key in paths[0]:
             all_env_infos = [
@@ -46,21 +45,25 @@ def get_generic_path_information(paths, stat_prefix=''):
                 final_ks = np.array([info[k][-1] for info in all_env_infos])
                 first_ks = np.array([info[k][0] for info in all_env_infos])
                 all_ks = np.concatenate([info[k] for info in all_env_infos])
-                statistics.update(create_stats_ordered_dict(
-                    stat_prefix + k,
-                    final_ks,
-                    stat_prefix='{}/final/'.format(info_key),
-                ))
-                statistics.update(create_stats_ordered_dict(
-                    stat_prefix + k,
-                    first_ks,
-                    stat_prefix='{}/initial/'.format(info_key),
-                ))
-                statistics.update(create_stats_ordered_dict(
-                    stat_prefix + k,
-                    all_ks,
-                    stat_prefix='{}/'.format(info_key),
-                ))
+                try:
+                    statistics.update(create_stats_ordered_dict(
+                        stat_prefix + k,
+                        final_ks,
+                        stat_prefix='{}/final/'.format(info_key),
+                    ))
+                    statistics.update(create_stats_ordered_dict(
+                        stat_prefix + k,
+                        first_ks,
+                        stat_prefix='{}/initial/'.format(info_key),
+                    ))
+                    statistics.update(create_stats_ordered_dict(
+                        stat_prefix + k,
+                        all_ks,
+                        stat_prefix='{}/'.format(info_key),
+                    ))
+                except:
+                    # TODO suvansh bad
+                    pass
 
     return statistics
 
