@@ -115,38 +115,39 @@ if __name__ == "__main__":
     mode = 'ec2'
     use_gpu = False
 
-
     env_variant = dict(
-        grid_size=10,
+        grid_size=16,
         agent_start_pos=None,
         health_cap=1000,
         gen_resources=True,
         fully_observed=False,
-        task='make_lifelong axe',
+        task='make axe',
         make_rtype='sparse',
         fixed_reset=False,
         only_partial_obs=True,
         init_resources={
-            'metal': 1,
-            'wood': 1
+            'metal': 2,
+            'wood': 2
         },
         default_lifespan=0,
         fixed_expected_resources=True,
         end_on_task_completion=False,
         time_horizon=0,
         replenish_low_resources={
-            'metal': 3,
-            'wood': 3
-        }
+            'metal': 2,
+            'wood': 2
+        },
+        agent_view_size=7
     )
     env_search_space = copy.deepcopy(env_variant)
     env_search_space = {k: [v] for k, v in env_search_space.items()}
     env_search_space.update(
         init_resources=[
             # 3 and 3 case is baseline
-            {'metal': 3, 'wood': 3},
+            {'metal': 2, 'wood': 2},
             {'metal': 6, 'wood': 6},
-            {'metal': 9, 'wood': 9}
+            {'metal': 10, 'wood': 10},
+            {'metal': 14, 'wood': 14}
         ],
         make_rtype=['sparse', 'dense-fixed', 'one-time', 'waypoint']
     )
@@ -165,8 +166,8 @@ if __name__ == "__main__":
             min_num_steps_before_training=200,
             max_path_length=math.inf,
             batch_size=64,
-            validation_envs_pkl=join(get_repo_dir(), 'examples/continual/env_shaping/natural_curriculum/axe/validation_envs/dynamic_static_validation_envs_2019_10_07_15_54_45.pkl'),
-            validation_rollout_length=1000,
+            validation_envs_pkl=join(get_repo_dir(), 'examples/continual/env_shaping/natural_curriculum/axe/validation_envs/dynamic_static_validation_envs_2019_11_04_06_27_16.pkl'),
+            validation_rollout_length=500,
             viz_maps=True,
             viz_gap=100
         ),
@@ -182,10 +183,14 @@ if __name__ == "__main__":
             hidden_sizes=[16, 16],
         ),
         full_img_network_kwargs=dict(
-            # 5 x 5 x 8
-            input_size=200,
+            # # 5 x 5 x 8
+            # input_size=200,
+            # output_size=32,
+            # hidden_sizes=[64, 64]
+            # 7 x 7 x 8
+            input_size=392,
             output_size=32,
-            hidden_sizes=[64, 64]
+            hidden_sizes=[128, 128]
         ),
         num_obj_network_kwargs=dict(
             # num_objs: 8
