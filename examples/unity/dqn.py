@@ -106,7 +106,7 @@ if __name__ == "__main__":
         """
     exp_prefix = 'unity-food-collector-dqn-test'
     n_seeds = 3
-    mode = 'local'
+    mode = 'ec2'
     use_gpu = False
 
     variant = dict(
@@ -124,8 +124,8 @@ if __name__ == "__main__":
             batch_size=256,
             # validation
             validation_unity_file=join(get_repo_dir(),
-                                     'examples/unity/FoodCollector/FoodCollectorExps/Speed/FCSpeed0.x86_64'),
-            validation_rollout_length=200,
+                                     'examples/unity/FoodCollectorReset/Exps/Speed/FCRSpeed0.x86_64'),
+            validation_rollout_length=1000,
             validation_period=5
         ),
         trainer_kwargs=dict(
@@ -138,11 +138,11 @@ if __name__ == "__main__":
     search_space.update(
         # insert sweep params here
         env_path=[
-            'examples/unity/FoodCollector/FoodCollectorExps/Speed/FCSpeed0.x86_64',
-            # 'examples/unity/FoodCollector/FoodCollectorExps/Speed/FCSpeed2.x86_64',
-            # 'examples/unity/FoodCollector/FoodCollectorExps/Speed/FCSpeed4.x86_64',
-            # 'examples/unity/FoodCollector/FoodCollectorExps/Speed/FCSpeed8.x86_64',
-            # 'examples/unity/FoodCollector/FoodCollectorExps/Speed/FCSpeed16.x86_64',
+            'examples/unity/FoodCollectorReset/Exps/Speed/FCSpeed0.x86_64',
+            'examples/unity/FoodCollectorReset/Exps/Speed/FCSpeed2.x86_64',
+            'examples/unity/FoodCollectorReset/Exps/Speed/FCSpeed4.x86_64',
+            'examples/unity/FoodCollectorReset/Exps/Speed/FCSpeed8.x86_64',
+            'examples/unity/FoodCollectorReset/Exps/Speed/FCSpeed16.x86_64',
         ]
     )
 
