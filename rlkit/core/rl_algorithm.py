@@ -4,7 +4,9 @@ import pickle
 
 from gym.spaces import Discrete
 from gym_minigrid.minigrid_absolute import TYPE_TO_CLASS_ABS
+from mlagents.envs.exception import UnityWorkerInUseException
 from rlkit.core.logging import get_repo_dir
+from rlkit.envs.unity_envs import MultiDiscreteActionEnv
 from rlkit.exploration_strategies.base import PolicyWrappedWithExplorationStrategy
 from rlkit.exploration_strategies.epsilon_greedy import EpsilonGreedy
 from rlkit.policies.argmax import ArgmaxDiscretePolicy
@@ -18,7 +20,7 @@ import gtimer as gt
 from rlkit.core import logger, eval_util
 from rlkit.data_management.replay_buffer import ReplayBuffer
 from rlkit.samplers.data_collector import DataCollector
-# from gym_unity.envs import UnityEnv
+from gym_unity.envs import UnityEnv
 from os.path import join, dirname
 
 
@@ -69,7 +71,7 @@ class BaseRLAlgorithm(object, metaclass=abc.ABCMeta):
         self.validation_envs_pkl = validation_envs_pkl
         self.validation_unity_file = validation_unity_file
         # just need this number to be diff most of the time to avoid conflicts when rolling out. random num
-        self.unity_worker_id = 12
+        self.unity_worker_id = 200
         self.validation_period = validation_period
         self.validation_rollout_length = validation_rollout_length
         self._start_epoch = 0
@@ -92,7 +94,10 @@ class BaseRLAlgorithm(object, metaclass=abc.ABCMeta):
             logger.save_viz(epoch, snapshot)
         if self.validation and epoch % self.validation_period == 0:
             stats = self.validate(snapshot)
-            logger.save_stats(epoch, stats)
+            if self.validation == 'pkl':
+                logger.save_stats_compute(epoch, stats)
+            elif self.validation == 'unity':
+                logger.save_stats(epoch, stats)
         logger.save_itr_params(epoch, snapshot)
         gt.stamp('saving', unique=False)
         self._log_stats(epoch, incl_expl=incl_expl)
@@ -144,14 +149,33 @@ class BaseRLAlgorithm(object, metaclass=abc.ABCMeta):
                         last_val = env_info[key]
                     stats[env_idx][key] = made_idxs
         elif self.validation == 'unity':
-            # TODO change number of rollouts to 25 or 50
-            num_validation_rollouts = 5
+            num_validation_rollouts = 10
+            returns = []  # total return
+            pluses = []  # number of +1 good foods
+            minuses = []  # number of -1 bad foods
             for _ in range(num_validation_rollouts):
                 self.unity_worker_id = (self.unity_worker_id + 1) % 1000
-                env = UnityEnv(self.validation_unity_file, worker_id=self.unity_worker_id, use_visual=False, multiagent=False, no_graphics=True)
+                succeeded = False
+                env = None
+                while not succeeded:
+                    try:
+                        env = UnityEnv(self.validation_unity_file, worker_id=self.unity_worker_id, use_visual=False, multiagent=False, no_graphics=True)
+                        succeeded = True
+                    except UnityWorkerInUseException:
+                        # try another worker ID
+                        self.unity_worker_id += 1
+                        continue
+                env = MultiDiscreteActionEnv(env, env.action_space.nvec)
                 path = rollout(env, policy, self.validation_rollout_length)
-                import pdb; pdb.set_trace()
-
+                env.close()
+                returns.append(path['rewards'].sum())
+                pluses.append(np.count_nonzero(path['rewards'] > 0))
+                minuses.append(np.count_nonzero(path['rewards'] < 0))
+            stats = {
+                'returns': sum(returns) / len(returns),
+                'pluses': sum(pluses) / len(pluses),
+                'minuses': sum(minuses) / len(minuses)
+            }
         else:
             raise NotImplementedError
         return stats

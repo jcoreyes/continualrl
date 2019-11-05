@@ -467,7 +467,7 @@ class Logger(object):
         file_name = osp.join(self._snapshot_dir, 'stats_%d.pkl' % epoch)
         pickle.dump(stats, open(file_name, "wb"))
 
-    def save_stats(self, epoch, stats):
+    def save_stats_compute(self, epoch, stats):
         save_stats = compute_stats(stats, horizon=0, task_obj=get_task_obj(osp.join(self._snapshot_dir, 'variant.json')))
         if not osp.isfile(osp.join(self._snapshot_dir, 'validation_stats.csv')):
             with open(osp.join(self._snapshot_dir, 'validation_stats.csv'), 'a') as f:
@@ -477,7 +477,14 @@ class Logger(object):
             writer = csv.DictWriter(f, fieldnames=list(sorted(save_stats.keys())))
             writer.writerow(save_stats)
 
-
+    def save_stats(self, epoch, stats):
+        if not osp.isfile(osp.join(self._snapshot_dir, 'validation_stats.csv')):
+            with open(osp.join(self._snapshot_dir, 'validation_stats.csv'), 'a') as f:
+                writer = csv.DictWriter(f, fieldnames=list(sorted(stats.keys())))
+                writer.writeheader()
+        with open(osp.join(self._snapshot_dir, 'validation_stats.csv'), 'a') as f:
+            writer = csv.DictWriter(f, fieldnames=list(sorted(stats.keys())))
+            writer.writerow(stats)
 
     def save_viz(self, epoch, params):
         def trim(arr):

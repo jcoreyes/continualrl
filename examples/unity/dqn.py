@@ -2,6 +2,11 @@
 Run DQN on grid world.
 """
 import copy
+import random
+
+from rlkit.envs.unity_envs import MultiDiscreteActionEnv
+from rlkit.samplers.data_collector.path_collector import LifetimeMdpPathCollector
+from rlkit.torch.dqn.double_dqn import DoubleDQNTrainer
 import rlkit.util.hyperparameter as hyp
 import gym
 from torch import nn as nn
@@ -16,7 +21,7 @@ import rlkit.torch.pytorch_util as ptu
 from rlkit.data_management.env_replay_buffer import EnvReplayBuffer
 from rlkit.launchers.launcher_util import setup_logger, run_experiment
 from rlkit.samplers.data_collector import MdpPathCollector
-from rlkit.torch.torch_rl_algorithm import TorchBatchRLAlgorithm
+from rlkit.torch.torch_rl_algorithm import TorchBatchRLAlgorithm, TorchLifetimeRLAlgorithm
 from gym_unity.envs import UnityEnv
 from gym.spaces import Discrete
 import numpy as np
@@ -26,99 +31,20 @@ import os.path as path
 from os.path import join
 
 
-class ProxyEnv(Env):
-    def __init__(self, wrapped_env):
-        self._wrapped_env = wrapped_env
-        self.action_space = self._wrapped_env.action_space
-        self.observation_space = self._wrapped_env.observation_space
-
-    @property
-    def wrapped_env(self):
-        return self._wrapped_env
-
-    def reset(self, **kwargs):
-        return self._wrapped_env.reset(**kwargs)
-
-    def step(self, action):
-        return self._wrapped_env.step(action)
-
-    def render(self, *args, **kwargs):
-        return self._wrapped_env.render(*args, **kwargs)
-
-    @property
-    def horizon(self):
-        return self._wrapped_env.horizon
-
-    def terminate(self):
-        if hasattr(self.wrapped_env, "terminate"):
-            self.wrapped_env.terminate()
-
-    def __getattr__(self, attr):
-        if attr == '_wrapped_env':
-            raise AttributeError()
-        return getattr(self._wrapped_env, attr)
-
-    def __getstate__(self):
-        """
-        This is useful to override in case the wrapped env has some funky
-        __getstate__ that doesn't play well with overriding __getattr__.
-
-        The main problematic case is/was gym's EzPickle serialization scheme.
-        :return:
-        """
-        return self.__dict__
-
-    def __setstate__(self, state):
-        self.__dict__.update(state)
-
-    def __str__(self):
-        return '{}({})'.format(type(self).__name__, self.wrapped_env)
-
-
-class MultiDiscreteActionEnv(ProxyEnv, Env):
-    def __init__(self, wrapped_env, nvec):
-        super().__init__(wrapped_env)
-        self.nvec = nvec
-        self.multi_actions = np.zeros((np.prod(nvec), nvec.shape[0]))
-        self.action_space = Discrete(self.multi_actions.shape[0])
-
-        # iterate over all possible combinations of actions by doing addition in different space
-        counter = np.zeros(nvec.shape[0])
-        for i in range(self.multi_actions.shape[0]):
-            while True:
-                if (counter >= nvec).sum() == 0:
-                    break
-                else:
-                    idx = (counter == nvec).argmax()
-                    counter[idx] = 0
-                    counter[idx-1] += 1
-            self.multi_actions[i] = counter
-            counter[-1] += 1
-
-    def step(self, action):
-        multi_action = self.multi_actions[action]
-        state, reward, done, info = super().step(multi_action)
-        #import pdb; pdb.set_trace()
-        return state, reward, done, {}
-
-
 def experiment(variant):
 
     # ml_agents_dir = path.join(path.dirname(get_repo_dir()), 'ml-agents') # assume that ml-agents repo is in same dir as continualrl
     ml_agents_dir = path.join(path.dirname(get_repo_dir()), 'continualrl/rlkit/envs/ml-agents') # assume that ml-agents repo is in same dir as continualrl
     env_build_dir = path.join(ml_agents_dir, 'env_builds')
     env_name = variant['env_name']  # Name of the Unity environment binary to launch
-    # import pdb; pdb.set_trace()
-    env = UnityEnv(path.join(env_build_dir, env_name), worker_id=12, use_visual=False, multiagent=False, no_graphics=True)
-    # env = MultiDiscreteActionEnv(env, env.action_space.nvec)
-    expl_env = env
-    eval_env = env
-
-    #expl_env = gym.make('CartPole-v0')
-    #eval_env = gym.make('CartPole-v0')
+    expl_env = UnityEnv(path.join(env_build_dir, env_name), worker_id=random.randint(0, 1000), use_visual=False, multiagent=False, no_graphics=False)
+    expl_env = MultiDiscreteActionEnv(expl_env, expl_env.action_space.nvec)
+    eval_env = UnityEnv(path.join(env_build_dir, env_name), worker_id=random.randint(0, 1000), use_visual=False, multiagent=False, no_graphics=False)
+    eval_env = MultiDiscreteActionEnv(eval_env, eval_env.action_space.nvec)
+    lifetime = variant.get('lifetime', False)
 
     obs_dim = expl_env.observation_space.low.size
-    action_dim = env.action_space.n
+    action_dim = expl_env.action_space.n
 
     qf = Mlp(
         hidden_sizes=[32, 32],
@@ -136,15 +62,20 @@ def experiment(variant):
         EpsilonGreedy(expl_env.action_space),
         eval_policy,
     )
-    eval_path_collector = MdpPathCollector(
+    if lifetime:
+        eval_policy = expl_policy
+
+    collector_class = LifetimeMdpPathCollector if lifetime else MdpPathCollector
+    eval_path_collector = collector_class(
         eval_env,
         eval_policy,
     )
-    expl_path_collector = MdpPathCollector(
+    expl_path_collector = collector_class(
         expl_env,
         expl_policy,
     )
-    trainer = DQNTrainer(
+
+    trainer = DoubleDQNTrainer(
         qf=qf,
         target_qf=target_qf,
         qf_criterion=qf_criterion,
@@ -154,7 +85,8 @@ def experiment(variant):
         variant['replay_buffer_size'],
         expl_env,
     )
-    algorithm = TorchBatchRLAlgorithm(
+    algo_class = TorchLifetimeRLAlgorithm if lifetime else TorchBatchRLAlgorithm
+    algorithm = algo_class(
         trainer=trainer,
         exploration_env=expl_env,
         evaluation_env=eval_env,
@@ -176,15 +108,16 @@ if __name__ == "__main__":
         """
     exp_prefix = 'unity-food-collector-dqn-test'
     n_seeds = 3
-    mode = 'ec2'
+    mode = 'local'
     use_gpu = False
 
     variant = dict(
-        algorithm="DQN",
+        algorithm="DQN Lifetime",
+        lifetime=True,
         version="normal",
         replay_buffer_size=int(1E6),
         algorithm_kwargs=dict(
-            num_epochs=3000,
+            num_epochs=200,
             num_eval_steps_per_epoch=5000,
             num_trains_per_train_loop=1000,
             num_expl_steps_per_train_loop=1000,
@@ -192,22 +125,21 @@ if __name__ == "__main__":
             max_path_length=1000,
             batch_size=256,
             # validation
-            validation_envs_pkl=join(get_repo_dir(),
-                                     'rlkit/envs/ml-agents/env_builds/FoodCollectorValidation/FoodCollector1.x86_64'),
+            validation_unity_file=join(get_repo_dir(),
+                                     'rlkit/envs/ml-agents/env_builds/FoodCollectorValidation/FoodCollectorValidation.x86_64'),
             validation_rollout_length=200,
-            validation_period=1
+            validation_period=5
         ),
         trainer_kwargs=dict(
             discount=0.99,
             learning_rate=3E-4,
-        ),
-        env_shaping=''
+        )
     )
     search_space = copy.deepcopy(variant)
     search_space = {k: [v] for k, v in search_space.items()}
     search_space.update(
         # insert sweep params here
-        env_name=['SoccerSolo.x86_64']
+        env_name=['FoodCollectorExps/Speed/Speed000.x86_64']
     )
 
     sweeper = hyp.DeterministicHyperparameterSweeper(
@@ -224,12 +156,13 @@ if __name__ == "__main__":
                 experiment,
                 exp_prefix=exp_prefix,
                 mode=mode,
-                variant=variant,
+                variant=vari,
                 use_gpu=use_gpu,
                 region='us-west-1',
                 num_exps_per_instance=1,
                 snapshot_mode='gap',
                 snapshot_gap=10,
                 instance_type='c5.large',
-                spot_price=0.07
+                spot_price=0.07,
+                python_cmd='python3.6'
             )
