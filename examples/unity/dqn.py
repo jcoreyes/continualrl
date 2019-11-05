@@ -34,12 +34,10 @@ from os.path import join
 def experiment(variant):
 
     # ml_agents_dir = path.join(path.dirname(get_repo_dir()), 'ml-agents') # assume that ml-agents repo is in same dir as continualrl
-    ml_agents_dir = path.join(path.dirname(get_repo_dir()), 'continualrl/rlkit/envs/ml-agents') # assume that ml-agents repo is in same dir as continualrl
-    env_build_dir = path.join(ml_agents_dir, 'env_builds')
-    env_name = variant['env_name']  # Name of the Unity environment binary to launch
-    expl_env = UnityEnv(path.join(env_build_dir, env_name), worker_id=random.randint(0, 1000), use_visual=False, multiagent=False, no_graphics=False)
+    env_path = variant['env_path']  # Path to the Unity environment binary to launch
+    expl_env = UnityEnv(path.join(get_repo_dir(), env_path), worker_id=random.randint(0, 1000), use_visual=False, multiagent=False, no_graphics=False)
     expl_env = MultiDiscreteActionEnv(expl_env, expl_env.action_space.nvec)
-    eval_env = UnityEnv(path.join(env_build_dir, env_name), worker_id=random.randint(0, 1000), use_visual=False, multiagent=False, no_graphics=False)
+    eval_env = UnityEnv(path.join(get_repo_dir(), env_path), worker_id=random.randint(0, 1000), use_visual=False, multiagent=False, no_graphics=False)
     eval_env = MultiDiscreteActionEnv(eval_env, eval_env.action_space.nvec)
     lifetime = variant.get('lifetime', False)
 
@@ -126,7 +124,7 @@ if __name__ == "__main__":
             batch_size=256,
             # validation
             validation_unity_file=join(get_repo_dir(),
-                                     'rlkit/envs/ml-agents/env_builds/FoodCollectorValidation/FoodCollectorValidation.x86_64'),
+                                     'examples/unity/FoodCollector/FoodCollectorExps/Speed/FCSpeed0.x86_64'),
             validation_rollout_length=200,
             validation_period=5
         ),
@@ -139,7 +137,13 @@ if __name__ == "__main__":
     search_space = {k: [v] for k, v in search_space.items()}
     search_space.update(
         # insert sweep params here
-        env_name=['FoodCollectorExps/Speed/Speed000.x86_64']
+        env_path=[
+            'examples/unity/FoodCollector/FoodCollectorExps/Speed/FCSpeed0.x86_64',
+            # 'examples/unity/FoodCollector/FoodCollectorExps/Speed/FCSpeed2.x86_64',
+            # 'examples/unity/FoodCollector/FoodCollectorExps/Speed/FCSpeed4.x86_64',
+            # 'examples/unity/FoodCollector/FoodCollectorExps/Speed/FCSpeed8.x86_64',
+            # 'examples/unity/FoodCollector/FoodCollectorExps/Speed/FCSpeed16.x86_64',
+        ]
     )
 
     sweeper = hyp.DeterministicHyperparameterSweeper(
