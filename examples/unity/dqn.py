@@ -32,12 +32,11 @@ from os.path import join
 
 
 def experiment(variant):
-
     # ml_agents_dir = path.join(path.dirname(get_repo_dir()), 'ml-agents') # assume that ml-agents repo is in same dir as continualrl
     env_path = variant['env_path']  # Path to the Unity environment binary to launch
-    expl_env = UnityEnv(path.join(get_repo_dir(), env_path), worker_id=random.randint(0, 1000), use_visual=False, multiagent=False, no_graphics=False)
+    expl_env = UnityEnv(path.join(get_repo_dir(), env_path), worker_id=random.randint(0, 1000), use_visual=False, multiagent=False, no_graphics=True)
     expl_env = MultiDiscreteActionEnv(expl_env, expl_env.action_space.nvec)
-    eval_env = UnityEnv(path.join(get_repo_dir(), env_path), worker_id=random.randint(0, 1000), use_visual=False, multiagent=False, no_graphics=False)
+    eval_env = UnityEnv(path.join(get_repo_dir(), env_path), worker_id=random.randint(0, 1000), use_visual=False, multiagent=False, no_graphics=True)
     eval_env = MultiDiscreteActionEnv(eval_env, eval_env.action_space.nvec)
     lifetime = variant.get('lifetime', False)
 
@@ -104,14 +103,14 @@ if __name__ == "__main__":
         2. algo_variant, env_variant, env_search_space
         3. use_gpu 
         """
-    exp_prefix = 'unity-food-collector-dqn-test'
-    n_seeds = 3
-    mode = 'ec2'
+    exp_prefix = 'unity-food-collector-dqn'
+    n_seeds = 1
+    mode = 'local'
     use_gpu = False
 
     variant = dict(
-        algorithm="DQN Lifetime",
-        lifetime=True,
+        algorithm="DQN",
+        # lifetime=True,
         version="normal",
         replay_buffer_size=int(1E6),
         algorithm_kwargs=dict(
@@ -124,9 +123,9 @@ if __name__ == "__main__":
             batch_size=256,
             # validation
             validation_unity_file=join(get_repo_dir(),
-                                     'examples/unity/FoodCollectorReset/Exps/Speed/FCRSpeed0.x86_64'),
+                                     'examples/unity/FoodCollectorReset/Validation/FCRValidation.x86_64'),
             validation_rollout_length=1000,
-            validation_period=5
+            validation_period=10
         ),
         trainer_kwargs=dict(
             discount=0.99,
@@ -138,11 +137,11 @@ if __name__ == "__main__":
     search_space.update(
         # insert sweep params here
         env_path=[
-            'examples/unity/FoodCollectorReset/Exps/Speed/FCSpeed0.x86_64',
-            'examples/unity/FoodCollectorReset/Exps/Speed/FCSpeed2.x86_64',
-            'examples/unity/FoodCollectorReset/Exps/Speed/FCSpeed4.x86_64',
-            'examples/unity/FoodCollectorReset/Exps/Speed/FCSpeed8.x86_64',
-            'examples/unity/FoodCollectorReset/Exps/Speed/FCSpeed16.x86_64',
+            'examples/unity/FoodCollectorReset/Exps/Speed/FCRSpeed0.x86_64',
+            'examples/unity/FoodCollectorReset/Exps/Speed/FCRSpeed2.x86_64',
+            'examples/unity/FoodCollectorReset/Exps/Speed/FCRSpeed4.x86_64',
+            'examples/unity/FoodCollectorReset/Exps/Speed/FCRSpeed8.x86_64',
+            'examples/unity/FoodCollectorReset/Exps/Speed/FCRSpeed16.x86_64',
         ]
     )
 
@@ -153,7 +152,6 @@ if __name__ == "__main__":
     # setup_logger('unity-food-collector-dqn-test', variant=variant)
     # # ptu.set_gpu_mode(True)  # optionally set the GPU (default=False)
     # experiment(variant)
-
     for exp_id, vari in enumerate(sweeper.iterate_hyperparameters()):
         for _ in range(n_seeds):
             run_experiment(
