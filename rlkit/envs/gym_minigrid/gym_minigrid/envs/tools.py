@@ -628,3 +628,52 @@ class ToolsWallEnv(ToolsEnv):
             for loc, top in zip(wall_locs, wall_tops):
                 self.grid.vert_wall(loc, 1 if top else self.grid_size // 2 + 1, self.grid_size // 2 - 2)
         super().extra_gen_grid()
+
+
+class ToolsStickyEnv(ToolsEnv):
+    def __init__(self, sticky_prob=0.2, region=None, **kwargs):
+        self.sticky_prob = sticky_prob
+        self.region = region
+        super().__init__(**kwargs)
+
+    def step(self, action):
+        if self._rand_float(0, 1) < self.sticky_prob:
+            if self.is_sticky():
+                # No-op
+                action = self.Actions.eat
+        return super().step(action)
+
+    def is_sticky(self):
+        if self.region is None:
+            return True
+        elif self.region == 'left':
+            return self.agent_pos[0] < self.grid_size // 2
+        elif self.region == 'quadrant':
+            return self.agent_pos.max() < self.grid_size // 2
+        elif self.region == 'cross':
+            return np.prod(self.agent_pos - self.grid_size // 2) >= 0
+
+
+class ToolsStickyWallEnv(ToolsWallEnv):
+    def __init__(self, sticky_prob=0.2, region=None, **kwargs):
+        self.sticky_prob = sticky_prob
+        self.region = region
+        super().__init__(**kwargs)
+
+    def step(self, action):
+        if self._rand_float(0, 1) < self.sticky_prob:
+            if self.is_sticky():
+                # No-op
+                action = self.Actions.eat
+        return super().step(action)
+
+    def is_sticky(self):
+        if self.region is None:
+            return True
+        elif self.region == 'left':
+            return self.agent_pos[0] < self.grid_size // 2
+        elif self.region == 'quadrant':
+            return self.agent_pos.max() < self.grid_size // 2
+        elif self.region == 'cross':
+            return np.prod(self.agent_pos - self.grid_size // 2) >= 0
+        return False
