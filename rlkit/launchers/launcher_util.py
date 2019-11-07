@@ -635,12 +635,12 @@ def run_experiment(
     mode_kwargs = {}
     if use_gpu and mode == 'ec2':
         image_id = conf.REGION_TO_GPU_AWS_IMAGE_ID[region]
-        avail_zone = conf.REGION_TO_GPU_AWS_AVAIL_ZONE.get(region, "us-west-2d")
-        mode_kwargs['extra_ec2_instance_kwargs'] = dict(
-            Placement=dict(
-                AvailabilityZone=avail_zone,
-            ),
-        )
+        # avail_zone = conf.REGION_TO_GPU_AWS_AVAIL_ZONE.get(region, "us-west-2d")
+        # mode_kwargs['extra_ec2_instance_kwargs'] = dict(
+        #     Placement=dict(
+        #         AvailabilityZone=avail_zone,
+        #     ),
+        # )
     else:
         image_id = conf.REGION_TO_GPU_AWS_IMAGE_ID[region]
         # TODO suvansh commented out below to avoid region specificity

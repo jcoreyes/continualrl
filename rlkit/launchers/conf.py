@@ -145,6 +145,6 @@ GCP_DEFAULT_KWARGS = dict(
 )
 
 try:
-    from rlkit.launchers.conf_private import *
+    from rlkit.launchers.conf_private_unity import *
 except ImportError:
     print("No personal conf_private.py found.")
