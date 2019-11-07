@@ -26,7 +26,7 @@ def gen_validation_envs(n, filename, **kwargs):
                 'axe': 1,
                 'deer': 1
             },
-            deer_move_prob=0.1,
+            deer_move_prob=0.2,
             fixed_expected_resources=True,
             end_on_task_completion=True,
             time_horizon=100,

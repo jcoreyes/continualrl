@@ -111,10 +111,9 @@ if __name__ == "__main__":
     3. use_gpu 
     """
     exp_prefix = 'tool-dqn-env-shaping-distance-increase-deer'
-    n_seeds = 1
+    n_seeds = 10
     mode = 'ec2'
     use_gpu = False
-
 
     env_variant = dict(
         grid_size=8,
@@ -131,8 +130,8 @@ if __name__ == "__main__":
             'axe': 1,
         },
         replenish_low_resources={
-            'deer': 1,
-            'axe': 1
+            'deer': 2,
+            'axe': 2
         },
         deer_move_prob=0.1,
         place_schedule=(3000, 1000),
@@ -145,7 +144,8 @@ if __name__ == "__main__":
     env_search_space.update(
         # dynamicity
         deer_move_prob=[
-            0, 0.1, 0.2
+            # 0, 0.1, 0.2
+            0.2
         ],
         # env shaping
         place_schedule=[
@@ -157,7 +157,7 @@ if __name__ == "__main__":
         ],
         # resource conditions
         init_resources=[
-            {'deer': 1, 'axe': 1},
+            # {'deer': 1, 'axe': 1},
             {'deer': 2, 'axe': 2},
         ],
         # reward shaping
@@ -166,7 +166,7 @@ if __name__ == "__main__":
         ],
         # reset / reset free
         time_horizon=[
-            100
+            0, 200
         ]
     )
 
@@ -184,7 +184,7 @@ if __name__ == "__main__":
             min_num_steps_before_training=200,
             max_path_length=math.inf,
             batch_size=64,
-            validation_envs_pkl=join(get_repo_dir(), 'examples/continual/env_shaping/distance_increasing/deer/validation_envs/dynamic_static_validation_envs_2019_09_22_07_16_14.pkl'),
+            validation_envs_pkl=join(get_repo_dir(), 'examples/continual/env_shaping/distance_increasing/deer/validation_envs/dynamic_static_validation_envs_2019_11_07_05_07_54.pkl'),
             validation_rollout_length=100,
             validation_period=10,
             # store visit count array for heat map
