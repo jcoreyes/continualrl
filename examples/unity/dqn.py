@@ -4,6 +4,8 @@ Run DQN on grid world.
 import copy
 import random
 
+from mlagents.envs.exception import UnityWorkerInUseException
+
 from rlkit.envs.unity_envs import MultiDiscreteActionEnv
 from rlkit.samplers.data_collector.path_collector import LifetimeMdpPathCollector
 from rlkit.torch.dqn.double_dqn import DoubleDQNTrainer
@@ -31,12 +33,34 @@ import os.path as path
 from os.path import join
 
 
+def try_load_unity_env(exec_file, max_attempts=100):
+    succeeded = False
+    env = None
+    unity_worker_id = random.randint(400, 1000)
+    num_attempts = 0
+    while not succeeded and num_attempts <= max_attempts:
+        try:
+            num_attempts += 1
+            env = UnityEnv(exec_file, worker_id=unity_worker_id, use_visual=False, multiagent=False, no_graphics=True)
+            succeeded = True
+        except UnityWorkerInUseException as e:
+            # try another worker ID
+            unity_worker_id = random.randint(400, 1000)
+            continue
+    if env is None:
+        # exited loop due to too many attempts
+        raise RuntimeError(
+            'Timed out in finding ports to load Unity env at path %s.\nConsider increasing `max_attempts`.' % exec_file
+        )
+    return env
+
+
 def experiment(variant):
     # ml_agents_dir = path.join(path.dirname(get_repo_dir()), 'ml-agents') # assume that ml-agents repo is in same dir as continualrl
     env_path = variant['env_path']  # Path to the Unity environment binary to launch
-    expl_env = UnityEnv(path.join(get_repo_dir(), env_path), worker_id=random.randint(0, 1000), use_visual=False, multiagent=False, no_graphics=True)
+    expl_env = try_load_unity_env(path.join(get_repo_dir(), env_path))
+    eval_env = try_load_unity_env(path.join(get_repo_dir(), env_path))
     expl_env = MultiDiscreteActionEnv(expl_env, expl_env.action_space.nvec)
-    eval_env = UnityEnv(path.join(get_repo_dir(), env_path), worker_id=random.randint(0, 1000), use_visual=False, multiagent=False, no_graphics=True)
     eval_env = MultiDiscreteActionEnv(eval_env, eval_env.action_space.nvec)
     lifetime = variant.get('lifetime', False)
 
@@ -94,6 +118,8 @@ def experiment(variant):
     )
     algorithm.to(ptu.device)
     algorithm.train()
+    expl_env.close()
+    eval_env.close()
 
 
 if __name__ == "__main__":
@@ -104,8 +130,8 @@ if __name__ == "__main__":
         3. use_gpu 
         """
     exp_prefix = 'unity-food-collector-dqn'
-    n_seeds = 1
-    mode = 'local'
+    n_seeds = 3
+    mode = 'ec2'
     use_gpu = False
 
     variant = dict(
