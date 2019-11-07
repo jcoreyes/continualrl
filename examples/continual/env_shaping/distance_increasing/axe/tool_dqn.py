@@ -109,10 +109,9 @@ if __name__ == "__main__":
     3. use_gpu 
     """
     exp_prefix = 'tool-dqn-env-shaping-distance-increase-axe'
-    n_seeds = 1
+    n_seeds = 10
     mode = 'ec2'
     use_gpu = False
-
 
     env_variant = dict(
         grid_size=8,
@@ -151,19 +150,19 @@ if __name__ == "__main__":
         place_schedule=[
             # None is the baseline
             None,
-            # (40000, 20000),
+            (40000, 20000),
             (80000, 40000),
-            # (120000, 60000)
+            (120000, 60000)
         ],
         # resource conditions
         init_resources=[
-            {'metal': 1, 'wood': 1},
-            # {'metal': 2, 'wood': 2},
+            # {'metal': 1, 'wood': 1},
+            {'metal': 2, 'wood': 2},
         ],
         # reward shaping
         make_rtype=[
-            # 'sparse', 'dense-fixed', 'waypoint', 'one-time',
-            'sparse', 'dense-fixed'
+            'sparse', 'dense-fixed', 'waypoint', 'one-time',
+            # 'sparse', 'dense-fixed'
         ],
         # reset / reset free
         time_horizon=[
@@ -186,7 +185,7 @@ if __name__ == "__main__":
             min_num_steps_before_training=200,
             max_path_length=math.inf,
             batch_size=64,
-            validation_envs_pkl=join(get_repo_dir(), 'examples/continual/env_shaping/distance_increasing/axe/validation_envs/dynamic_static_validation_envs_2019_09_22_05_34_09.pkl'),
+            validation_envs_pkl=join(get_repo_dir(), 'examples/continual/env_shaping/distance_increasing/axe/validation_envs/dynamic_static_validation_envs_2019_11_07_04_41_38.pkl'),
             validation_rollout_length=100,
             validation_period=10,
             # store visit count array for heat map
@@ -241,7 +240,7 @@ if __name__ == "__main__":
                     variant=variant,
                     use_gpu=use_gpu,
                     region='us-east-2',
-                    num_exps_per_instance=3,
+                    num_exps_per_instance=1,
                     snapshot_mode='gap',
                     snapshot_gap=10,
                     # instance_type='c5.large',
