@@ -205,11 +205,13 @@ RUN mkdir -p /root/.local/share/unity3d/Certificates/ && \
 ADD conf/CACerts.pem /root/.local/share/unity3d/Certificates/
 ADD conf/asound.conf /etc/
 
+WORKDIR rlkit/envs/
 RUN git clone https://github.com/jcoreyes/ml-agents
 WORKDIR ml-agents/ml-agents-envs
 RUN pip install -e ./
 
 RUN cd ../ml-agents && pip install -e ./
+ENV PYTHONPATH "${PYTHONPATH}:${pwd}"
 
 WORKDIR /root/code
 EXPOSE 5005
