@@ -23,8 +23,8 @@ def gen_validation_envs(n, filename, **kwargs):
             fixed_reset=False,
             only_partial_obs=True,
             init_resources={
-                'axe': 1,
-                'deer': 1
+                'axe': 2,
+                'deer': 2
             },
             deer_move_prob=0.2,
             fixed_expected_resources=True,
