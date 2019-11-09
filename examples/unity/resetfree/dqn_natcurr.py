@@ -151,7 +151,7 @@ if __name__ == "__main__":
             validation_unity_file=join(get_repo_dir(),
                                        'examples/unity/env_builds/natural_curriculum/resetfree/FCRFValidation.x86_64'),
             validation_rollout_length=1000,
-            validation_period=10
+            validation_period=2
         ),
         trainer_kwargs=dict(
             discount=0.99,
@@ -190,7 +190,7 @@ if __name__ == "__main__":
                 num_exps_per_instance=1,
                 snapshot_mode='gap',
                 snapshot_gap=10,
-                instance_type='c5.large',
+                instance_type='c5.xlarge',
                 spot_price=0.08,
                 # python_cmd='python3.6'
             )

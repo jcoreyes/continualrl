@@ -149,7 +149,7 @@ class BaseRLAlgorithm(object, metaclass=abc.ABCMeta):
                         last_val = env_info[key]
                     stats[env_idx][key] = made_idxs
         elif self.validation == 'unity':
-            num_validation_rollouts = 10
+            num_validation_rollouts = 5
             returns = []  # total return
             pluses = []  # number of +1 good foods
             minuses = []  # number of -1 bad foods
