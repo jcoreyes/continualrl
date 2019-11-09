@@ -145,20 +145,19 @@ if __name__ == "__main__":
         # dynamicity
         deer_move_prob=[
             # 0, 0.1, 0.2
-            0.2
+            0.1
         ],
         # env shaping
         place_schedule=[
             # None is the baseline
             None,
             (60000, 20000),
-            (120000, 40000),
             (180000, 60000)
         ],
         # resource conditions
         init_resources=[
-            # {'deer': 1, 'axe': 1},
-            {'deer': 2, 'axe': 2},
+            {'deer': 1, 'axe': 1},
+            {'deer': 2, 'axe': 2}
         ],
         # reward shaping
         make_rtype=[
@@ -184,7 +183,7 @@ if __name__ == "__main__":
             min_num_steps_before_training=200,
             max_path_length=math.inf,
             batch_size=64,
-            validation_envs_pkl=join(get_repo_dir(), 'examples/continual/env_shaping/distance_increasing/deer/validation_envs/dynamic_static_validation_envs_2019_11_08_06_17_06.pkl'),
+            validation_envs_pkl=join(get_repo_dir(), 'examples/continual/env_shaping/distance_increasing/deer/validation_envs/dynamic_static_validation_envs_2019_11_08_23_12_37.pkl'),
             validation_rollout_length=100,
             validation_period=10,
             # store visit count array for heat map
