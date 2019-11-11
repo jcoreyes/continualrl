@@ -4,3 +4,6 @@
 [submodule "rlkit/envs/gym-minecraft"]
 	path = rlkit/envs/gym-minecraft
 	url = https://github.com/tambetm/gym-minecraft.git
+[submodule "examples/Rainbow"]
+	path = examples/Rainbow
+	url = https://github.com/Kaixhin/Rainbow.git

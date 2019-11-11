@@ -58,10 +58,10 @@ def try_load_unity_env(exec_file, max_attempts=100, no_graphics=True):
 def experiment(variant):
     # ml_agents_dir = path.join(path.dirname(get_repo_dir()), 'ml-agents') # assume that ml-agents repo is in same dir as continualrl
     env_path = variant['env_path']  # Path to the Unity environment binary to launch
-    expl_env = try_load_unity_env(path.join(get_repo_dir(), env_path))
     eval_env = try_load_unity_env(path.join(get_repo_dir(), env_path))
-    expl_env = MultiDiscreteActionEnv(expl_env, expl_env.action_space.nvec)
+    expl_env = try_load_unity_env(path.join(get_repo_dir(), env_path))
     eval_env = MultiDiscreteActionEnv(eval_env, eval_env.action_space.nvec)
+    expl_env = MultiDiscreteActionEnv(expl_env, expl_env.action_space.nvec)
     lifetime = variant.get('lifetime', False)
 
     obs_dim = expl_env.observation_space.low.size
@@ -129,7 +129,7 @@ if __name__ == "__main__":
         2. algo_variant, env_variant, env_search_space
         3. use_gpu 
         """
-    exp_prefix = 'unity-food-collector-dqn-dynstat-resetfree'
+    exp_prefix = 'unity-food-collector-dqn-distincr-resetfree'
     n_seeds = 3
     mode = 'ec2'
     use_gpu = False
@@ -137,7 +137,7 @@ if __name__ == "__main__":
     variant = dict(
         algorithm="DQN Lifetime",
         lifetime=True,
-        version="dyn stat - resetfree",
+        version="distincr - resetfree",
         replay_buffer_size=int(1E6),
         algorithm_kwargs=dict(
             num_epochs=200,
@@ -149,9 +149,9 @@ if __name__ == "__main__":
             batch_size=64,
             # validation
             validation_unity_file=join(get_repo_dir(),
-                                       'examples/unity/env_builds/dyn_stat/resetfree/FCRFValidation.x86_64'),
+                                       'examples/unity/env_builds/dist_increasing/resetfree/FCRFValidationFood2.x86_64'),
             validation_rollout_length=1000,
-            validation_period=2
+            validation_period=4
         ),
         trainer_kwargs=dict(
             discount=0.99,
@@ -163,11 +163,11 @@ if __name__ == "__main__":
     search_space.update(
         # insert sweep params here
         env_path=[
-            'examples/unity/env_builds/dyn_stat/resetfree/FCRFSpeed0.x86_64',
-            'examples/unity/env_builds/dyn_stat/resetfree/FCRFSpeed2.x86_64',
-            'examples/unity/env_builds/dyn_stat/resetfree/FCRFSpeed4.x86_64',
-            'examples/unity/env_builds/dyn_stat/resetfree/FCRFSpeed8.x86_64',
-            'examples/unity/env_builds/dyn_stat/resetfree/FCRFSpeed16.x86_64'
+            'examples/unity/env_builds/dist_increasing/resetfree/FCRFIncrOver0.x86_64',
+            'examples/unity/env_builds/dist_increasing/resetfree/FCRFIncrOver21.x86_64',
+            'examples/unity/env_builds/dist_increasing/resetfree/FCRFIncrOver42.x86_64',
+            'examples/unity/env_builds/dist_increasing/resetfree/FCRFIncrOver85.x86_64',
+            'examples/unity/env_builds/dist_increasing/resetfree/FCRFIncrOver170.x86_64'
         ]
     )
 
