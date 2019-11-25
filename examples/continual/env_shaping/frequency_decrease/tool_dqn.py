@@ -26,7 +26,7 @@ from rlkit.samplers.data_collector import MdpPathCollector
 from rlkit.torch.torch_rl_algorithm import TorchBatchRLAlgorithm, TorchLifetimeRLAlgorithm
 
 # from variants.dqn.dqn_medium_mlp_task_partial_variant import variant as algo_variant, gen_network
-from variants.dqn_lifetime.dqn_medium8_mlp_task_partial_variant import variant as algo_variant, gen_network_num_obj as gen_network
+from variants.dqn_lifetime.dqn_medium8_mlp_task_partial_variant import variant as algo_variant, gen_network#_num_obj as gen_network
 
 
 def schedule(t):
@@ -117,40 +117,46 @@ if __name__ == "__main__":
 
 
     env_variant = dict(
-        grid_size=8,
+        grid_size=10,
         agent_start_pos=None,
         health_cap=1000,
         gen_resources=True,
         fully_observed=False,
-        task='make_lifelong axe',
+        task='make axe',
         make_rtype='sparse',
         fixed_reset=False,
         only_partial_obs=True,
         init_resources={
-            'metal': 1,
-            'wood': 1,
+            'metal': 2,
+            'wood': 2,
         },
         resource_prob={
             'metal': 0.08,
             'wood': 0.08,
         },
         resource_prob_min={
-            'metal': 0.01,
-            'wood': 0.01
+            'metal': 0.02,
+            'wood': 0.02
         },
         resource_prob_decay={
             'metal': 1e-6,
             'wood': 1e-6
         },
         fixed_expected_resources=False,
-        default_lifespan=200,
+        default_lifespan=100,
         end_on_task_completion=False,
+        replenish_low_resources={
+            'metal': 2,
+            'wood': 2
+        },
         time_horizon=0
     )
     env_search_space = copy.deepcopy(env_variant)
     env_search_space = {k: [v] for k, v in env_search_space.items()}
     env_search_space.update(
+        grid_size=[10, 16],
         resource_prob=[
+            {'metal': 0.16, 'wood': 0.16},
             {'metal': 0.08, 'wood': 0.08},
             {'metal': 0.05, 'wood': 0.05},
             {'metal': 0.02, 'wood': 0.02}
@@ -158,19 +164,11 @@ if __name__ == "__main__":
         resource_prob_decay=[
             {'metal': 1e-6, 'wood': 1e-6},
             {'metal': 1e-5, 'wood': 1e-5}
-        ],
-        init_resources=[
-            {'metal': 1, 'wood': 1},
-            {'metal': 2, 'wood': 2},
-        ],
-        replenish_empty_resources=[
-            ['metal', 'wood'],
-            []
         ]
     )
 
     algo_variant = dict(
-        algorithm="DQN Lifetime",
+        algorithm="DQN",
         version="frequency decrease",
         lifetime=True,
         layer_size=16,
