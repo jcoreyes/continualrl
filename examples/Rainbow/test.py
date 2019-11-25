@@ -1,8 +1,6 @@
 # -*- coding: utf-8 -*-
 from __future__ import division
 import os
-
-from gym_minigrid.envs.deer import DeerEnv
 import plotly
 from plotly.graph_objs import Scatter
 from plotly.graph_objs.scatter import Line
@@ -12,8 +10,9 @@ from env import Env
 
 
 # Test DQN
-def test(args, T, dqn, val_mem, metrics, results_dir, variant, evaluate=False):
-  env = DeerEnv(**variant)
+def test(args, T, dqn, val_mem, metrics, results_dir, evaluate=False):
+  env = Env(args)
+  env.eval()
   metrics['steps'].append(T)
   T_rewards, T_Qs = [], []
 
@@ -24,7 +23,7 @@ def test(args, T, dqn, val_mem, metrics, results_dir, variant, evaluate=False):
       if done:
         state, reward_sum, done = env.reset(), 0, False
       action = dqn.act_e_greedy(state)  # Choose an action ε-greedily
-      state, reward, done, _ = env.step(action)  # Step
+      state, reward, done = env.step(action)  # Step
       reward_sum += reward
       if args.render:
         env.render()
@@ -32,6 +31,7 @@ def test(args, T, dqn, val_mem, metrics, results_dir, variant, evaluate=False):
       if done:
         T_rewards.append(reward_sum)
         break
+  env.close()
 
   # Test Q-values over validation memory
   for state in val_mem:  # Iterate over valid states
