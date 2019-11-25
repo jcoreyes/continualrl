@@ -8,9 +8,9 @@ from torch import optim
 from model import DQN
 
 
-class AgentDeer():
+class Agent():
   def __init__(self, args, env):
-    self.action_space = env.action_space.n
+    self.action_space = env.action_space()
     self.atoms = args.atoms
     self.Vmin = args.V_min
     self.Vmax = args.V_max
@@ -50,8 +50,7 @@ class AgentDeer():
   # Acts based on single state (no batch)
   def act(self, state):
     with torch.no_grad():
-      # suvansh added from_numpy
-      return (self.online_net(torch.from_numpy(state).float().unsqueeze(0)) * self.support).sum(2).argmax(1).item()
+      return (self.online_net(state.unsqueeze(0)) * self.support).sum(2).argmax(1).item()
 
   # Acts with an ε-greedy policy (used for evaluation only)
   def act_e_greedy(self, state, epsilon=0.001):  # High ε can reduce evaluation scores drastically

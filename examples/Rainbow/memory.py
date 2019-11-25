@@ -63,7 +63,7 @@ class SegmentTree():
   def total(self):
     return self.sum_tree[0]
 
-class ReplayMemoryDeer():
+class ReplayMemory():
   def __init__(self, args, capacity):
     self.device = args.device
     self.capacity = capacity
@@ -77,8 +77,7 @@ class ReplayMemoryDeer():
 
   # Adds state and action at time t, reward and terminal at time t + 1
   def append(self, state, action, reward, terminal):
-    # suvansh added from_numpy
-    state = torch.from_numpy(state).float().mul(255).to(dtype=torch.uint8, device=torch.device('cpu'))  # Only store last frame and discretise to save memory
+    state = state[-1].mul(255).to(dtype=torch.uint8, device=torch.device('cpu'))  # Only store last frame and discretise to save memory
     self.transitions.append(Transition(self.t, state, action, reward, not terminal), self.transitions.max)  # Store new transition with maximum priority
     self.t = 0 if terminal else self.t + 1  # Start new episodes with t = 0
 

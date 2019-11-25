@@ -7,6 +7,7 @@ import os
 import pickle
 
 import atari_py
+from agent_deer import AgentDeer
 from gym_minigrid.envs.deer import DeerEnv
 import numpy as np
 import torch
@@ -14,8 +15,8 @@ from tqdm import trange
 
 from agent import Agent
 from env import Env
-from memory import ReplayMemory
-from test import test
+from memory_deer import ReplayMemoryDeer
+from test_deer import test
 
 
 # Note that hyperparameters may originally be reported in ATARI game frames instead of agent steps
@@ -27,7 +28,8 @@ parser.add_argument('--game', type=str, default='space_invaders', choices=atari_
 parser.add_argument('--T-max', type=int, default=int(50e6), metavar='STEPS', help='Number of training steps (4x number of frames)')
 parser.add_argument('--max-episode-length', type=int, default=int(108e3), metavar='LENGTH', help='Max episode length in game frames (0 to disable)')
 parser.add_argument('--history-length', type=int, default=4, metavar='T', help='Number of consecutive states processed')
-parser.add_argument('--architecture', type=str, default='canonical', choices=['canonical', 'data-efficient'], metavar='ARCH', help='Network architecture')
+parser.add_argument('--observation-length', type=int, default=272, metavar='T', help='Length of flattened observations')
+parser.add_argument('--architecture', type=str, default='canonical', choices=['canonical', 'data-efficient', 'fully-connected'], metavar='ARCH', help='Network architecture')
 parser.add_argument('--hidden-size', type=int, default=512, metavar='SIZE', help='Network hidden size')
 parser.add_argument('--noisy-std', type=float, default=0.1, metavar='σ', help='Initial standard deviation of noisy linear layers')
 parser.add_argument('--atoms', type=int, default=51, metavar='C', help='Discretised size of value distribution')
@@ -66,24 +68,27 @@ deer_variant = dict(
   gen_resources=True,
   fully_observed=False,
   task='make food',
-  make_rtype='sparse',
+  make_rtype='dense-fixed',
   fixed_reset=False,
   only_partial_obs=True,
   init_resources={
-      'metal': 1,
-      'wood': 1
+      # 'metal': 1,
+      # 'wood': 1
+      'axe': 2,
+      'deer': 2
   },
   default_lifespan=0,
   fixed_expected_resources=True,
   end_on_task_completion=False,
   time_horizon=0,
   replenish_low_resources={
-      'metal': 3,
-      'wood': 3,
-      'deer': 3
+      'axe': 2,
+      'deer': 2
   },
-  deer_kill_easy_decay=1e-5
+  # deer_kill_easy_decay=1e-5
 )
+deer_variant_test = deer_variant.copy()
+deer_variant_test['time_horizon'] = 1000
 
 print(' ' * 26 + 'Options')
 for k, v in vars(args).items():
@@ -130,10 +135,10 @@ def save_memory(memory, memory_path, disable_bzip):
 # env.train()
 # action_space = env.action_space()
 env = DeerEnv(**deer_variant)
-action_space = env.action_space
+action_space = env.action_space.n
 
 # Agent
-dqn = Agent(args, env)
+dqn = AgentDeer(args, env)
 
 # If a model is provided, and evaluate is fale, presumably we want to resume, so try to load memory
 if args.model is not None and not args.evaluate:
@@ -145,26 +150,26 @@ if args.model is not None and not args.evaluate:
   mem = load_memory(args.memory, args.disable_bzip_memory)
 
 else:
-  mem = ReplayMemory(args, args.memory_capacity)
+  mem = ReplayMemoryDeer(args, args.memory_capacity)
 
 priority_weight_increase = (1 - args.priority_weight) / (args.T_max - args.learn_start)
 
 
 # Construct validation memory
-val_mem = ReplayMemory(args, args.evaluation_size)
+val_mem = ReplayMemoryDeer(args, args.evaluation_size)
 T, done = 0, True
 while T < args.evaluation_size:
   if done:
     state, done = env.reset(), False
 
-  next_state, _, done = env.step(np.random.randint(0, action_space))
+  next_state, _, done, __ = env.step(np.random.randint(0, action_space))
   val_mem.append(state, None, None, done)
   state = next_state
   T += 1
 
 if args.evaluate:
   dqn.eval()  # Set DQN (online network) to evaluation mode
-  avg_reward, avg_Q = test(args, 0, dqn, val_mem, metrics, results_dir, evaluate=True)  # Test
+  avg_reward, avg_Q = test(args, 0, dqn, val_mem, metrics, results_dir, deer_variant_test, evaluate=True)  # Test
   print('Avg. reward: ' + str(avg_reward) + ' | Avg. Q: ' + str(avg_Q))
 else:
   # Training loop
@@ -192,7 +197,7 @@ else:
 
       if T % args.evaluation_interval == 0:
         dqn.eval()  # Set DQN (online network) to evaluation mode
-        avg_reward, avg_Q = test(args, T, dqn, val_mem, metrics, results_dir)  # Test
+        avg_reward, avg_Q = test(args, T, dqn, val_mem, metrics, results_dir, deer_variant_test)  # Test
         log('T = ' + str(T) + ' / ' + str(args.T_max) + ' | Avg. reward: ' + str(avg_reward) + ' | Avg. Q: ' + str(avg_Q))
         dqn.train()  # Set DQN (online network) back to training mode
 
