@@ -140,7 +140,7 @@ if __name__ == "__main__":
     env_search_space = {k: [v] for k, v in env_search_space.items()}
     env_search_space.update(
         resource_prob=[
-            {'metal': 0, 'wood': 0},
+            # {'metal': 0, 'wood': 0},
             # {'metal': 0.01, 'wood': 0.01},
             # {'metal': 0.05, 'wood': 0.05},
             {'metal': 0.1, 'wood': 0.1},
@@ -151,8 +151,8 @@ if __name__ == "__main__":
             {'metal': 2, 'wood': 2}
         ],
         make_rtype=[
-            'sparse', 'dense-fixed', 'waypoint'
-            # 'dense-fixed'
+            # 'sparse', 'dense-fixed', 'waypoint'
+            'waypoint'
         ],
         time_horizon=[
             0, 100
@@ -202,6 +202,33 @@ if __name__ == "__main__":
     algo_search_space = {k: [v] for k, v in algo_search_space.items()}
     algo_search_space.update(
         # insert sweep params here
+        trainer_kwargs=[
+            dict(
+                discount=0.99,
+                learning_rate=1E-5,
+                grad_clip_val=5
+            ),
+            dict(
+                discount=0.99,
+                learning_rate=3E-5,
+                grad_clip_val=5
+            ),
+            dict(
+                discount=0.99,
+                learning_rate=1E-4,
+                grad_clip_val=5
+            ),
+            dict(
+                discount=0.99,
+                learning_rate=3E-4,
+                grad_clip_val=5
+            ),
+            dict(
+                discount=0.99,
+                learning_rate=1E-3,
+                grad_clip_val=5
+            )
+        ]
     )
 
     env_sweeper = hyp.DeterministicHyperparameterSweeper(

@@ -43,25 +43,23 @@ def main():
         gen_resources=True,
         fully_observed=False,
         task='make food',
-        make_rtype='sparse',
+        make_rtype='dense-fixed',
         fixed_reset=False,
         only_partial_obs=True,
         init_resources={
-            'metal': 3,
-            'wood': 3,
-            'deer': 3
+            # 'metal': 1,
+            # 'wood': 1
+            'axe': 2,
+            'deer': 2
         },
         default_lifespan=0,
         fixed_expected_resources=True,
         end_on_task_completion=False,
         time_horizon=0,
         replenish_low_resources={
-            'metal': 3,
-            'wood': 3,
-            'deer': 3
+            'axe': 2,
+            'deer': 2
         },
-        deer_kill_easy_prob=0.3,
-        deer_kill_easy_decay=1e-3
     )
     # env = ToolsWallEnv(
     #     grid_size=10,
