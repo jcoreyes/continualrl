@@ -110,7 +110,7 @@ if __name__ == "__main__":
     2. algo_variant, env_variant, env_search_space
     3. use_gpu 
     """
-    exp_prefix = 'tool-dqn-env-shaping-frequency-decrease'
+    exp_prefix = 'tool-dqn-env-shaping-frequency-decrease-10x10'
     n_seeds = 1
     mode = 'ec2'
     use_gpu = False
@@ -154,7 +154,7 @@ if __name__ == "__main__":
     env_search_space = copy.deepcopy(env_variant)
     env_search_space = {k: [v] for k, v in env_search_space.items()}
     env_search_space.update(
-        grid_size=[10, 16],
+        grid_size=[16],
         resource_prob=[
             {'metal': 0.16, 'wood': 0.16},
             {'metal': 0.08, 'wood': 0.08},
@@ -181,8 +181,10 @@ if __name__ == "__main__":
             min_num_steps_before_training=200,
             max_path_length=math.inf,
             batch_size=256,
-            validation_envs_pkl=join(get_repo_dir(), 'examples/continual/env_shaping/frequency_decrease/validation_envs/dynamic_static_validation_envs_2019_09_18_04_39_32.pkl'),
-            validation_rollout_length=100
+            validation_envs_pkl=join(get_repo_dir(), 'examples/continual/env_shaping/frequency_decrease/validation_envs/dynamic_static_validation_envs_2019_11_26_14_56_42_10x10.pkl'),
+            # validation_envs_pkl=join(get_repo_dir(), 'examples/continual/env_shaping/frequency_decrease/validation_envs/dynamic_static_validation_envs_2019_11_26_14_57_54_16x16.pkl'),
+            validation_rollout_length=100,
+            # validation_rollout_length=500,
         ),
         trainer_kwargs=dict(
             discount=0.99,

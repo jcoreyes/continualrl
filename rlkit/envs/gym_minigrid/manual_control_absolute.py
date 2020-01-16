@@ -5,7 +5,10 @@ from __future__ import division, print_function
 import pickle
 import sys
 
+from gym_minigrid.envs import FoodEnvHard1Inv
 from gym_minigrid.envs.deer import DeerEnv
+from gym_minigrid.envs.lava import LavaEnv
+from gym_minigrid.envs.monsters import MonstersEnv
 from gym_minigrid.envs.tools import ToolsEnv, ToolsWallEnv
 import numpy
 import gym
@@ -35,59 +38,105 @@ def main():
     (options, args) = parser.parse_args()
 
     # Load the gym environment
-    # env = gym.make(options.env_name)
-    env = DeerEnv(
-        grid_size=10,
-        agent_start_pos=None,
-        health_cap=1000,
-        gen_resources=True,
-        fully_observed=False,
-        task='make food',
-        make_rtype='dense-fixed',
-        fixed_reset=False,
-        only_partial_obs=True,
-        init_resources={
-            # 'metal': 1,
-            # 'wood': 1
-            'axe': 2,
-            'deer': 2
-        },
-        default_lifespan=0,
-        fixed_expected_resources=True,
-        end_on_task_completion=False,
-        time_horizon=0,
-        replenish_low_resources={
-            'axe': 2,
-            'deer': 2
-        },
-    )
-    # env = ToolsWallEnv(
+    # env = DeerEnv(
     #     grid_size=10,
     #     agent_start_pos=None,
     #     health_cap=1000,
     #     gen_resources=True,
     #     fully_observed=False,
-    #     task='make_lifelong axe',
-    #     make_rtype='sparse',
+    #     task='make food',
+    #     make_rtype='dense-fixed',
     #     fixed_reset=False,
     #     only_partial_obs=True,
     #     init_resources={
-    #         'metal': 1,
-    #         'wood': 1,
+    #         # 'metal': 1,
+    #         # 'wood': 1
+    #         'axe': 2,
+    #         'deer': 2
     #     },
-    #     resource_prob={
-    #         'metal': 0.05,
-    #         'wood': 0.05,
-    #     },
-    #     replenish_empty_resources=['metal', 'wood'],
-    #     place_schedule=(30000, 10000),
+    #     default_lifespan=0,
     #     fixed_expected_resources=True,
     #     end_on_task_completion=False,
-    #     num_walls=3,
-    #     fixed_walls=True,
     #     time_horizon=0,
-    #     agent_view_size=5
+    #     replenish_low_resources={
+    #         'axe': 2,
+    #         'deer': 2
+    #     },
     # )
+    env = MonstersEnv(
+        grid_size=10,
+        agent_start_pos=None,
+        health_cap=1000,
+        gen_resources=True,
+        fully_observed=False,
+        task='pickup food',
+        make_rtype='sparse',
+        fixed_reset=False,
+        only_partial_obs=True,
+        # init_resources={
+        #     'metal': 3,
+        #     'wood': 2,
+        #     'axe': 3
+        # },
+        init_resources={
+            'food': 10,
+            'monster': 1
+        },
+        # resource_prob={
+        #     'metal': 0.05,
+        #     'wood': 0.05,
+        # },
+        resource_prob={
+            'food': 0.02,
+            'monster': 0.01
+        },
+        lifespans={
+            'monster': 20
+        },
+        replenish_low_resources={
+            'food': 2
+        },
+        # place_schedule=(30000, 10000),
+        fixed_expected_resources=True,
+        end_on_task_completion=False,
+        # num_walls=3,
+        # fixed_walls=True,
+        time_horizon=0,
+        agent_view_size=5,
+        monster_eps=0.4,
+        monster_attack_dist=1
+    )
+    env = LavaEnv(
+        num_lava=3,
+        lava_timeout=1,
+        grid_size=10,
+        agent_start_pos=None,
+        health_cap=1000,
+        gen_resources=True,
+        fully_observed=False,
+        task='make axe',
+        make_rtype='sparse',
+        fixed_reset=False,
+        only_partial_obs=True,
+        init_resources={
+            'metal': 3,
+            'wood': 2,
+            'axe': 3
+        },
+        resource_prob={
+            'metal': 0.05,
+            'wood': 0.05,
+        },
+        replenish_empty_resources=['metal', 'wood'],
+        # place_schedule=(30000, 10000),
+        fixed_expected_resources=True,
+        end_on_task_completion=False,
+        # num_walls=3,
+        # fixed_walls=True,
+        time_horizon=0,
+        agent_view_size=5
+    )
+    # env = gym.make(options.env_name)
     pkl = options.qf
     if pkl is not None:
         params = pickle.load(open(pkl, 'rb'))

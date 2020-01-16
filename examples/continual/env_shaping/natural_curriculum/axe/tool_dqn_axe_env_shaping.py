@@ -102,7 +102,6 @@ def experiment(variant):
     algorithm.to(ptu.device)
     algorithm.train()
 
-
 if __name__ == "__main__":
     """
     NOTE: Things to check for running exps:
@@ -110,9 +109,9 @@ if __name__ == "__main__":
     2. algo_variant, env_variant, env_search_space
     3. use_gpu 
     """
-    exp_prefix = 'tool-dqn-env-shaping-natural-curriculum-axe'
+    exp_prefix = 'tool-dqn-env-shaping-natural-curriculum-axe-rnd'
     n_seeds = 1
-    mode = 'ec2'
+    mode = 'local'
     use_gpu = False
 
     env_variant = dict(
@@ -149,13 +148,14 @@ if __name__ == "__main__":
             {'metal': 10, 'wood': 10},
             {'metal': 14, 'wood': 14}
         ],
-        make_rtype=['sparse', 'dense-fixed', 'one-time', 'waypoint']
+        # make_rtype=['sparse', 'dense-fixed', 'one-time', 'waypoint']
+        make_rtype=['dense-fixed', 'waypoint'],
+        rnd=[True, False]
     )
 
     algo_variant = dict(
-        algorithm="DQN Lifetime",
-        version="natural curriculum - axe",
-        lifetime=True,
+        algorithm="DQN",
+        version="natural curriculum - axe (RND)",
         layer_size=16,
         replay_buffer_size=int(5E5),
         algorithm_kwargs=dict(
