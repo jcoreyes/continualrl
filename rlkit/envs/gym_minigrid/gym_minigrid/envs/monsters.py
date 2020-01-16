@@ -15,7 +15,7 @@ POS_RWD = 100
 MED_RWD = 1
 
 
-class ToolsEnv(FoodEnvBase):
+class MonstersEnv(FoodEnvBase):
     """
     Empty grid environment, no obstacles, sparse reward
     """
@@ -35,6 +35,8 @@ class ToolsEnv(FoodEnvBase):
 
     def __init__(
             self,
+            monster_eps=0.25,
+            monster_attack_dist=0,
             grid_size=32,
             health_cap=100,
             food_rate=4,
@@ -109,17 +111,20 @@ class ToolsEnv(FoodEnvBase):
 
         self.seed_val = seed_val
         self.fixed_reset = fixed_reset
-        if not hasattr(self, 'object_to_idx'):
-            self.object_to_idx = {
-                'empty': 0,
-                'wall': 1,
-                'food': 2,
-                'wood': 3,
-                'metal': 4,
-                'tree': 5,
-                'axe': 6,
-                'berry': 7
-            }
+        self.monsters = []
+        self.monster_eps = monster_eps
+        self.monster_attack_dist = monster_attack_dist
+        self.object_to_idx = {
+            'empty': 0,
+            'wall': 1,
+            'food': 2,
+            'wood': 3,
+            'metal': 4,
+            'tree': 5,
+            'axe': 6,
+            'berry': 7,
+            'monster': 8
+        }
 
         # TASK stuff
         self.task = task
@@ -162,7 +167,7 @@ class ToolsEnv(FoodEnvBase):
         # food
         self.pantry = []
         self.max_pantry_size = max_pantry_size
-        self.actions = ToolsEnv.Actions
+        self.actions = MonstersEnv.Actions
 
         # stores info about picked up items
         self.info_last = {'pickup_%s' % k: 0 for k in self.object_to_idx.keys()
@@ -254,8 +259,8 @@ class ToolsEnv(FoodEnvBase):
         placed = set()
         for type, thresh in self.replenish_low_resources.items():
             if counts.get(type, 0) < thresh:
-                self.place_prob(TYPE_TO_CLASS_ABS[type](lifespan=self.lifespans.get(type, self.default_lifespan)), 1)
-                placed.add(type)
+                if self.place_general(type):
+                    placed.add(type)
         for type, prob in self.resource_prob.items():
             place_prob = max(self.resource_prob_min.get(type, 0),
                              prob - self.resource_prob_decay.get(type, 0) * self.step_count)
@@ -271,24 +276,39 @@ class ToolsEnv(FoodEnvBase):
                 diam = self.place_radius()
                 if diam >= 2 * self.grid_size:
                     self.full_grid = True
-                self.place_prob(TYPE_TO_CLASS_ABS[type](lifespan=self.lifespans.get(type, self.default_lifespan)),
-                                place_prob,
-                                top=(np.clip(self.agent_pos - diam // 2, 0, self.grid_size-1)),
-                                size=(diam, diam))
+                self.place_general(type, place_prob, top=(np.clip(self.agent_pos - diam // 2, 0, self.grid_size-1)),
+                                   size=(diam, diam))
+
             else:
-                self.place_prob(TYPE_TO_CLASS_ABS[type](lifespan=self.lifespans.get(type, self.default_lifespan)),
-                                place_prob)
+                self.place_general(type, place_prob)
+
+    def place_general(self, type, prob=1, **kwargs):
+        if type == 'monster':
+            placed = bool(np.random.binomial(1, prob))
+            if placed:
+                pos = self.place_obj(None)  # find empty spot
+                item = TYPE_TO_CLASS_ABS[type](pos, self, lifespan=self.lifespans.get(type, self.default_lifespan),
+                                               eps=self.monster_eps)
+                self.monsters.append(item)
+        else:
+            item = TYPE_TO_CLASS_ABS[type](lifespan=self.lifespans.get(type, self.default_lifespan))
+            placed = self.place_prob(item, prob, **kwargs)
+        return placed
 
     def extra_gen_grid(self):
         for type, count in self.init_resources.items():
-            if self.task and self.task[0] == 'pickup' and type == self.task[1]:
-                for _ in range(count):
-                    self.place_obj(TYPE_TO_CLASS_ABS[type]())
-            else:
-                for _ in range(count):
-                    self.place_obj(TYPE_TO_CLASS_ABS[type](lifespan=self.lifespans.get(type, self.default_lifespan)))
+            for _ in range(count):
+                self.place_general(type)
 
     def extra_step(self, action, matched):
+        # Let monsters act and die
+        dead_monsters = []
+        for monster in self.monsters:
+            if not monster.act(self.last_agent_pos):
+                dead_monsters.append(monster)
+        for monster in dead_monsters:
+            self.monsters.remove(monster)
+        print('There are %d monsters!' % len(self.monsters))
         if matched:
             return matched
         agent_cell = self.grid.get(*self.agent_pos)
@@ -390,6 +410,13 @@ class ToolsEnv(FoodEnvBase):
                 info.update({'progress': (self.max_make_idx + 1) / len(self.make_sequence)})
         else:
             reward = int(solved)
+        # monster attack
+        if self.monsters:
+            monster_dists = np.linalg.norm(
+                np.stack([monster.cur_pos - self.agent_pos for monster in self.monsters], axis=0),
+                ord=1, axis=1
+            )
+            reward += NEG_RWD * bool(np.count_nonzero(monster_dists <= self.monster_attack_dist))  # neg rwd if any monster on or adjacent to agent
 
         """ Generate info """
         info.update({'health': self.health})
@@ -437,6 +464,17 @@ class ToolsEnv(FoodEnvBase):
         return obs, reward, done, info
 
     def reset(self, seed=None, return_seed=False):
+        self.monsters = []
+        self.pantry = []
+        self.made_obj_type = None
+        self.last_placed_on = None
+        self.max_make_idx = -1
+        self.last_idx = -1
+        self.obs_count = {}
+        self.info_last = {'pickup_%s' % k: 0 for k in self.object_to_idx.keys()
+                          if k not in ['empty', 'wall', 'tree']}
+        self.info_last.update({'made_%s' % v: 0 for v in self.interactions.values()})
+
         if self.fixed_reset:
             self.seed(self.seed_val)
         else:
@@ -448,15 +486,6 @@ class ToolsEnv(FoodEnvBase):
         num_objs = np.repeat(self.info_last['pickup_%s' % self.task[1]], 8)
         obs = np.concatenate((obs, extra_obs.flatten(), num_objs)) if self.include_num_objs else np.concatenate((obs, extra_obs.flatten()))
 
-        self.pantry = []
-        self.made_obj_type = None
-        self.last_placed_on = None
-        self.max_make_idx = -1
-        self.last_idx = -1
-        self.obs_count = {}
-        self.info_last = {'pickup_%s' % k: 0 for k in self.object_to_idx.keys()
-                          if k not in ['empty', 'wall', 'tree']}
-        self.info_last.update({'made_%s' % v: 0 for v in self.interactions.values()})
         return (obs, seed) if return_seed else obs
 
     def solved_task(self):
@@ -606,84 +635,3 @@ class ToolsEnv(FoodEnvBase):
     def decay_health(self):
         if self.include_health:
             super().decay_health()
-
-
-class ToolsWallEnv(ToolsEnv):
-    def __init__(self, num_walls=1, fixed_walls=True, **kwargs):
-        self.num_walls = num_walls
-        self.fixed_walls = fixed_walls
-        super().__init__(**kwargs)
-
-        assert 1 <= num_walls <= self.grid_size - 2
-
-    def extra_gen_grid(self):
-        # Note: shorter walls used for random env to ensure it's always solvable
-        if self.num_walls == 1:
-            self.grid.horz_wall(0, self.grid_size // 2)
-            if self.fixed_walls:
-                hole_loc = self.grid_size // 2
-            else:
-                # make a 2-wide hole in the wall at a random location
-                hole_loc = self._rand_int(1, self.grid_size - 2)
-            self.grid.set(hole_loc, self.grid_size // 2, None)
-            self.grid.set(hole_loc + 1, self.grid_size // 2, None)
-        elif self.fixed_walls:
-            wall_locs = [(i + 1) * self.grid_size // (self.num_walls + 1) for i in range(self.num_walls)]
-            wall_tops = ([True, False] * (self.grid_size // 2 + 1))[:self.num_walls]
-            for loc, top in zip(wall_locs, wall_tops):
-                self.grid.vert_wall(loc, 1 if top else self.grid_size // 2, self.grid_size // 2 - 1)
-        else:
-            wall_locs = self._rand_subset(range(2, self.grid_size - 2), self.num_walls)
-            wall_tops = [self._rand_bool() for _ in range(self.num_walls)]
-            for loc, top in zip(wall_locs, wall_tops):
-                self.grid.vert_wall(loc, 1 if top else self.grid_size // 2 + 1, self.grid_size // 2 - 2)
-        super().extra_gen_grid()
-
-
-class ToolsStickyEnv(ToolsEnv):
-    def __init__(self, sticky_prob=0.2, region=None, **kwargs):
-        self.sticky_prob = sticky_prob
-        self.region = region
-        super().__init__(**kwargs)
-
-    def step(self, action):
-        if self._rand_float(0, 1) < self.sticky_prob:
-            if self.is_sticky():
-                # No-op
-                action = self.Actions.eat
-        return super().step(action)
-
-    def is_sticky(self):
-        if self.region is None:
-            return True
-        elif self.region == 'left':
-            return self.agent_pos[0] < self.grid_size // 2
-        elif self.region == 'quadrant':
-            return self.agent_pos.max() < self.grid_size // 2
-        elif self.region == 'cross':
-            return np.prod(self.agent_pos - self.grid_size // 2) >= 0
-
-
-class ToolsStickyWallEnv(ToolsWallEnv):
-    def __init__(self, sticky_prob=0.2, region=None, **kwargs):
-        self.sticky_prob = sticky_prob
-        self.region = region
-        super().__init__(**kwargs)
-
-    def step(self, action):
-        if self._rand_float(0, 1) < self.sticky_prob:
-            if self.is_sticky():
-                # No-op
-                action = self.Actions.eat
-        return super().step(action)
-
-    def is_sticky(self):
-        if self.region is None:
-            return True
-        elif self.region == 'left':
-            return self.agent_pos[0] < self.grid_size // 2
-        elif self.region == 'quadrant':
-            return self.agent_pos.max() < self.grid_size // 2
-        elif self.region == 'cross':
-            return np.prod(self.agent_pos - self.grid_size // 2) >= 0
-        return False

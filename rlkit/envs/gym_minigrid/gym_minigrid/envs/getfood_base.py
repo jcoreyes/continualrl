@@ -227,6 +227,8 @@ class FoodEnvBase(MiniGridAbsoluteEnv):
                 cell = self.grid.get(i, j)
                 type = cell.type if cell is not None else ''
                 counts[type] = counts.get(type, 0) + 1
+        if hasattr(self, 'monsters'):
+            counts['monster'] = len(self.monsters)
         return counts
 
     def exists_type(self, type):
