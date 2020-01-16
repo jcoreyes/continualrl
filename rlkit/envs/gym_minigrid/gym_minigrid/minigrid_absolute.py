@@ -89,7 +89,8 @@ OBJECT_TO_IDX = {
     'plant': 14,
     'sun': 15,
     'berry': 16,
-    'deer': 17
+    'deer': 17,
+    'lava': 18
 }
 
 IDX_TO_OBJECT = dict(zip(OBJECT_TO_IDX.values(), OBJECT_TO_IDX.keys()))
@@ -637,19 +638,20 @@ class BigFood(WorldObj):
 
 
 class Monster(WorldObj):
-    def __init__(self, pos, env, lifetime=32, eps=0.2, color='purple'):
+    def __init__(self, pos, env, lifespan=32, eps=0.2, color='purple'):
         """
         :param pos: the starting position
         :param env: the containing environment
-        :param lifetime: how many timesteps to live
+        :param lifespan: how many timesteps to live
         :param eps: probability of random action
         """
         super().__init__('monster', color)
         self.cur_pos = pos
         self.env = env
-        self.lifetime = lifetime
+        self.lifespan = lifespan
         self.eps = eps
         self.life = 0
+        self.actions = list(DIR_TO_VEC.values()) + [np.array([0, 0])]
 
     def can_overlap(self):
         return True
@@ -670,18 +672,19 @@ class Monster(WorldObj):
 
     def act(self, goal_pos):
         """ return False if dead after this action. """
-        new_pos = np.clip(self.cur_pos + self.get_action(goal_pos), 1, self.env.grid_size - 1)
+        new_pos = np.clip(self.cur_pos + self.get_action(goal_pos), 1, self.env.grid_size - 2)
         new_cell = self.env.grid.get(*new_pos)
         if not (new_cell and new_cell.block_monster()):
             self.cur_pos = new_pos
         self.life += 1
-        return self.life < self.lifetime
+        return self.life < self.lifespan
 
     def get_action(self, goal_pos):
         if random.random() < self.eps:
-            dir = random.choice(list(DIR_TO_VEC.values()))
+            dir = random.choice(self.actions)
         else:
-            dir = min(DIR_TO_VEC.values(), key=lambda val: np.linalg.norm(val + self.cur_pos - goal_pos))
+            dir = min(self.actions, key=lambda val: np.linalg.norm(val + self.cur_pos - goal_pos, ord=1))
+        # dist = np.linalg.norm(self.cur_pos + dir - goal_pos, ord=1)
         return dir
 
 
@@ -828,6 +831,30 @@ class Berry(WorldObj):
     def render(self, r):
         self._set_color(r)
         r.drawCircle(CELL_PIXELS * 0.5, CELL_PIXELS * 0.5, 10)
+
+
+class Lava(WorldObj):
+    """
+    Red sticky square
+    """
+
+    def __init__(self, color='red'):
+        super().__init__('lava', color)
+
+    def can_overlap(self):
+        return True
+
+    def render(self, r):
+        # Give the floor a pale color
+        c = COLORS[self.color]
+        r.setLineColor(100, 100, 100, 0)
+        r.setColor(*c / 2)
+        r.drawPolygon([
+            (1, CELL_PIXELS),
+            (CELL_PIXELS, CELL_PIXELS),
+            (CELL_PIXELS, 1),
+            (1, 1)
+        ])
 
 
 class GridAbsolute:
@@ -1051,10 +1078,12 @@ class GridAbsolute:
     #
     #     return grid
 
-    def encode(self, env=None, onehot=False):
+    def encode(self, env=None, onehot=False, partial=False):
         """
         Produce a numpy encoding of the grid
         env is for extra info to encode held objects
+        onehot is for separate channels for each type
+        partial is used for monster envs. True means the call is made on the grid representing agent's partial view
         """
         assert not hasattr(env, 'monsters') or onehot, "Must use onehot representation for env with monsters"
 
@@ -1078,10 +1107,14 @@ class GridAbsolute:
             array = np.concatenate([np.eye(len(obj_to_idx))[ch].transpose(2, 0, 1) for ch in array])
             if hasattr(env, 'monsters'):
                 for mon in env.monsters:
-                    diff = mon.cur_pos - env.agent_pos
-                    rel_pos = diff + self.agent_view_size // 2
-                    if (np.abs(diff) <= self.agent_view_size // 2).all():
-                        array[obj_to_idx[mon.type], rel_pos[0], rel_pos[1]] = 1
+                    if partial:
+                        diff = mon.cur_pos - env.agent_pos
+                        # -1 for 0-index
+                        rel_pos = diff + env.agent_view_size // 2
+                        if (np.abs(diff) <= env.agent_view_size // 2).all():
+                            array[obj_to_idx[mon.type], rel_pos[0], rel_pos[1]] = 1
+                    else:
+                        array[obj_to_idx[mon.type], mon.cur_pos[0], mon.cur_pos[1]] = 1
         return array
 
     @staticmethod
@@ -1633,6 +1666,7 @@ class MiniGridAbsoluteEnv(gym.Env):
     # 	return cell != None and cell.type == 'goal'
 
     def step(self, action, override=False):
+        self.last_agent_pos = self.agent_pos
         self.step_count += 1
         done = False
         # did we catch the action?
@@ -1640,17 +1674,17 @@ class MiniGridAbsoluteEnv(gym.Env):
         agent_cell = self.grid.get(*self.agent_pos)
         act_enum = self.Actions(action)
         if act_enum.name in ['north', 'west', 'south', 'east']:
-            next_pos = self.agent_pos + DIR_TO_VEC[act_enum.name]
-            next_cell = self.grid.get(*next_pos)
-            if next_cell == None or next_cell.can_overlap():
-                self.last_agent_pos = self.agent_pos
-                self.agent_pos = next_pos
-                if self.carry_flag:
-                    self.carrying.held_pos = self.agent_pos
-                    self.carrying.cur_pos = self.agent_pos
-            else:
-                # toggle (for door)
-                next_cell.toggle(self, next_pos)
+            if not hasattr(self, 'can_move') or self.can_move:
+                next_pos = self.agent_pos + DIR_TO_VEC[act_enum.name]
+                next_cell = self.grid.get(*next_pos)
+                if next_cell == None or next_cell.can_overlap():
+                    self.agent_pos = next_pos
+                    if self.carry_flag:
+                        self.carrying.held_pos = self.agent_pos
+                        self.carrying.cur_pos = self.agent_pos
+                else:
+                    # toggle (for door)
+                    next_cell.toggle(self, next_pos)
         # if self.done_cond(self.agent_pos):
         # 	done = True
 
@@ -1731,7 +1765,7 @@ class MiniGridAbsoluteEnv(gym.Env):
         grid, _ = self.gen_obs_grid()
 
         # Encode the partially observable view into a numpy array
-        image = grid.encode(self, onehot=onehot)
+        image = grid.encode(self, onehot=onehot, partial=True)
 
         # assert hasattr(self, 'mission'), "environments must define a textual mission string"
         #
