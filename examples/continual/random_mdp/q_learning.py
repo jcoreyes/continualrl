@@ -54,7 +54,7 @@ if __name__ == "__main__":
         s=100,
         a=10,
         discount=0.999,
-        betas=[0, 0.05, 0.1, 0.15, 0.2],
+        betas=np.linspace(0, 1, 21, endpoint=True).tolist(),
         mixins=[None, 'uniform', 'shaped'],
         # self-transition probability
         # TODO sweep over self_p's as well
