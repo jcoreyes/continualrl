@@ -7,3 +7,6 @@
 [submodule "rlkit/envs/ml-agents"]
 	path = rlkit/envs/ml-agents
 	url = https://github.com/Unity-Technologies/ml-agents.git
+[submodule "rlkit/envs/gym-miniworld"]
+	path = rlkit/envs/gym-miniworld
+	url = https://github.com/maximecb/gym-miniworld.git
