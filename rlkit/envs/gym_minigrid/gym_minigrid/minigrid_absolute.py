@@ -90,7 +90,10 @@ OBJECT_TO_IDX = {
     'sun': 15,
     'berry': 16,
     'deer': 17,
-    'lava': 18
+    'lava': 18,
+    'factory': 19,
+    'woodfactory': 20,
+    'metalfactory': 21
 }
 
 IDX_TO_OBJECT = dict(zip(OBJECT_TO_IDX.values(), OBJECT_TO_IDX.keys()))
@@ -689,8 +692,9 @@ class Monster(WorldObj):
 
 
 class Deer(WorldObj):
-    def __init__(self, color='brown', lifespan=0):
+    def __init__(self, color='brown', lifespan=0, difficulty='medium'):
         super().__init__('deer', color, lifespan=lifespan)
+        self.difficulty = difficulty
 
     def can_overlap(self):
         return True
@@ -838,7 +842,7 @@ class Lava(WorldObj):
     Red sticky square
     """
 
-    def __init__(self, color='red'):
+    def __init__(self, color='red', lifespan=0):
         super().__init__('lava', color)
 
     def can_overlap(self):
@@ -854,6 +858,55 @@ class Lava(WorldObj):
             (CELL_PIXELS, CELL_PIXELS),
             (CELL_PIXELS, 1),
             (1, 1)
+        ])
+
+
+class Factory(WorldObj):
+    """
+    Factory generating a type of object
+    """
+    def __init__(self, makes, color='grey', lifespan=0):
+        super().__init__('factory', color=color, lifespan=lifespan)
+        self.makes = makes
+
+
+class WoodFactory(Factory):
+    def __init__(self, color='brown', lifespan=0):
+        super().__init__('wood', color=color, lifespan=lifespan)
+        self.type = 'woodfactory'
+
+    def can_overlap(self):
+        return True
+
+    def render(self, r):
+        self._set_color(r)
+        r.drawCircle(CELL_PIXELS * 0.2, CELL_PIXELS * 0.5, 4)
+        r.drawCircle(CELL_PIXELS * 0.8, CELL_PIXELS * 0.5, 4)
+        r.drawPolygon([
+            (CELL_PIXELS * 0.2, CELL_PIXELS * 0.5 - 6),
+            (CELL_PIXELS * 0.8, CELL_PIXELS * 0.5 - 6),
+            (CELL_PIXELS * 0.8, CELL_PIXELS * 0.5 + 6),
+            (CELL_PIXELS * 0.2, CELL_PIXELS * 0.5 + 6),
+        ])
+
+
+class MetalFactory(Factory):
+    def __init__(self, color='grey', lifespan=0):
+        super().__init__('metal', color=color, lifespan=lifespan)
+        self.type = 'metalfactory'
+
+    def can_overlap(self):
+        return True
+
+    def render(self, r):
+        self._set_color(r)
+        r.drawCircle(CELL_PIXELS * 0.2, CELL_PIXELS * 0.5, 4)
+        r.drawCircle(CELL_PIXELS * 0.8, CELL_PIXELS * 0.5, 4)
+        r.drawPolygon([
+            (CELL_PIXELS * 0.2, CELL_PIXELS * 0.5 - 6),
+            (CELL_PIXELS * 0.8, CELL_PIXELS * 0.5 - 6),
+            (CELL_PIXELS * 0.8, CELL_PIXELS * 0.5 + 6),
+            (CELL_PIXELS * 0.2, CELL_PIXELS * 0.5 + 6),
         ])
 
 
@@ -1252,6 +1305,7 @@ class MiniGridAbsoluteEnv(gym.Env):
             agent_view_size=5,
             seed=1337
     ):
+        self.step_count = 0
         # Number of cells (width and height) in the agent view
         self.agent_view_size = agent_view_size
 
@@ -1996,5 +2050,9 @@ TYPE_TO_CLASS_ABS = {
     'seed': Seed,
     'sun': Sun,
     'berry': Berry,
-    'deer': Deer
+    'deer': Deer,
+    'lava': Lava,
+    'factory': Factory,
+    'woodfactory': WoodFactory,
+    'metalfactory': MetalFactory
 }

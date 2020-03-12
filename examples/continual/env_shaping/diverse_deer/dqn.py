@@ -112,7 +112,7 @@ if __name__ == "__main__":
     2. algo_variant, env_variant, env_search_space
     3. use_gpu 
     """
-    exp_prefix = 'diverse-deer-dynstat'
+    exp_prefix = 'diverse-deer-envshaping'
     n_seeds = 1
     mode = 'ec2'
     use_gpu = False
@@ -152,11 +152,17 @@ if __name__ == "__main__":
     env_search_space = {k: [v] for k, v in env_search_space.items()}
     env_search_space.update(
         deer_move_prob=[
-            0.1, 0.2, 0.5
+            0.1, 0.2, 0.3
         ],
         deer_dists=[
-            [{'easy': 0, 'medium': 0, 'hard': 1}, {'easy': 0, 'medium': 0, 'hard': 1}],  # static
-            [{'easy': 0, 'medium': 1, 'hard': 0}, {'easy': 0, 'medium': 1, 'hard': 0}],  # dynamic
+            # start and end distributions
+            [{'easy': 0.1, 'medium': 0.0, 'hard': 0}, {'easy': 0, 'medium': 0, 'hard': 1}],
+            [{'easy': 0.75, 'medium': 0.25, 'hard': 0}, {'easy': 0, 'medium': 0, 'hard': 1}],
+            [{'easy': 0.5, 'medium': 0.5, 'hard': 0}, {'easy': 0, 'medium': 0, 'hard': 1}]
+        ],
+        deer_dist_period=[
+            # 1 is unshaped
+            1, int(1e3), int(1e4), int(1e5)
         ],
         # reward shaping
         make_rtype=[
@@ -170,7 +176,7 @@ if __name__ == "__main__":
 
     algo_variant = dict(
         algorithm="DQN",
-        version="diverse deer - dynstat",
+        version="diverse deer - env shaping",
         layer_size=16,
         replay_buffer_size=int(5E5),
         eps_decay_rate=1e-5,
@@ -182,7 +188,7 @@ if __name__ == "__main__":
             min_num_steps_before_training=200,
             max_path_length=math.inf,
             batch_size=64,
-            validation_envs_pkl=join(get_repo_dir(), 'examples/continual/dynamic_static/diverse_deer/validation_envs/dynamic_static_validation_envs_2020_02_01_14_32_34.pkl'),
+            validation_envs_pkl=join(get_repo_dir(), 'examples/continual/env_shaping/diverse_deer/validation_envs/env_shaping_validation_envs_2020_02_05_06_58_29.pkl'),
             validation_rollout_length=200,
             validation_period=10,
             # store visit count array for heat map

@@ -112,7 +112,7 @@ if __name__ == "__main__":
     2. algo_variant, env_variant, env_search_space
     3. use_gpu 
     """
-    exp_prefix = 'factory-axe'
+    exp_prefix = 'factory-axe-envshaping'
     n_seeds = 1
     mode = 'ec2'
     use_gpu = False
@@ -149,6 +149,12 @@ if __name__ == "__main__":
         fac_move_prob=[
             0, 0.1, 0.2, 0.3
         ],
+        fac_move_close_prob=[
+            0.5, 0.8
+        ],
+        fac_move_close_prob_decay=[
+            2e-6, 2e-7, 2e-8
+        ],
         # reward shaping
         make_rtype=[
             'sparse', 'dense-fixed', 'waypoint'
@@ -161,7 +167,7 @@ if __name__ == "__main__":
 
     algo_variant = dict(
         algorithm="DQN",
-        version="factory - axe",
+        version="factory - axe envshaping",
         layer_size=16,
         replay_buffer_size=int(5E5),
         eps_decay_rate=1e-5,
@@ -173,8 +179,8 @@ if __name__ == "__main__":
             min_num_steps_before_training=200,
             max_path_length=math.inf,
             batch_size=64,
-            validation_envs_pkl=join(get_repo_dir(), 'examples/continual/dynamic_static/factory/validation_envs/dynamic_static_validation_envs_2020_02_03_03_38_54.pkl'),
-            validation_rollout_length=200,
+            validation_envs_pkl=join(get_repo_dir(), 'examples/continual/env_shaping/factory/validation_envs/env_shaping_validation_envs_2020_02_05_07_42_12.pkl'),
+            validation_rollout_length=400,
             validation_period=10,
             # store visit count array for heat map
             viz_maps=True,

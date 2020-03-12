@@ -12,32 +12,36 @@ def gen_validation_envs(n, filename, **kwargs):
     seeds = np.random.randint(0, 100000, n).tolist()
     for idx in range(n):
         env_kwargs = dict(
-            fac_move_prob=0,
-            fac_move_close_prob=0,
-            fac_move_close_prob_decay=0,
-            grid_size=8,
+            monster_eps=0.25,
+            monster_attack_dist=0,
+            grid_size=10,
             # start agent at random pos
             agent_start_pos=None,
             health_cap=1000,
-            gen_resources=False,
+            gen_resources=True,
             fully_observed=False,
-            task='make lava',
+            task='make food',
             make_rtype='sparse',
             fixed_reset=False,
             only_partial_obs=True,
             init_resources={
-                'metalfactory': 1,
-                'woodfactory': 1,
-                'lava': 1
+                'food': 2,
+                'monster': 2
             },
             resource_prob={
-                'metal': 0.0,
-                'wood': 0.0
+                'food': 0.0,
+                'monster': 0.0
+            },
+            lifespans={
+                'monster': 0,
+            },
+            replenish_low_resources={
+                'food': 2,
+                'monster': 2
             },
             fixed_expected_resources=True,
             end_on_task_completion=True,
             time_horizon=0,
-            make_sequence=['metal', 'wood', 'axe', 'lava'],
             seed=seeds[idx]
         )
         env_kwargs.update(**kwargs)
@@ -59,6 +63,6 @@ if __name__ == '__main__':
     validation_dir = os.path.join(cur_dir, 'validation_envs')
     os.makedirs(validation_dir, exist_ok=True)
 
-    filename = 'dynamic_static_validation_envs_%s.pkl' % timestamp
+    filename = 'env_shaping_validation_envs_%s.pkl' % timestamp
 
     gen_validation_envs(100, os.path.join(validation_dir, filename))

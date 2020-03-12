@@ -38,6 +38,8 @@ def schedule(t):
 
 
 def experiment(variant):
+    if variant['env_kwargs']['monster_eps'] == 0.25 and variant['env_kwargs']['monster_eps_decay'] != 0:
+        return
     from rlkit.envs.gym_minigrid.gym_minigrid import envs
 
     expl_env = MonstersEnv(
@@ -111,7 +113,7 @@ if __name__ == "__main__":
     2. algo_variant, env_variant, env_search_space
     3. use_gpu 
     """
-    exp_prefix = 'monster-food'
+    exp_prefix = 'monster-food-envshaping'
     n_seeds = 1
     mode = 'ec2'
     use_gpu = False
@@ -126,16 +128,18 @@ if __name__ == "__main__":
         make_rtype='sparse',
         fixed_reset=False,
         only_partial_obs=True,
+        monster_penalty=-100,
+        monster_attack_dist=0,
         init_resources={
             'food': 2,
             'monster': 2
         },
         resource_prob={
-            'food': 0.0,
+            'food': 0.2,
             'monster': 0.0
         },
         lifespans={
-            'monster': 20,
+            'monster': 10,
         },
         replenish_low_resources={
             'food': 2,
@@ -150,27 +154,18 @@ if __name__ == "__main__":
     env_search_space = {k: [v] for k, v in env_search_space.items()}
     env_search_space.update(
         monster_eps=[
-            0, 0.2, 0.4
+            0.25, 0.5
         ],
+        monster_eps_decay=[
+            0, 1e-3, 1e-4, 1e-5
+        ],
+        monster_eps_min=[0.25],
         # env shaping
-        monster_attack_dist=[
-            0, 1
-        ],
-        monster_penalty=[-100],
-        lifespans=[
-            {'monster': 10},
-            {'monster': 20},
-            {'monster': 30},
-        ],
-        # # resource conditions
-        # init_resources=[
-        #     {'food': 1, 'monster': 1},
-        #     {'food': 2, 'monster': 2},
-        # ],
-        resource_prob=[
-            {'food': 0.0, 'monster': 0.0},
-            # {'food': 0.1, 'monster': 0.0},
-            {'food': 0.2, 'monster': 0.0}
+        place_schedule=[
+            None,
+            (60000, 30000),
+            (120000, 60000),
+            (180000, 90000)
         ],
         # reward shaping
         make_rtype=[
@@ -184,7 +179,7 @@ if __name__ == "__main__":
 
     algo_variant = dict(
         algorithm="DQN",
-        version="monster - food",
+        version="monster - food - envshaping",
         layer_size=16,
         replay_buffer_size=int(5E5),
         eps_decay_rate=1e-5,
@@ -196,7 +191,7 @@ if __name__ == "__main__":
             min_num_steps_before_training=200,
             max_path_length=math.inf,
             batch_size=64,
-            validation_envs_pkl=join(get_repo_dir(), 'examples/continual/dynamic_static/monster/validation_envs/dynamic_static_validation_envs_2020_01_27_23_54_56.pkl'),
+            validation_envs_pkl=join(get_repo_dir(), 'examples/continual/env_shaping/monster/validation_envs/env_shaping_validation_envs_2020_02_05_03_46_07.pkl'),
             validation_rollout_length=200,
             validation_period=10,
             # store visit count array for heat map

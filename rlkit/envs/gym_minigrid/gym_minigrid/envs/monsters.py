@@ -35,8 +35,13 @@ class MonstersEnv(FoodEnvBase):
 
     def __init__(
             self,
+            # probability of random action (as opposed to the one bringing it closest to agent)
             monster_eps=0.25,
+            monster_eps_decay=0,
+            monster_eps_min=0,
+            # how close does monster have to be from agent to hurt it? 0 = same square, 1 = adjacent, etc
             monster_attack_dist=0,
+            monster_penalty=NEG_RWD,
             grid_size=32,
             health_cap=100,
             food_rate=4,
@@ -113,6 +118,9 @@ class MonstersEnv(FoodEnvBase):
         self.fixed_reset = fixed_reset
         self.monsters = []
         self.monster_eps = monster_eps
+        self.monster_eps_decay = monster_eps_decay
+        self.monster_eps_min = monster_eps_min
+        self.monster_penalty = monster_penalty
         self.monster_attack_dist = monster_attack_dist
         self.object_to_idx = {
             'empty': 0,
@@ -190,7 +198,7 @@ class MonstersEnv(FoodEnvBase):
         # TODO some of these shapes are wrong. fix by running through each branch and getting empirical obs shape
         if self.only_partial_obs:
             if self.agent_view_size == 5:
-                shape = (273,)
+                shape = (306,)
             elif self.agent_view_size == 7:
                 shape = (465,)
         elif self.grid_size == 32:
@@ -259,7 +267,15 @@ class MonstersEnv(FoodEnvBase):
         placed = set()
         for type, thresh in self.replenish_low_resources.items():
             if counts.get(type, 0) < thresh:
-                if self.place_general(type):
+                if self.place_schedule and not self.full_grid:
+                    diam = self.place_radius()
+                    if diam >= 2 * self.grid_size:
+                        self.full_grid = True
+                    if self.place_general(type, prob=1,
+                                       top=(np.clip(self.agent_pos - diam // 2, 0, self.grid_size - 1)),
+                                       size=(diam, diam)):
+                        placed.add(type)
+                elif self.place_general(type):
                     placed.add(type)
         for type, prob in self.resource_prob.items():
             place_prob = max(self.resource_prob_min.get(type, 0),
@@ -287,8 +303,8 @@ class MonstersEnv(FoodEnvBase):
             placed = bool(np.random.binomial(1, prob))
             if placed:
                 pos = self.place_obj(None)  # find empty spot
-                item = TYPE_TO_CLASS_ABS[type](pos, self, lifespan=self.lifespans.get(type, self.default_lifespan),
-                                               eps=self.monster_eps)
+                item = TYPE_TO_CLASS_ABS[type](pos, self, lifespan=self.lifespans.get(type, 20),
+                                               eps=max(self.monster_eps_min, self.monster_eps - self.step_count * self.monster_eps_decay))
                 self.monsters.append(item)
         else:
             item = TYPE_TO_CLASS_ABS[type](lifespan=self.lifespans.get(type, self.default_lifespan))
@@ -308,7 +324,6 @@ class MonstersEnv(FoodEnvBase):
                 dead_monsters.append(monster)
         for monster in dead_monsters:
             self.monsters.remove(monster)
-        print('There are %d monsters!' % len(self.monsters))
         if matched:
             return matched
         agent_cell = self.grid.get(*self.agent_pos)
@@ -416,7 +431,7 @@ class MonstersEnv(FoodEnvBase):
                 np.stack([monster.cur_pos - self.agent_pos for monster in self.monsters], axis=0),
                 ord=1, axis=1
             )
-            reward += NEG_RWD * bool(np.count_nonzero(monster_dists <= self.monster_attack_dist))  # neg rwd if any monster on or adjacent to agent
+            reward += self.monster_penalty * bool(np.count_nonzero(monster_dists <= self.monster_attack_dist))  # neg rwd if any monster on or adjacent to agent
 
         """ Generate info """
         info.update({'health': self.health})

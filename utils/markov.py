@@ -249,7 +249,7 @@ def q_rollout(env, num_episodes, horizon, Q):
     return rewards
 
 
-def q_learning(env, num_episodes, horizon, Q=None, discount=0.99, alpha_sched=lambda t: 0.01, eps=0.05, return_time=False):
+def q_learning(env, num_episodes, horizon, Q=None, discount=0.99, alpha_sched=lambda t: 0.01, eps=0.05, return_time=False, max_num_episodes=1000):
     """
     Adapted from https://github.com/dennybritz/reinforcement-learning/blob/master/TD/Q-Learning%20Solution.ipynb
     :param env: MDPEnv object
@@ -265,26 +265,30 @@ def q_learning(env, num_episodes, horizon, Q=None, discount=0.99, alpha_sched=la
     nS = env.state.shape[0]
     nA = env.action.shape[0]
     # the difference in norm below which we declare convergence
-    eps_convergence = 1e-5
+    eps_convergence = 1
 
     if Q is None:
         Q = np.zeros((nS, nA))
-    rewards = np.zeros((num_episodes, horizon))
+    Q_prev = Q.copy()
+    rewards = []#np.zeros((num_episodes, horizon))
     policy = eps_greedy_policy(Q, eps=eps)
     convergence_time = -1
+    ep = 0
 
-    for ep in range(num_episodes):
+    while (not (np.linalg.norm(Q_prev - Q, ord='fro') < eps_convergence and np.linalg.norm(Q) > eps_convergence)
+            or ep < num_episodes) and ep < max_num_episodes:
         obs = env.reset()
         done = False
         t = 0
         Q_prev = Q.copy()
+        rewards.append(np.zeros(horizon))
         while not done and t < horizon:
             # take an action
             action_probs = policy(obs)
             action = np.random.choice(env.action, p=action_probs)
             next_obs, reward, done = env.step(action)
             # collect reward
-            rewards[ep, t] = reward
+            rewards[-1][t] = reward
             # update Q function
             best_next_action = Q[next_obs].argmax()
             target_q = reward + discount * Q[next_obs][best_next_action]
@@ -293,10 +297,13 @@ def q_learning(env, num_episodes, horizon, Q=None, discount=0.99, alpha_sched=la
             # time update
             obs = next_obs
             t += 1
-        if np.linalg.norm(Q_prev - Q, ord='fro') < eps_convergence:
+        # second condition is to make sure Q didn't just converge to 0
+        if np.linalg.norm(Q_prev - Q, ord='fro') < eps_convergence and np.linalg.norm(Q) > eps_convergence and ep > 2:
             convergence_time = ep
+        ep += 1
 
-    return (Q, rewards, convergence_time) if return_time else (Q, rewards)
+
+    return (Q, np.stack(rewards), convergence_time) if return_time else (Q, rewards)
 
 
 def run_mc_stationary(transition, start, max_steps=np.inf, eps=1e-5):

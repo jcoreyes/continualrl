@@ -84,7 +84,7 @@ if __name__ == "__main__":
         g=0,
         discount=1,
         horizon=200,
-        shaping_period=100,
+        shaping_period=25,
         # random policy
         eps=1,
         deterministic=True,

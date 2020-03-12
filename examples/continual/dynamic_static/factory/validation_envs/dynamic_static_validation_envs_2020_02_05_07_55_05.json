@@ -8,16 +8,23 @@
     "grid_size": 8,
     "health_cap": 1000,
     "init_resources": {
-        "metal": 1,
-        "wood": 1
+        "lava": 1,
+        "metalfactory": 1,
+        "woodfactory": 1
     },
     "make_rtype": "sparse",
+    "make_sequence": [
+        "metal",
+        "wood",
+        "axe",
+        "lava"
+    ],
     "only_partial_obs": true,
     "resource_prob": {
         "metal": 0.0,
         "wood": 0.0
     },
-    "seed": 57397,
-    "task": "make axe",
+    "seed": 37111,
+    "task": "make lava",
     "time_horizon": 0
 }
