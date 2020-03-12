@@ -2,11 +2,14 @@
 
 from __future__ import division, print_function
 
+import math
 import pickle
 import sys
 
 from gym_minigrid.envs import FoodEnvHard1Inv
 from gym_minigrid.envs.deer import DeerEnv
+from gym_minigrid.envs.deer_diverse import DeerDiverseEnv
+from gym_minigrid.envs.factory import FactoryEnv
 from gym_minigrid.envs.lava import LavaEnv
 from gym_minigrid.envs.monsters import MonstersEnv
 from gym_minigrid.envs.tools import ToolsEnv, ToolsWallEnv
@@ -38,7 +41,41 @@ def main():
     (options, args) = parser.parse_args()
 
     # Load the gym environment
-    # env = DeerEnv(
+    env = FactoryEnv(
+        fac_move_prob=0.3,
+        fac_move_close_prob=0.8,
+        fac_move_close_prob_decay=0.01,
+        grid_size=8,
+        # start agent at random pos
+        agent_start_pos=None,
+        health_cap=1000,
+        gen_resources=False,
+        fully_observed=False,
+        task='make lava',
+        make_rtype='dense-fixed',
+        fixed_reset=False,
+        only_partial_obs=True,
+        init_resources={
+            'metalfactory': 1,
+            'woodfactory': 1,
+            'lava': 1
+        },
+        resource_prob={
+            'metal': 0.0,
+            'wood': 0.0
+        },
+        fixed_expected_resources=True,
+        end_on_task_completion=True,
+        time_horizon=0,
+        make_sequence=['metal', 'wood', 'axe', 'lava']
+    )
+    # env = DeerDiverseEnv(
+    #     # sweep this
+    #     deer_move_prob=0.5,
+    #     # shaping params (dynamism just has med throughout, with diff deer move probs)
+    #     deer_dists=[{'easy': 1, 'medium': 0, 'hard': 0}, {'easy': 0, 'medium': 0.2, 'hard': 0.8}],
+    #     # shaping period param
+    #     deer_dist_period=10,
     #     grid_size=10,
     #     agent_start_pos=None,
     #     health_cap=1000,
@@ -63,79 +100,66 @@ def main():
     #         'deer': 2
     #     },
     # )
-    env = MonstersEnv(
-        grid_size=10,
-        agent_start_pos=None,
-        health_cap=1000,
-        gen_resources=True,
-        fully_observed=False,
-        task='pickup food',
-        make_rtype='sparse',
-        fixed_reset=False,
-        only_partial_obs=True,
-        # init_resources={
-        #     'metal': 3,
-        #     'wood': 2,
-        #     'axe': 3
-        # },
-        init_resources={
-            'food': 10,
-            'monster': 1
-        },
-        # resource_prob={
-        #     'metal': 0.05,
-        #     'wood': 0.05,
-        # },
-        resource_prob={
-            'food': 0.02,
-            'monster': 0.01
-        },
-        lifespans={
-            'monster': 20
-        },
-        replenish_low_resources={
-            'food': 2
-        },
-        # place_schedule=(30000, 10000),
-        fixed_expected_resources=True,
-        end_on_task_completion=False,
-        # num_walls=3,
-        # fixed_walls=True,
-        time_horizon=0,
-        agent_view_size=5,
-        monster_eps=0.4,
-        monster_attack_dist=1
-    )
-    env = LavaEnv(
-        num_lava=3,
-        lava_timeout=1,
-        grid_size=10,
-        agent_start_pos=None,
-        health_cap=1000,
-        gen_resources=True,
-        fully_observed=False,
-        task='make axe',
-        make_rtype='sparse',
-        fixed_reset=False,
-        only_partial_obs=True,
-        init_resources={
-            'metal': 3,
-            'wood': 2,
-            'axe': 3
-        },
-        resource_prob={
-            'metal': 0.05,
-            'wood': 0.05,
-        },
-        replenish_empty_resources=['metal', 'wood'],
-        # place_schedule=(30000, 10000),
-        fixed_expected_resources=True,
-        end_on_task_completion=False,
-        # num_walls=3,
-        # fixed_walls=True,
-        time_horizon=0,
-        agent_view_size=5
-    )
+    # env = MonstersEnv(
+    #     monster_eps=0,
+    #     monster_attack_dist=0,
+    #     grid_size=10,
+    #     # start agent at random pos
+    #     agent_start_pos=None,
+    #     health_cap=1000,
+    #     gen_resources=True,
+    #     fully_observed=False,
+    #     task='make food',
+    #     make_rtype='sparse',
+    #     fixed_reset=False,
+    #     only_partial_obs=True,
+    #     init_resources={
+    #         'food': 2,
+    #         'monster': 2
+    #     },
+    #     resource_prob={
+    #         'food': 0.1,
+    #         'monster': 0.0
+    #     },
+    #     lifespans={
+    #         'monster': 20,
+    #     },
+    #     replenish_low_resources={
+    #         'food': 2,
+    #         'monster': 2
+    #     },
+    #     place_schedule=(50, 25),
+    #     fixed_expected_resources=True,
+    #     end_on_task_completion=True,
+    #     time_horizon=0
+    # )
+    # env = LavaEnv(
+    #     num_lava=5,
+    #     lava_timeout=1,
+    #     lava_penalty=10,
+    #     grid_size=10,
+    #     agent_start_pos=None,
+    #     health_cap=1000,
+    #     gen_resources=True,
+    #     fully_observed=False,
+    #     task='make axe',
+    #     make_rtype='sparse',
+    #     fixed_reset=False,
+    #     only_partial_obs=True,
+    #     init_resources={
+    #         'metal': 2,
+    #         'wood': 2
+    #     },
+    #     replenish_low_resources={
+    #         'metal': 2,
+    #         'wood': 2
+    #     },
+    #     end_on_task_completion=False,
+    #     # num_walls=3,
+    #     # fixed_walls=True,
+    #     time_horizon=0,
+    #     agent_view_size=5,
+    # )
     # env = gym.make(options.env_name)
     pkl = options.qf
     if pkl is not None:
@@ -174,7 +198,10 @@ def main():
         elif keyName == 'SPACE':
             action = env.actions.mine
         elif keyName == 'PAGE_UP':
-            action = env.actions.eat
+            if hasattr(env.actions, 'eat'):
+                action = env.actions.eat
+            else:
+                action = env.actions.dispense
         elif keyName == 'PAGE_DOWN':
             action = env.actions.place
         elif keyName == '0':

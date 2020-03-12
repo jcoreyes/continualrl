@@ -1,13 +1,16 @@
 import os
 import pickle
 import datetime
+
+from gym_minigrid.envs.factory import FactoryEnv
 import numpy as np
+import random
 from gym_minigrid.envs.tools import ToolsEnv
 import json
 
 def gen_validation_envs(n, filename, **kwargs):
     envs = []
-    seeds = np.random.randint(0, 100000, n).tolist()
+    seeds = [random.randint(0, 100000) for _ in range(n)]
     for idx in range(n):
         env_kwargs = dict(
             grid_size=8,
@@ -16,13 +19,14 @@ def gen_validation_envs(n, filename, **kwargs):
             health_cap=1000,
             gen_resources=False,
             fully_observed=False,
-            task='make axe',
+            task='make lava',
             make_rtype='sparse',
             fixed_reset=False,
             only_partial_obs=True,
             init_resources={
-                'metal': 1,
-                'wood': 1
+                'metalfactory': 1,
+                'woodfactory': 1,
+                'lava': 1
             },
             resource_prob={
                 'metal': 0.0,
@@ -31,10 +35,11 @@ def gen_validation_envs(n, filename, **kwargs):
             fixed_expected_resources=True,
             end_on_task_completion=True,
             time_horizon=0,
+            make_sequence=['metal', 'wood', 'axe', 'lava'],
             seed=seeds[idx]
         )
         env_kwargs.update(**kwargs)
-        env = ToolsEnv(
+        env = FactoryEnv(
             **env_kwargs
         )
         envs.append(env)
@@ -52,6 +57,6 @@ if __name__ == '__main__':
     validation_dir = os.path.join(cur_dir, 'validation_envs')
     os.makedirs(validation_dir, exist_ok=True)
 
-    filename = 'dynamic_static_validation_envs_%s.pkl' % timestamp
+    filename = 'env_shaping_validation_envs_%s.pkl' % timestamp
 
     gen_validation_envs(100, os.path.join(validation_dir, filename))

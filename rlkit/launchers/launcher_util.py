@@ -451,6 +451,7 @@ def run_experiment(
         ssh_host=None,
         # gcp
         gcp_kwargs=None,
+        python_cmd='python'
 ):
     """
     Usage:
@@ -819,6 +820,7 @@ def run_experiment(
         target_mount=target_mount,
         verbose=verbose,
         launch_locally=launch_locally,
+        python_cmd=python_cmd
     )
 
 

@@ -348,7 +348,7 @@ class DeerEnv(FoodEnvBase):
         agent_cell = self.grid.get(*self.agent_pos)
         if self.carrying is None:
             deer_kill_easy_prob = self.deer_kill_easy_prob - self.step_count * self.deer_kill_easy_decay
-            if deer_kill_easy_prob:
+            if deer_kill_easy_prob > 0:
                 # TODO suvansh adding this to test changing dynamics as alternative to changing reward to make 3-tier task easier
                 # killing deer without axe should have some (low) probability of success
                 if agent_cell and agent_cell.type == 'deer':

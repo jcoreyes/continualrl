@@ -15,8 +15,8 @@ def gen_validation_envs(n, filename, **kwargs):
     for idx in range(n):
         env_kwargs = dict(
             # sweep this
-            deer_move_prob=0.5,
-            # shaping params (dynamism just has med throughout, with diff deer move probs)
+            deer_move_prob=0.2,
+            # shaping params
             deer_dists=[{'easy': 0, 'medium': 0, 'hard': 1}, {'easy': 0, 'medium': 0, 'hard': 1}],
             # shaping period param (doesn't matter here  since start and end dists are the same)
             deer_dist_period=1,
@@ -62,6 +62,6 @@ if __name__ == '__main__':
     validation_dir = os.path.join(cur_dir, 'validation_envs')
     os.makedirs(validation_dir, exist_ok=True)
 
-    filename = 'dynamic_static_validation_envs_%s.pkl' % timestamp
+    filename = 'env_shaping_validation_envs_%s.pkl' % timestamp
 
     gen_validation_envs(100, os.path.join(validation_dir, filename))
