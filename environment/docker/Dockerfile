@@ -58,7 +58,7 @@ COPY ./requirements.txt /mujoco_py/
 COPY ./requirements.dev.txt /mujoco_py/
 RUN pip install -r requirements.txt
 RUN pip install -r requirements.dev.txt
-RUN pip install cloudpickle==1.2.1
+RUN pip install cloudpickle==0.5.2
 RUN pip install cached-property==1.3.1
 RUN pip install mujoco_py==1.50.1.59
 # For atari-py
@@ -110,4 +110,5 @@ RUN apt-get -y update && apt-get -y upgrade && apt-get install -y git wget cmake
 ENV PATH /env/bin:${PATH}
 ENV LD_LIBRARY_PATH /home/ubuntu/.mujoco/mjpro150/bin:${LD_LIBRARY_PATH}
 RUN pip install https://s3-us-west-2.amazonaws.com/ray-wheels/latest/ray-0.7.0.dev2-cp35-cp35m-manylinux1_x86_64.whl
-RUN pip install pyqt5
+RUN pip install --upgrade pip
+RUN pip install pyqt5==5.14.1
