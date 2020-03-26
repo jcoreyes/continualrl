@@ -31,16 +31,13 @@ from rlkit.samplers.data_collector import MdpPathCollector
 from rlkit.torch.torch_rl_algorithm import TorchBatchRLAlgorithm, TorchLifetimeRLAlgorithm
 
 
-def schedule(t):
-    print(t)
-    return max(1 - 5e-4 * t, 0.05)
-
-
 def experiment(variant):
     from rlkit.envs.swimmer_gather_mujoco.swimmer_gather_env import SwimmerGatherEnv
-
-    expl_env = SwimmerGatherEnv()
-    eval_env = SwimmerGatherEnv()
+    if variant['env_kwargs']['action_noise_mode'] is None:
+        if variant['env_kwargs']['action_noise_std'] != 0.03 or variant['env_kwargs']['action_noise_discount'] != 0.9:
+            return
+    expl_env = SwimmerGatherEnv(**variant['env_kwargs'])
+    eval_env = SwimmerGatherEnv(**variant['env_kwargs'])
     obs_dim = expl_env.observation_space.low.size
     action_dim = eval_env.action_space.low.size
     lifetime = variant.get('lifetime', False)
@@ -122,47 +119,38 @@ if __name__ == "__main__":
     """
     exp_prefix = 'swimmer-gather-envshaping'
     n_seeds = 1
-    mode = 'local'
+    mode = 'ec2'
     use_gpu = False
 
     env_variant = dict(
-        # sweep this
-        deer_move_prob=0.5,
-        # shaping params (dynamism just has med throughout, with diff deer move probs)
-        deer_dists=[{'easy': 0, 'medium': 0, 'hard': 1}, {'easy': 0, 'medium': 0, 'hard': 1}],
-        # shaping period param
-        deer_dist_period=1,
-        grid_size=10,
-        agent_start_pos=None,
-        health_cap=1000,
-        gen_resources=True,
-        fully_observed=False,
-        task='make food',
-        make_rtype='dense-fixed',
-        fixed_reset=False,
-        only_partial_obs=True,
-        init_resources={
-            # 'metal': 1,
-            # 'wood': 1
-            'axe': 2,
-            'deer': 2
-        },
-        default_lifespan=0,
-        fixed_expected_resources=True,
-        end_on_task_completion=False,
-        time_horizon=200,
-        replenish_low_resources={
-            'axe': 2,
-            'deer': 2
-        }
+        ball_radius=0.5,
+        radius=100,
+        radius_decay=0,
+        radius_mode='ball',
+
+        action_noise_std=0.1,
+        action_noise_discount=0.98,
+        action_noise_mode='average',
     )
     env_search_space = copy.deepcopy(env_variant)
     env_search_space = {k: [v] for k, v in env_search_space.items()}
-    env_search_space.update(
-    )
+    #env_search_space.update(
+    #    # TODO find scale of env for radius
+    #    radius=[0.5, 1, 2],
+    #    # TODO adjust radius decay accordingly
+    #    radius_decay=[1e-6, 1e-5, 1e-4],
+    #    radius_mode=['ball', 'circle'],
+
+    #    # TODO find scale of actions
+    #    action_noise_std=[0.03, 0.1, 0.3],
+    #    action_noise_discount=[0.9, 0.95, 0.98],  # effective dynamism time-horizon of (1-discount)^{-1} timesteps
+    #    action_noise_mode=[None, 'average', 'walk'],
+    #    time_horizon=[0, 200]
+    #)
 
     algo_variant = dict(
         algorithm="SAC",
+        lifetime=True,
         version="swimmer gather - env shaping",
         layer_size=16,
         replay_buffer_size=int(5E5),
@@ -236,5 +224,5 @@ if __name__ == "__main__":
                     snapshot_gap=10,
                     instance_type='c4.xlarge',
                     spot_price=0.07,
-                    python_cmd='python3.6'
+                    python_cmd='python3'
                 )

@@ -155,6 +155,12 @@ class GatherEnv(ProxyEnv, Serializable):
                        'radians')
     def __init__(
             self,
+            # Suvansh added
+            radius=100, radius_decay=0, radius_mode='ball', ball_radius=0.5,
+            action_noise_std=0.1,
+            action_noise_discount=0.98,  # effective dynamism time-horizon of (1-discount)^{-1} timesteps
+            action_noise_mode=None,
+
             n_apples=8,
             n_bombs=8,
             activity_range=6.,
@@ -168,6 +174,16 @@ class GatherEnv(ProxyEnv, Serializable):
             *args, **kwargs
     ):
         Serializable.quick_init(self, locals())
+        # Suvansh added
+        self.t = 0
+        self.radius = radius
+        self.radius_decay = radius_decay
+        self.radius_mode = radius_mode
+        self.ball_radius = ball_radius
+        self.action_noise_std = action_noise_std
+        self.action_noise_discount = action_noise_discount
+        self.action_noise_mode = action_noise_mode
+
         self.n_apples = n_apples
         self.n_bombs = n_bombs
         self.activity_range = activity_range
@@ -222,7 +238,30 @@ class GatherEnv(ProxyEnv, Serializable):
         # pylint: enable=not-callable
         ProxyEnv.__init__(self, inner_env)  # to access the inner env, do self.wrapped_env
 
+    def find_loc(self, x, y, r, max_iters=100):
+        agent_pos = np.array([x, y], dtype=np.float32)
+        obj_locs = np.array([obj[:2] for obj in self.objects])
+        for i in range(max_iters):
+            if self.radius_mode == 'circle':
+                dir = np.random.randn(2)
+                dir /= np.linalg.norm(dir)
+            elif self.radius_mode == 'ball':
+                length = np.sqrt(np.random.uniform(0, 1))
+                angle = np.pi * np.random.uniform(0, 2)
+                dir = length * np.array([np.cos(angle), np.sin(angle)])
+            else:
+                raise ValueError('Invalid radius mode: %s' % self.radius_mode)
+            # TODO figure out reasonable max radius instead of 3
+            curr_radius = min(3, self.radius + self.radius_decay * self.t)
+            proposed_loc = agent_pos + curr_radius * dir
+            # find dist from each obj
+            dists = np.linalg.norm(obj_locs - proposed_loc, axis=1)
+            if dists.min() > 2 * self.ball_radius:
+                return proposed_loc.tolist()
+        raise RuntimeError('Could not place object with radius %.2f of position (%.2f, %.2f)' % (r, x, y))
+
     def reset(self, also_wrapped=True):
+        self.t = 0
         self.objects = []
         existing = set()
         while len(self.objects) < self.n_apples:
@@ -257,6 +296,17 @@ class GatherEnv(ProxyEnv, Serializable):
         return self.get_current_obs()
 
     def step(self, action):
+        if not hasattr(self, 'action_noise'):
+            self.action_noise = np.zeros_like(action)
+        if self.action_noise_mode == 'average':
+            new_action_noise = np.random.randn(*action.shape) * self.action_noise_std
+            self.action_noise += self.action_noise_discount * (new_action_noise - self.action_noise)
+        elif self.action_noise_mode == 'walk':
+            new_action_noise = np.random.randn(*action.shape) * self.action_noise_std
+            self.action_noise += new_action_noise
+        else:
+            self.action_noise = 0
+        action += self.action_noise
         _, inner_rew, done, info = self.wrapped_env.step(action)
         info['inner_rew'] = inner_rew
         info['outer_rew'] = 0
@@ -276,6 +326,8 @@ class GatherEnv(ProxyEnv, Serializable):
                 else:
                     reward = reward - 1
                     info['outer_rew'] = -1
+                # place object near agent
+                new_objs.append((*self.find_loc(x, y, self.radius - self.t * self.radius_decay), typ))
             else:
                 new_objs.append(obj)
         self.objects = new_objs
