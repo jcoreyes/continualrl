@@ -7,10 +7,10 @@ from os.path import join
 import gym
 import copy
 
-from gym_minigrid.envs.deer_diverse import DeerDiverseEnv
-from gym_minigrid.envs.lava import LavaEnv
-from gym_minigrid.envs.monsters import MonstersEnv
-from gym_minigrid.envs.tools import ToolsEnv
+#from gym_minigrid.envs.deer_diverse import DeerDiverseEnv
+#from gym_minigrid.envs.lava import LavaEnv
+#from gym_minigrid.envs.monsters import MonstersEnv
+#from gym_minigrid.envs.tools import ToolsEnv
 from rlkit.core.logging import get_repo_dir
 from rlkit.samplers.data_collector.path_collector import LifetimeMdpPathCollector, MdpPathCollectorConfig
 from rlkit.torch.sac.policies import SoftmaxQPolicy, TanhGaussianPolicy, MakeDeterministic
@@ -29,13 +29,12 @@ from rlkit.data_management.env_replay_buffer import EnvReplayBuffer
 from rlkit.launchers.launcher_util import setup_logger, run_experiment
 from rlkit.samplers.data_collector import MdpPathCollector
 from rlkit.torch.torch_rl_algorithm import TorchBatchRLAlgorithm, TorchLifetimeRLAlgorithm
-
+from rlkit.envs.swimmer_gather_mujoco.swimmer_gather_env import SwimmerGatherEnv
 
 def experiment(variant):
-    from rlkit.envs.swimmer_gather_mujoco.swimmer_gather_env import SwimmerGatherEnv
-    if variant['env_kwargs']['action_noise_mode'] is None:
-        if variant['env_kwargs']['action_noise_std'] != 0.03 or variant['env_kwargs']['action_noise_discount'] != 0.9:
-            return
+    #if variant['env_kwargs']['action_noise_mode'] is None:
+    #    if variant['env_kwargs']['action_noise_std'] != 0.03 or variant['env_kwargs']['action_noise_discount'] != 0.9:
+    #        return
     expl_env = SwimmerGatherEnv(**variant['env_kwargs'])
     eval_env = SwimmerGatherEnv(**variant['env_kwargs'])
     obs_dim = expl_env.observation_space.low.size
@@ -219,10 +218,12 @@ if __name__ == "__main__":
                     variant=variant,
                     use_gpu=use_gpu,
                     region='us-east-2',
-                    num_exps_per_instance=3,
+                    #num_exps_per_instance=3, # 3
+                    num_exps_per_instance=1, # 3
                     snapshot_mode='gap',
                     snapshot_gap=10,
-                    instance_type='c4.xlarge',
+                    instance_type='c5.xlarge',
                     spot_price=0.07,
-                    python_cmd='python3'
+                #    python_cmd='python3'
                 )
+                break
