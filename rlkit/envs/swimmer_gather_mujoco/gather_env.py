@@ -252,7 +252,7 @@ class GatherEnv(ProxyEnv, Serializable):
             else:
                 raise ValueError('Invalid radius mode: %s' % self.radius_mode)
             # TODO figure out reasonable max radius instead of 3
-            curr_radius = min(3, self.radius + self.radius_decay * self.t)
+            curr_radius = min(3, r)
             proposed_loc = agent_pos + curr_radius * dir
             # find dist from each obj
             dists = np.linalg.norm(obj_locs - proposed_loc, axis=1)
@@ -327,11 +327,12 @@ class GatherEnv(ProxyEnv, Serializable):
                     reward = reward - 1
                     info['outer_rew'] = -1
                 # place object near agent
-                new_objs.append((*self.find_loc(x, y, self.radius - self.t * self.radius_decay), typ))
+                new_objs.append((*self.find_loc(x, y, self.radius + self.t * self.radius_decay), typ))
             else:
                 new_objs.append(obj)
         self.objects = new_objs
         done = len(self.objects) == 0
+        self.t += 1
         return Step(self.get_current_obs(), reward, done, **info)
 
     def get_readings(self):  # equivalent to get_current_maze_obs in maze_env.py
