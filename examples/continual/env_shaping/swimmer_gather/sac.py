@@ -109,7 +109,7 @@ def experiment(variant):
         **variant['algo_kwargs']['algorithm_kwargs']
     )
     algorithm.to(ptu.device)
-    algorithm.train()
+    algorithm.train(minigrid=False)
 
 
 if __name__ == "__main__":
@@ -159,9 +159,9 @@ if __name__ == "__main__":
             min_num_steps_before_training=200,
             max_path_length=math.inf,
             batch_size=64,
-            #validation_envs_pkl=join(get_repo_dir(), 'examples/continual/env_shaping/swimmer_gather/validation_envs/dynamic_static_validation_envs_2020_04_07_04_37_16.pkl'),
-            #validation_rollout_length=1000,
-            #validation_period=10,
+            validation_envs_pkl=join(get_repo_dir(), 'examples/continual/env_shaping/swimmer_gather/validation_envs/dynamic_static_validation_envs_2020_04_07_04_37_16.pkl'),
+            validation_rollout_length=1000,
+            validation_period=10,
         ),
         trainer_kwargs=dict(
             discount=0.99,
