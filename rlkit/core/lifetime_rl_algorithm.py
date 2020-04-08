@@ -47,7 +47,11 @@ class LifetimeRLAlgorithm(BaseRLAlgorithm, metaclass=abc.ABCMeta):
         self.min_num_steps_before_training = min_num_steps_before_training
         self.evaluation_env = evaluation_env
 
-    def _train(self):
+    def train(self, start_epoch=0, **kwargs):
+        self._start_epoch = start_epoch
+        self._train(**kwargs)
+    
+    def _train(self, minigrid=True):
         if self.min_num_steps_before_training > 0:
             init_eval_path = self.eval_data_collector.collect_new_paths(
                 self.max_path_length,
@@ -90,4 +94,4 @@ class LifetimeRLAlgorithm(BaseRLAlgorithm, metaclass=abc.ABCMeta):
             done = num_loops >= self.num_epochs
 
             print('Ending epoch')
-            self._end_epoch(num_loops - 1, incl_expl=False)
+            self._end_epoch(num_loops - 1, incl_expl=False, minigrid=minigrid)

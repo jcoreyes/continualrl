@@ -467,8 +467,12 @@ class Logger(object):
         file_name = osp.join(self._snapshot_dir, 'stats_%d.pkl' % epoch)
         pickle.dump(stats, open(file_name, "wb"))
 
-    def save_stats(self, epoch, stats):
-        save_stats = compute_stats(stats, horizon=0, task_obj=get_task_obj(osp.join(self._snapshot_dir, 'variant.json')))
+    def save_stats(self, epoch, stats, final=False):
+        """ Final determines whether to process with `compute_stats` or not """
+        if not final:
+            save_stats = compute_stats(stats, horizon=0, task_obj=get_task_obj(osp.join(self._snapshot_dir, 'variant.json')))
+        else:
+            save_stats = stats  # save stats as-is
         if not osp.isfile(osp.join(self._snapshot_dir, 'validation_stats.csv')):
             with open(osp.join(self._snapshot_dir, 'validation_stats.csv'), 'a') as f:
                 writer = csv.DictWriter(f, fieldnames=list(sorted(save_stats.keys())))

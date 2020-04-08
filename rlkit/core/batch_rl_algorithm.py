@@ -46,7 +46,7 @@ class BatchRLAlgorithm(BaseRLAlgorithm, metaclass=abc.ABCMeta):
         self.min_num_steps_before_training = min_num_steps_before_training
         self.viz_maps = viz_maps
 
-    def _train(self):
+    def _train(self, minigrid=True):
         if self.min_num_steps_before_training > 0:
             init_expl_paths = self.expl_data_collector.collect_new_paths(
                 self.max_path_length,
@@ -86,4 +86,4 @@ class BatchRLAlgorithm(BaseRLAlgorithm, metaclass=abc.ABCMeta):
                 gt.stamp('training', unique=False)
                 self.training_mode(False)
 
-            self._end_epoch(epoch)
+            self._end_epoch(epoch, minigrid=minigrid)

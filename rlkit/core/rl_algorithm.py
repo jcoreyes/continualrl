@@ -67,9 +67,9 @@ class BaseRLAlgorithm(object, metaclass=abc.ABCMeta):
 
         self.post_epoch_funcs = []
 
-    def train(self, start_epoch=0):
+    def train(self, start_epoch=0, **kwargs):
         self._start_epoch = start_epoch
-        self._train()
+        self._train(**kwargs)
 
     def _train(self):
         """
@@ -77,13 +77,17 @@ class BaseRLAlgorithm(object, metaclass=abc.ABCMeta):
         """
         raise NotImplementedError('_train must implemented by inherited class')
 
-    def _end_epoch(self, epoch, incl_expl=True):
+    def _end_epoch(self, epoch, incl_expl=True, minigrid=True):
         snapshot = self._get_snapshot()
         if self.viz_maps and epoch % self.viz_gap == 0:
             logger.save_viz(epoch, snapshot, self.eval_env.visit_count)
         if self.validation and epoch % self.validation_period == 0:
-            stats = self.validate(snapshot)
-            logger.save_stats(epoch, stats)
+            if minigrid:
+                stats = self.validate(snapshot)
+                logger.save_stats(epoch, stats, final=False)
+            else:
+                stats = self.get_validation_returns(snapshot)
+                logger.save_stats(epoch, stats, final=True)
         logger.save_itr_params(epoch, snapshot)
         gt.stamp('saving', unique=False)
         self._log_stats(epoch, incl_expl=incl_expl)
@@ -95,6 +99,19 @@ class BaseRLAlgorithm(object, metaclass=abc.ABCMeta):
 
         for post_epoch_func in self.post_epoch_funcs:
             post_epoch_func(self, epoch)
+
+    def get_validation_returns(self, snapshot):
+        policy = snapshot['evaluation/policy']
+        policy = PolicyWrappedWithExplorationStrategy(
+            EpsilonGreedy(self.eval_env.action_space, 0.1),
+            policy
+        )
+        validation_envs = pickle.load(open(self.validation_envs_pkl, 'rb'))
+        returns = np.zeros(len(validation_envs['envs']))
+        for env_idx, env in enumerate(validation_envs['envs']):
+            path = rollout(env, policy, self.validation_rollout_length)
+            returns[env_idx] = path['rewards'].sum()
+        return {'returns': returns.mean()}
 
     def validate(self, snapshot):
         """

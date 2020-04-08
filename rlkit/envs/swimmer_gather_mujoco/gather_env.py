@@ -238,7 +238,8 @@ class GatherEnv(ProxyEnv, Serializable):
         # pylint: enable=not-callable
         ProxyEnv.__init__(self, inner_env)  # to access the inner env, do self.wrapped_env
 
-    def find_loc(self, x, y, r, max_iters=100):
+
+    def find_loc(self, x, y, r, max_iters=1000):
         agent_pos = np.array([x, y], dtype=np.float32)
         obj_locs = np.array([obj[:2] for obj in self.objects])
         for i in range(max_iters):
