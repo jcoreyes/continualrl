@@ -9,6 +9,7 @@ from rlkit.exploration_strategies.epsilon_greedy import EpsilonGreedy
 from rlkit.policies.argmax import ArgmaxDiscretePolicy
 from rlkit.samplers.rollout_functions import rollout
 import torch
+from scipy.stats import entropy
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -77,6 +78,16 @@ class BaseRLAlgorithm(object, metaclass=abc.ABCMeta):
         """
         raise NotImplementedError('_train must implemented by inherited class')
 
+    def transition_entropy(self, transition_count, step_count):
+        cond_entropy = 0
+        for s, next_s_dict in transition_count.items():
+            total_next_s = sum(next_s_dict.values())
+            for next_s, count in next_s_dict.values():
+                cond_prob = count / total_next_s
+                joint_prob = count / step_count
+                cond_entropy += joint_prob * np.log(cond_prob)
+        return cond_entropy
+
     def _end_epoch(self, epoch, incl_expl=True, minigrid=True):
         snapshot = self._get_snapshot()
         if self.viz_maps and epoch % self.viz_gap == 0:
@@ -88,6 +99,16 @@ class BaseRLAlgorithm(object, metaclass=abc.ABCMeta):
             else:
                 stats = self.get_validation_returns(snapshot)
                 logger.save_stats(epoch, stats, final=True)
+            # env stats (not validation)
+            env_stats = {}
+            eval_env = snapshot['evaluation/env']
+            if hasattr(eval_env, 'transition_count'):
+                env_stats['transition_entropy'] = self.transition_entropy(eval_env.transition_count, eval_env.step_count)
+            if hasattr(eval_env, 'hitting_time') and eval_env.hitting_time != 0:
+                env_stats['hitting_time'] = eval_env.hitting_time
+            if env_stats:
+                logger.save_stats_csv(epoch, env_stats, fname='env_stats')
+
         logger.save_itr_params(epoch, snapshot)
         gt.stamp('saving', unique=False)
         self._log_stats(epoch, incl_expl=incl_expl)
