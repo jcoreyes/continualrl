@@ -120,8 +120,8 @@ if __name__ == "__main__":
     3. use_gpu 
     """
     exp_prefix = 'swimmer-gather-envshaping'
-    n_seeds = 1
-    mode = 'local'
+    n_seeds = 3
+    mode = 'ec2'
     use_gpu = False
 
     env_variant = dict(
@@ -215,9 +215,9 @@ if __name__ == "__main__":
                     variant=variant,
                     use_gpu=use_gpu,
                     region='us-east-2',
-                    num_exps_per_instance=3,
+                    num_exps_per_instance=1,
                     snapshot_mode='gap',
                     snapshot_gap=10,
-                    instance_type='g4.xlarge',
+                    instance_type='c5.xlarge',
                     spot_price=0.07,
                 )
