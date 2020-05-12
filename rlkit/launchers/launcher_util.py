@@ -242,16 +242,6 @@ def run_experiment(
     Safety Checks
     """
 
-    if mode == 'ec2' or mode == 'gcp':
-        if not query_yes_no(
-                "{} costs money. Are you sure you want to run?".format(mode)
-        ):
-            sys.exit(1)
-        if use_gpu:
-            if not query_yes_no(
-                    "{} is more expensive with GPUs. Confirm?".format(mode)
-            ):
-                sys.exit(1)
 
     """
     GPU vs normal configs
