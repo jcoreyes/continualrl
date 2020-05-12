@@ -1,5 +1,4 @@
 from enum import IntEnum
-
 from rlkit.envs.gym_minigrid.gym_minigrid.minigrid_absolute import *
 from rlkit.envs.gym_minigrid.gym_minigrid.register import register
 from rlkit.envs.gym_minigrid.gym_minigrid.envs.getfood_base import FoodEnvBase
@@ -144,7 +143,8 @@ class ToolsEnv(FoodEnvBase):
         self.num_solves = 0
         self.end_on_task_completion = end_on_task_completion
         self.end_on_task_completion = not self.lifelong
-
+        
+        self.hitting_time = 0
         # Exploration!
         assert not (cbe and rnd), "can't have both CBE and RND"
         # CBE
@@ -375,7 +375,7 @@ class ToolsEnv(FoodEnvBase):
         shelf_obs = self.gen_shelf_obs()
 
         """ Generate obs """
-        extra_obs_count_string = shelf_obs.sum(axis=0).tostring()
+        obs_grid_string = obs.tostring()
         extra_obs = shelf_obs.flatten()
         # magic number repeating shelf 8 times to fill up more of the obs
         extra_obs = np.repeat(extra_obs, 8)
@@ -405,11 +405,10 @@ class ToolsEnv(FoodEnvBase):
             info.update({'solved': False})
         if self.time_horizon and self.step_count % self.time_horizon == 0:
             done = True
-
         """ Exploration bonuses """
+        self.obs_count[obs_grid_string] = self.obs_count.get(obs_grid_string, 0) + 1
         if self.cbe:
-            self.obs_count[extra_obs_count_string] = self.obs_count.get(extra_obs_count_string, 0) + 1
-            reward += 1 / np.sqrt(self.obs_count[extra_obs_count_string])
+            reward += 1 / np.sqrt(self.obs_count[obs_grid_string])
         elif self.rnd:
             self.sum_rnd_obs += obs
             torch_obs = torch_ify(obs)
@@ -432,6 +431,9 @@ class ToolsEnv(FoodEnvBase):
                 bonus = 1
             reward += bonus
 
+        if self.hitting_time == 0 and reward > 0:
+            self.hitting_time = self.step_count
+        
         # funny ordering because otherwise we'd get the transpose due to how the grid indices work
         self.visit_count[self.agent_pos[1], self.agent_pos[0]] += 1
         return obs, reward, done, info
@@ -453,6 +455,7 @@ class ToolsEnv(FoodEnvBase):
         self.last_placed_on = None
         self.max_make_idx = -1
         self.last_idx = -1
+        self.hitting_time = 0
         self.obs_count = {}
         self.info_last = {'pickup_%s' % k: 0 for k in self.object_to_idx.keys()
                           if k not in ['empty', 'wall', 'tree']}

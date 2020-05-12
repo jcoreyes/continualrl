@@ -478,8 +478,8 @@ class DeerDiverseEnv(FoodEnvBase):
             done = True
 
         """ Exploration bonuses """
+        self.obs_count[extra_obs_count_string] = self.obs_count.get(extra_obs_count_string, 0) + 1
         if self.cbe:
-            self.obs_count[extra_obs_count_string] = self.obs_count.get(extra_obs_count_string, 0) + 1
             reward += 1 / np.sqrt(self.obs_count[extra_obs_count_string])
         elif self.rnd:
             torch_obs = torch_ify(extra_obs)

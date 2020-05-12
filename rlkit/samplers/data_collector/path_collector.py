@@ -82,7 +82,7 @@ class MdpPathCollector(PathCollector):
 
     def get_snapshot(self):
         return dict(
-            #env=self._env,
+            env=self._env,
             policy=self._policy,
         )
 
@@ -193,7 +193,7 @@ class LifetimeMdpPathCollector(PathCollector):
 
     def get_snapshot(self):
         return dict(
-            #env=self._env,
+            env=self._env,
             policy=self._policy,
         )
 
@@ -282,7 +282,7 @@ class GoalConditionedPathCollector(PathCollector):
 
     def get_snapshot(self):
         return dict(
-            #env=self._env,
+            env=self._env,
             policy=self._policy,
             observation_key=self._observation_key,
             desired_goal_key=self._desired_goal_key,

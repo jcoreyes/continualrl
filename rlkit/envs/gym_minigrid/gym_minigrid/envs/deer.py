@@ -415,7 +415,7 @@ class DeerEnv(FoodEnvBase):
         shelf_obs = self.gen_shelf_obs()
 
         """ Generate obs """
-        extra_obs_count_string = shelf_obs.sum(axis=0).tostring()
+        obs_grid_string = obs.tostring()
         extra_obs = shelf_obs.flatten()
         # magic number repeating shelf 8 times to fill up more of the obs
         extra_obs = np.repeat(extra_obs, 8)
@@ -447,9 +447,9 @@ class DeerEnv(FoodEnvBase):
             done = True
 
         """ Exploration bonuses """
+        self.obs_count[obs_grid_string] = self.obs_count.get(obs_grid_string, 0) + 1
         if self.cbe:
-            self.obs_count[extra_obs_count_string] = self.obs_count.get(extra_obs_count_string, 0) + 1
-            reward += 1 / np.sqrt(self.obs_count[extra_obs_count_string])
+            reward += 1 / np.sqrt(self.obs_count[obs_grid_string])
         elif self.rnd:
             torch_obs = torch_ify(extra_obs)
             true_rnd = self.rnd_network(torch_obs)

@@ -3,6 +3,7 @@ from enum import IntEnum
 from rlkit.envs.gym_minigrid.gym_minigrid.register import register
 from gym import spaces
 import numpy as np
+from collections import defaultdict
 
 from rlkit.envs.gym_minigrid.gym_minigrid.minigrid_absolute import MiniGridAbsoluteEnv, Food, GridAbsolute, CELL_PIXELS
 
@@ -41,6 +42,8 @@ class FoodEnvBase(MiniGridAbsoluteEnv):
         self.only_partial_obs = only_partial_obs
         self.can_die = can_die
         self.one_hot_obs = one_hot_obs
+        # for conditional entropy of s' | s
+        self.transition_count = {}
 
         if not hasattr(self, 'actions'):
             self.actions = FoodEnvBase.Actions
@@ -137,6 +140,10 @@ class FoodEnvBase(MiniGridAbsoluteEnv):
                 obs = np.concatenate((img.flatten(), full_img.flatten(), np.array([self.health])))
             else:
                 obs = np.concatenate((img.flatten(), full_img.flatten()))
+        obs_string = obs.tostring()
+        self.transition_count.setdefault(hash(self.prev_obs_string), {})
+        self.transition_count[hash(self.prev_obs_string)][hash(obs_string)] = 1 + self.transition_count[hash(self.prev_obs_string)].get(hash(obs_string), 0)
+        self.prev_obs_string = obs_string
         return obs, rwd, done, {}
 
     def reset(self, incl_health=True):
@@ -145,6 +152,7 @@ class FoodEnvBase(MiniGridAbsoluteEnv):
         self.extra_reset()
         img = self.get_img(onehot=self.one_hot_obs)
         full_img = self.get_full_img(onehot=self.one_hot_obs)
+        self.transition_count = {}
 
         # if self.one_hot_obs:
         # 	# ignore second channel since redundant (due to one-to-one mapping btwn color and obj type for now)
