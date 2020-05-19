@@ -110,9 +110,9 @@ if __name__ == "__main__":
     2. algo_variant, env_variant, env_search_space
     3. use_gpu 
     """
-    exp_prefix = 'tool-dqn-env-shaping-distance-increase-deer'
-    n_seeds = 25
-    mode = 'ec2'
+    exp_prefix = 'tool-dqn-env-shaping-distance-increase-deer-hitting'
+    n_seeds = 10
+    mode = 'local'
     use_gpu = False
 
     env_variant = dict(
@@ -174,7 +174,7 @@ if __name__ == "__main__":
 
     algo_variant = dict(
         algorithm="DQN",
-        version="distance increase - deer",
+        version="distance increase - deer - hitting",
         layer_size=16,
         replay_buffer_size=int(5E5),
         eps_decay_rate=1e-5,
@@ -245,5 +245,6 @@ if __name__ == "__main__":
                     snapshot_mode='gap',
                     snapshot_gap=10,
                     instance_type='c5.large',
+                    python_cmd='python3.5',
                     spot_price=0.08
                 )

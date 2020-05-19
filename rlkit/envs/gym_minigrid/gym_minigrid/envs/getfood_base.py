@@ -28,6 +28,8 @@ class FoodEnvBase(MiniGridAbsoluteEnv):
                  only_partial_obs=False,
                  can_die=True,
                  one_hot_obs=True,
+                 mixing_time_periods=[],
+                 mixing_time_period_length=500,
                  **kwargs
                  ):
         self.agent_start_pos = agent_start_pos
@@ -44,6 +46,12 @@ class FoodEnvBase(MiniGridAbsoluteEnv):
         self.one_hot_obs = one_hot_obs
         # for conditional entropy of s' | s
         self.transition_count = {}
+        self.prev_obs_string = ''
+        # for mixing time
+        self.mixing_time_periods = mixing_time_periods
+        self.max_mixing_time_period = max(mixing_time_periods) if mixing_time_periods else 0
+        self.mixing_time_period_length = mixing_time_period_length
+        self.obs_counts = []
 
         if not hasattr(self, 'actions'):
             self.actions = FoodEnvBase.Actions
@@ -141,8 +149,15 @@ class FoodEnvBase(MiniGridAbsoluteEnv):
             else:
                 obs = np.concatenate((img.flatten(), full_img.flatten()))
         obs_string = obs.tostring()
+        # transition count stuff
         self.transition_count.setdefault(hash(self.prev_obs_string), {})
         self.transition_count[hash(self.prev_obs_string)][hash(obs_string)] = 1 + self.transition_count[hash(self.prev_obs_string)].get(hash(obs_string), 0)
+        # mixing time stuff
+        if self.step_count % self.mixing_time_period_length == 0:
+            self.obs_counts.append(self.obs_count.copy())
+            if hasattr(self, 'obs_count') and self.mixing_time_periods and len(self.obs_counts) > self.max_mixing_time_period:
+                self.obs_counts = self.obs_counts[-(self.max_mixing_time_period+1):]
+
         self.prev_obs_string = obs_string
         return obs, rwd, done, {}
 
@@ -173,6 +188,7 @@ class FoodEnvBase(MiniGridAbsoluteEnv):
                 obs = np.concatenate((img.flatten(), full_img.flatten(), np.array([self.health])))
             else:
                 obs = np.concatenate((img.flatten(), full_img.flatten()))
+        self.prev_obs_string = obs.tostring()
         return obs
 
     def get_full_img(self, scale=1 / 8, onehot=False):

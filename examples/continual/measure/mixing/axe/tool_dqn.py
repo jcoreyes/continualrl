@@ -108,8 +108,8 @@ if __name__ == "__main__":
     2. algo_variant, env_variant, env_search_space
     3. use_gpu 
     """
-    exp_prefix = 'tool-dqn-env-shaping-distance-increase-axe'
-    n_seeds = 10
+    exp_prefix = 'tool-dqn-env-shaping-distance-increase-axe-mixing-time'
+    n_seeds = 3
     mode = 'local'
     use_gpu = False
 
@@ -156,6 +156,7 @@ if __name__ == "__main__":
             (60000, 12000),
             (60000, 10000)
         ],
+        mixing_time_periods=[[1, 2, 5, 10]],
         # resource conditions
         init_resources=[
             # {'metal': 1, 'wood': 1},
@@ -175,20 +176,19 @@ if __name__ == "__main__":
 
     algo_variant = dict(
         algorithm="DQN",
-        version="distance increase - axe",
+        version="distance increase - axe - mixing time",
         layer_size=16,
         replay_buffer_size=int(5E5),
         eps_decay_rate=1e-5,
         algorithm_kwargs=dict(
-            num_epochs=6,
+            num_epochs=1000,
             num_eval_steps_per_epoch=6000,
             num_trains_per_train_loop=500,
             num_expl_steps_per_train_loop=500,
             min_num_steps_before_training=200,
             max_path_length=math.inf,
             batch_size=64,
-            validation_envs_pkl=join(get_repo_dir(), 'examples/continual/measure/hitting/axe/validation_envs/dynamic_static_validation_envs_2020_05_11_23_21_57.pkl'),
-            validation_rollout_length=1,
+            validation_envs_pkl=join(get_repo_dir(), 'examples/continual/measure/mixing/axe/validation_envs/dynamic_static_validation_envs_2020_05_18_03_36_04.pkl'),
             validation_period=5,
             # store visit count array for heat map
             viz_maps=True,
@@ -196,7 +196,7 @@ if __name__ == "__main__":
         ),
         trainer_kwargs=dict(
             discount=0.99,
-            learning_rate=0,
+            learning_rate=1E-4,
             grad_clip_val=5
         ),
         inventory_network_kwargs=dict(

@@ -92,6 +92,8 @@ def run_experiment(
         ssh_host=None,
         # gcp
         gcp_kwargs=None,
+        # Suvansh added
+        python_cmd='python'
 ):
     """
     Usage:
@@ -466,6 +468,7 @@ def run_experiment(
         raise NotImplementedError("Mode not supported: {}".format(mode))
     run_experiment_kwargs['base_log_dir'] = base_log_dir_for_script
     _global_target_mount = doodad.launch_python(
+        python_cmd=python_cmd,
         target=target,
         mode=dmode,
         mount_points=mounts,

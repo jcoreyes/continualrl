@@ -9,7 +9,6 @@ from rlkit.exploration_strategies.epsilon_greedy import EpsilonGreedy
 from rlkit.policies.argmax import ArgmaxDiscretePolicy
 from rlkit.samplers.rollout_functions import rollout
 import torch
-from scipy.stats import entropy
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -82,14 +81,15 @@ class BaseRLAlgorithm(object, metaclass=abc.ABCMeta):
         cond_entropy = 0
         for s, next_s_dict in transition_count.items():
             total_next_s = sum(next_s_dict.values())
-            for next_s, count in next_s_dict.values():
+            for next_s, count in next_s_dict.items():
                 cond_prob = count / total_next_s
                 joint_prob = count / step_count
-                cond_entropy += joint_prob * np.log(cond_prob)
+                cond_entropy -= joint_prob * np.log(cond_prob)
         return cond_entropy
 
     def _end_epoch(self, epoch, incl_expl=True, minigrid=True):
         snapshot = self._get_snapshot()
+        eval_env = snapshot['evaluation/env']
         if self.viz_maps and epoch % self.viz_gap == 0:
             logger.save_viz(epoch, snapshot, self.eval_env.visit_count)
         if self.validation and epoch % self.validation_period == 0:
@@ -101,13 +101,22 @@ class BaseRLAlgorithm(object, metaclass=abc.ABCMeta):
                 logger.save_stats(epoch, stats, final=True)
             # env stats (not validation)
             env_stats = {}
-            eval_env = snapshot['evaluation/env']
             if hasattr(eval_env, 'transition_count'):
                 env_stats['transition_entropy'] = self.transition_entropy(eval_env.transition_count, eval_env.step_count)
             if hasattr(eval_env, 'hitting_time') and eval_env.hitting_time != 0:
                 env_stats['hitting_time'] = eval_env.hitting_time
             if env_stats:
                 logger.save_stats_csv(epoch, env_stats, fname='env_stats')
+        mixing_time_dict = {}
+        #print('EPOCH %d NUM STEPS: %d' % (epoch, eval_env.step_count))
+        if hasattr(eval_env, 'mixing_time_periods'):
+            for period in eval_env.mixing_time_periods:
+                if epoch and epoch % period == 0:
+                    mixing_time_dict['mixing_time (k=%d)' % period] = self.tv_distance(eval_env, eval_env.obs_counts[-(period+1)], eval_env.obs_counts[-1], period)
+                else:
+                    mixing_time_dict['mixing_time (k=%d)' % period] = ''
+            if mixing_time_dict:
+                logger.save_stats_csv(epoch, mixing_time_dict, fname='mixing_time', numbered=False)
 
         logger.save_itr_params(epoch, snapshot)
         gt.stamp('saving', unique=False)
@@ -120,6 +129,18 @@ class BaseRLAlgorithm(object, metaclass=abc.ABCMeta):
 
         for post_epoch_func in self.post_epoch_funcs:
             post_epoch_func(self, epoch)
+
+    def tv_distance(self, env, first, second, period):
+        first_keys = set(first.keys())
+        first_denom = env.step_count - period
+        second_denom = env.step_count
+        tv_distance = 0
+        for k, v in first.items():
+            tv_distance += 0.5 * np.abs(v / first_denom - second.get(k, 0) / second_denom)
+            for k, v in second.items():
+                if k not in first_keys:
+                    tv_distance += 0.5 * v / second_denom
+        return tv_distance
 
     def get_validation_returns(self, snapshot):
         policy = snapshot['evaluation/policy']

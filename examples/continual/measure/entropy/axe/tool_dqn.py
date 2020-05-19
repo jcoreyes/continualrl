@@ -108,8 +108,8 @@ if __name__ == "__main__":
     2. algo_variant, env_variant, env_search_space
     3. use_gpu 
     """
-    exp_prefix = 'tool-dqn-env-shaping-distance-increase-axe'
-    n_seeds = 25
+    exp_prefix = 'tool-dqn-env-shaping-distance-increase-axe-entropy'
+    n_seeds = 3 
     mode = 'local'
     use_gpu = False
 
@@ -187,7 +187,7 @@ if __name__ == "__main__":
             min_num_steps_before_training=200,
             max_path_length=math.inf,
             batch_size=64,
-            validation_envs_pkl=join(get_repo_dir(), 'examples/continual/measure/hitting/axe/validation_envs/dynamic_static_validation_envs_2020_05_11_23_21_57.pkl'),
+            validation_envs_pkl=join(get_repo_dir(), 'examples/continual/measure/entropy/axe/validation_envs/dynamic_static_validation_envs_2020_05_11_23_21_57.pkl'),
             validation_rollout_length=1,
             validation_period=10,
             # store visit count array for heat map
@@ -246,6 +246,6 @@ if __name__ == "__main__":
                     snapshot_mode='gap',
                     snapshot_gap=10,
                     # instance_type='c5.large',
-                    #python_cmd='python3.6',
+                    python_cmd='python3.5',
                     spot_price=0.08
                 )

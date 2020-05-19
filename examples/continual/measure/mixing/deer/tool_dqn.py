@@ -6,6 +6,8 @@ from os.path import join
 
 import gym
 import copy
+
+from gym_minigrid.envs.deer import DeerEnv
 from gym_minigrid.envs.tools import ToolsEnv
 from rlkit.core.logging import get_repo_dir
 from rlkit.samplers.data_collector.path_collector import LifetimeMdpPathCollector, MdpPathCollectorConfig
@@ -37,10 +39,10 @@ def schedule(t):
 def experiment(variant):
     from rlkit.envs.gym_minigrid.gym_minigrid import envs
 
-    expl_env = ToolsEnv(
+    expl_env = DeerEnv(
         **variant['env_kwargs']
     )
-    eval_env = ToolsEnv(
+    eval_env = DeerEnv(
         **variant['env_kwargs']
     )
     obs_dim = expl_env.observation_space.low.size
@@ -75,7 +77,7 @@ def experiment(variant):
     )
     expl_path_collector = collector_class(
         expl_env,
-        expl_policy
+        expl_policy,
     )
     trainer = DoubleDQNTrainer(
         qf=qf,
@@ -108,8 +110,8 @@ if __name__ == "__main__":
     2. algo_variant, env_variant, env_search_space
     3. use_gpu 
     """
-    exp_prefix = 'tool-dqn-env-shaping-distance-increase-axe'
-    n_seeds = 10
+    exp_prefix = 'tool-dqn-env-shaping-distance-increase-deer-mixing'
+    n_seeds = 3
     mode = 'local'
     use_gpu = False
 
@@ -119,20 +121,21 @@ if __name__ == "__main__":
         health_cap=1000,
         gen_resources=True,
         fully_observed=False,
-        task='make axe',
+        task='make food',
         make_rtype='sparse',
         fixed_reset=False,
         only_partial_obs=True,
         init_resources={
-            'metal': 1,
-            'wood': 1,
+            'deer': 1,
+            'axe': 1,
         },
-        resource_prob={
-            'metal': 0.08,
-            'wood': 0.08,
+        replenish_low_resources={
+            'deer': 2,
+            'axe': 2
         },
-        replenish_empty_resources=['metal', 'wood'],
-        place_schedule=(2000, 1000),
+        mixing_time_periods=[1, 2, 5, 10],
+        deer_move_prob=0.1,
+        place_schedule=(3000, 1000),
         fixed_expected_resources=True,
         end_on_task_completion=False,
         time_horizon=0
@@ -141,10 +144,9 @@ if __name__ == "__main__":
     env_search_space = {k: [v] for k, v in env_search_space.items()}
     env_search_space.update(
         # dynamicity
-        resource_prob=[
-            # {'metal': 0.01, 'wood': 0.01},
-            # {'metal': 0.02, 'wood': 0.02},
-            {'metal': 0.05, 'wood': 0.05}
+        deer_move_prob=[
+            # 0, 0.1, 0.2
+            0.1
         ],
         # env shaping
         place_schedule=[
@@ -156,39 +158,37 @@ if __name__ == "__main__":
             (60000, 12000),
             (60000, 10000)
         ],
+        mixing_time_periods=[[1, 2, 5, 10]],
         # resource conditions
         init_resources=[
-            # {'metal': 1, 'wood': 1},
-            {'metal': 2, 'wood': 2},
+            #{'deer': 1, 'axe': 1},
+            {'deer': 2, 'axe': 2}
         ],
         # reward shaping
         make_rtype=[
             'sparse'#, 'dense-fixed', 'waypoint', 'one-time',
-            # 'sparse', 'dense-fixed'
         ],
         # reset / reset free
         time_horizon=[
-            # 0, 100, 200
             0#, 200
         ]
     )
 
     algo_variant = dict(
         algorithm="DQN",
-        version="distance increase - axe",
+        version="distance increase - deer - mixing",
         layer_size=16,
         replay_buffer_size=int(5E5),
         eps_decay_rate=1e-5,
         algorithm_kwargs=dict(
-            num_epochs=6,
+            num_epochs=1000,
             num_eval_steps_per_epoch=6000,
             num_trains_per_train_loop=500,
             num_expl_steps_per_train_loop=500,
             min_num_steps_before_training=200,
             max_path_length=math.inf,
             batch_size=64,
-            validation_envs_pkl=join(get_repo_dir(), 'examples/continual/measure/hitting/axe/validation_envs/dynamic_static_validation_envs_2020_05_11_23_21_57.pkl'),
-            validation_rollout_length=1,
+            validation_envs_pkl=join(get_repo_dir(), 'examples/continual/measure/mixing/deer/validation_envs/dynamic_static_validation_envs_2020_05_18_03_36_31.pkl'),
             validation_period=5,
             # store visit count array for heat map
             viz_maps=True,
@@ -196,7 +196,7 @@ if __name__ == "__main__":
         ),
         trainer_kwargs=dict(
             discount=0.99,
-            learning_rate=0,
+            learning_rate=1E-4,
             grad_clip_val=5
         ),
         inventory_network_kwargs=dict(
@@ -245,7 +245,7 @@ if __name__ == "__main__":
                     num_exps_per_instance=1,
                     snapshot_mode='gap',
                     snapshot_gap=10,
-                    # instance_type='c5.large',
+                    instance_type='c5.large',
                     python_cmd='python3.5',
                     spot_price=0.08
                 )
