@@ -6,8 +6,6 @@ from os.path import join
 
 import gym
 import copy
-
-from gym_minigrid.envs.deer import DeerEnv
 from gym_minigrid.envs.tools import ToolsEnv
 from rlkit.core.logging import get_repo_dir
 from rlkit.samplers.data_collector.path_collector import LifetimeMdpPathCollector, MdpPathCollectorConfig
@@ -39,10 +37,10 @@ def schedule(t):
 def experiment(variant):
     from rlkit.envs.gym_minigrid.gym_minigrid import envs
 
-    expl_env = DeerEnv(
+    expl_env = ToolsEnv(
         **variant['env_kwargs']
     )
-    eval_env = DeerEnv(
+    eval_env = ToolsEnv(
         **variant['env_kwargs']
     )
     obs_dim = expl_env.observation_space.low.size
@@ -56,12 +54,7 @@ def experiment(variant):
     qf_criterion = nn.MSELoss()
     eval_policy = ArgmaxDiscretePolicy(qf)
     # eval_policy = SoftmaxQPolicy(qf)
-    expl_policy = PolicyWrappedWithExplorationStrategy(
-        EpsilonGreedyDecay(expl_env.action_space, variant['algo_kwargs']['eps_decay_rate'], 1, 0.1),
-        eval_policy,
-    )
-    if lifetime:
-        eval_policy = expl_policy
+    expl_policy = eval_policy
     # expl_policy = PolicyWrappedWithExplorationStrategy(
     #     EpsilonGreedy(expl_env.action_space, 0.5),
     #     eval_policy,
@@ -77,7 +70,7 @@ def experiment(variant):
     )
     expl_path_collector = collector_class(
         expl_env,
-        expl_policy,
+        expl_policy
     )
     trainer = DoubleDQNTrainer(
         qf=qf,
@@ -110,9 +103,9 @@ if __name__ == "__main__":
     2. algo_variant, env_variant, env_search_space
     3. use_gpu 
     """
-    exp_prefix = 'tool-dqn-env-shaping-distance-increase-deer-mixing'
-    n_seeds = 3
-    mode = 'local'
+    exp_prefix = 'tool-dqn-env-shaping-distance-increase-axe'
+    n_seeds = 10
+    mode = 'ec2'
     use_gpu = False
 
     env_variant = dict(
@@ -121,21 +114,20 @@ if __name__ == "__main__":
         health_cap=1000,
         gen_resources=True,
         fully_observed=False,
-        task='make food',
+        task='make axe',
         make_rtype='sparse',
         fixed_reset=False,
         only_partial_obs=True,
         init_resources={
-            'deer': 1,
-            'axe': 1,
+            'metal': 1,
+            'wood': 1,
         },
-        replenish_low_resources={
-            'deer': 2,
-            'axe': 2
+        resource_prob={
+            'metal': 0.08,
+            'wood': 0.08,
         },
-        mixing_time_periods=[1, 2, 5, 10],
-        deer_move_prob=0.1,
-        place_schedule=(3000, 1000),
+        replenish_empty_resources=['metal', 'wood'],
+        place_schedule=(2000, 1000),
         fixed_expected_resources=True,
         end_on_task_completion=False,
         time_horizon=0
@@ -144,52 +136,53 @@ if __name__ == "__main__":
     env_search_space = {k: [v] for k, v in env_search_space.items()}
     env_search_space.update(
         # dynamicity
-        deer_move_prob=[
-            # 0, 0.1, 0.2
-            0.1
+        resource_prob=[
+            # {'metal': 0.01, 'wood': 0.01},
+            # {'metal': 0.02, 'wood': 0.02},
+            {'metal': 0.05, 'wood': 0.05}
         ],
         # env shaping
         place_schedule=[
             # None is the baseline
             None,
-            (60000, 30000),
-            (60000, 20000),
-            (60000, 15000),
-            (60000, 12000),
-            (60000, 10000)
+            (40000, 20000),
+            (80000, 40000),
+            (120000, 60000)
         ],
-        mixing_time_periods=[[1, 2, 5, 10]],
         # resource conditions
         init_resources=[
-            #{'deer': 1, 'axe': 1},
-            {'deer': 2, 'axe': 2}
+            # {'metal': 1, 'wood': 1},
+            {'metal': 2, 'wood': 2},
         ],
         # reward shaping
         make_rtype=[
-            'sparse'#, 'dense-fixed', 'waypoint', 'one-time',
+            'sparse', 'dense-fixed', 'waypoint', 'one-time',
+            # 'sparse', 'dense-fixed'
         ],
         # reset / reset free
         time_horizon=[
-            0#, 200
+            # 0, 100, 200
+            0, 200
         ]
     )
 
     algo_variant = dict(
         algorithm="DQN",
-        version="distance increase - deer - mixing",
+        version="distance increase - axe",
         layer_size=16,
         replay_buffer_size=int(5E5),
         eps_decay_rate=1e-5,
         algorithm_kwargs=dict(
-            num_epochs=1000,
+            num_epochs=2500,
             num_eval_steps_per_epoch=6000,
             num_trains_per_train_loop=500,
             num_expl_steps_per_train_loop=500,
             min_num_steps_before_training=200,
             max_path_length=math.inf,
             batch_size=64,
-            validation_envs_pkl=join(get_repo_dir(), 'examples/continual/measure/env_shaping/mixing/deer/validation_envs/dynamic_static_validation_envs_2020_05_27_00_45_08.pkl'),
-            validation_period=5,
+            validation_envs_pkl=join(get_repo_dir(), 'examples/continual/env_shaping/distance_increasing/axe/validation_envs/dynamic_static_validation_envs_2020_05_30_15_27_34.pkl'),
+            validation_rollout_length=100,
+            validation_period=10,
             # store visit count array for heat map
             viz_maps=True,
             viz_gap=100
@@ -245,7 +238,6 @@ if __name__ == "__main__":
                     num_exps_per_instance=1,
                     snapshot_mode='gap',
                     snapshot_gap=10,
-                    instance_type='c5.large',
-                    python_cmd='python3.5',
+                    # instance_type='c5.large',
                     spot_price=0.08
                 )

@@ -181,15 +181,14 @@ if __name__ == "__main__":
         replay_buffer_size=int(5E5),
         eps_decay_rate=1e-5,
         algorithm_kwargs=dict(
-            num_epochs=100,
+            num_epochs=101,
             num_eval_steps_per_epoch=6000,
-            num_trains_per_train_loop=500,
+            num_trains_per_train_loop=1,
             num_expl_steps_per_train_loop=500,
             min_num_steps_before_training=200,
             max_path_length=math.inf,
             batch_size=64,
-            validation_envs_pkl=join(get_repo_dir(), 'examples/continual/measure/env_shaping/mixing/deer/validation_envs/dynamic_static_validation_envs_2020_05_18_03_36_31.pkl'),
-            validation_period=5,
+            validation_envs_pkl=join(get_repo_dir(), 'examples/continual/measure/env_shaping/mixing/deer/validation_envs/dynamic_static_validation_envs_2020_05_27_00_45_08.pkl'),
             # store visit count array for heat map
             viz_maps=True,
             viz_gap=100
@@ -243,7 +242,7 @@ if __name__ == "__main__":
                     use_gpu=use_gpu,
                     region='us-east-2',
                     num_exps_per_instance=1,
-                    snapshot_mode='gap',
+                    snapshot_mode='none',
                     snapshot_gap=10,
                     instance_type='c5.large',
                     python_cmd='python3.5',

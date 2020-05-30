@@ -188,8 +188,7 @@ if __name__ == "__main__":
             min_num_steps_before_training=200,
             max_path_length=math.inf,
             batch_size=64,
-            validation_envs_pkl=join(get_repo_dir(), 'examples/continual/measure/env_shaping/mixing/axe/validation_envs/dynamic_static_validation_envs_2020_05_18_03_36_04.pkl'),
-            validation_period=5,
+            validation_envs_pkl=join(get_repo_dir(), 'examples/continual/measure/env_shaping/mixing/axe/validation_envs/dynamic_static_validation_envs_2020_05_27_00_44_02.pkl')
             # store visit count array for heat map
             viz_maps=True,
             viz_gap=100

@@ -77,15 +77,37 @@ class BaseRLAlgorithm(object, metaclass=abc.ABCMeta):
         """
         raise NotImplementedError('_train must implemented by inherited class')
 
+    def marginal_entropy(self, obs_count, step_count):
+        entropy = 0
+        for s, count in obs_count.items():
+            prob = count / step_count
+            entropy -= prob * np.log(prob)
+        return entropy
+
     def transition_entropy(self, transition_count, step_count):
         cond_entropy = 0
+        state_entropies = {}
         for s, next_s_dict in transition_count.items():
             total_next_s = sum(next_s_dict.values())
+            state_entropy = 0
             for next_s, count in next_s_dict.items():
                 cond_prob = count / total_next_s
                 joint_prob = count / step_count
                 cond_entropy -= joint_prob * np.log(cond_prob)
-        return cond_entropy
+                state_entropy -= cond_prob * np.log(cond_prob)
+            state_entropies[s] = state_entropy
+        return cond_entropy, state_entropies
+
+    def tv_uniform(self, obs_count, step_count):
+        num_states = len(obs_count)
+        obs_count_arr = np.array(list(obs_count.values()))
+        obs_prob_arr = obs_count_arr / obs_count_arr.sum()
+        tv_dist = 0.5 * np.abs(obs_prob_arr - np.ones_like(obs_prob_arr) / num_states).sum()
+        return tv_dist
+
+    def kl_uniform(self, obs_count, step_count):
+        """ Returns KL(obs_dist || U) """
+        return np.log(len(obs_count)) - self.marginal_entropy(obs_count, step_count)
 
     def _end_epoch(self, epoch, incl_expl=True, minigrid=True):
         snapshot = self._get_snapshot()
@@ -101,8 +123,17 @@ class BaseRLAlgorithm(object, metaclass=abc.ABCMeta):
                 logger.save_stats(epoch, stats, final=True)
             # env stats (not validation)
             env_stats = {}
+            if hasattr(eval_env, 'obs_count'):
+                env_stats['entropy'] = self.marginal_entropy(eval_env.obs_count, eval_env.step_count)
+                env_stats['tv_uniform'] = self.tv_uniform(eval_env.obs_count, eval_env.step_count)
+                env_stats['kl_uniform'] = self.kl_uniform(eval_env.obs_count, eval_env.step_count)
             if hasattr(eval_env, 'transition_count'):
-                env_stats['transition_entropy'] = self.transition_entropy(eval_env.transition_count, eval_env.step_count)
+                trans_entropy, state_entropies = self.transition_entropy(eval_env.transition_count, eval_env.step_count)
+                env_stats['transition_entropy'] = trans_entropy
+                state_entropies_arr = np.array(list(state_entropies.values()))
+                env_stats['sum_state_entropy'] = state_entropies_arr.sum()
+                env_stats['min_state_entropy'] = state_entropies_arr.min()
+                env_stats['mean_state_entropy'] = state_entropies_arr.mean()
             if hasattr(eval_env, 'hitting_time') and eval_env.hitting_time != 0:
                 env_stats['hitting_time'] = eval_env.hitting_time
             if env_stats:
@@ -111,7 +142,7 @@ class BaseRLAlgorithm(object, metaclass=abc.ABCMeta):
         #print('EPOCH %d NUM STEPS: %d' % (epoch, eval_env.step_count))
         if hasattr(eval_env, 'mixing_time_periods'):
             for period in eval_env.mixing_time_periods:
-                if epoch and epoch % period == 0:
+                if epoch and epoch % period == 0 and len(eval_env.obs_counts) > period:
                     mixing_time_dict['mixing_time (k=%d)' % period] = self.tv_distance(eval_env, eval_env.obs_counts[-(period+1)], eval_env.obs_counts[-1], period)
                 else:
                     mixing_time_dict['mixing_time (k=%d)' % period] = ''

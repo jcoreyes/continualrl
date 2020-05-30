@@ -14,7 +14,7 @@
     },
     "make_rtype": "sparse",
     "only_partial_obs": true,
-    "seed": 91381,
+    "seed": 97160,
     "task": "make food",
     "time_horizon": 100
 }

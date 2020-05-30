@@ -109,7 +109,7 @@ if __name__ == "__main__":
     3. use_gpu 
     """
     exp_prefix = 'tool-dqn-env-shaping-distance-increase-axe-hitting'
-    n_seeds = 25
+    n_seeds = 15
     mode = 'local'
     use_gpu = False
 
@@ -243,7 +243,7 @@ if __name__ == "__main__":
                     use_gpu=use_gpu,
                     region='us-east-2',
                     num_exps_per_instance=1,
-                    snapshot_mode='gap',
+                    snapshot_mode='none',
                     snapshot_gap=10,
                     # instance_type='c5.large',
                     python_cmd='python3.5',

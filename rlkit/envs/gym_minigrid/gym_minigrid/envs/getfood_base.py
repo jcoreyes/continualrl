@@ -29,7 +29,7 @@ class FoodEnvBase(MiniGridAbsoluteEnv):
                  can_die=True,
                  one_hot_obs=True,
                  mixing_time_periods=[],
-                 mixing_time_period_length=500,
+                 mixing_time_period_length=120,
                  **kwargs
                  ):
         self.agent_start_pos = agent_start_pos

@@ -176,7 +176,7 @@ if __name__ == "__main__":
             batch_size=64,
             validation_envs_pkl=join(get_repo_dir(), 'examples/continual/measure/dynamism/entropy/deer/validation_envs/dynamic_static_validation_envs_2020_05_21_18_38_01.pkl'),
             validation_rollout_length=1,
-            validation_period=10,
+            validation_period=5,
             # store visit count array for heat map
             viz_maps=True,
             viz_gap=100
@@ -230,7 +230,7 @@ if __name__ == "__main__":
                     use_gpu=use_gpu,
                     region='us-east-2',
                     num_exps_per_instance=1,
-                    snapshot_mode='gap',
+                    snapshot_mode='none',
                     snapshot_gap=10,
                     instance_type='c5.large',
                     python_cmd='python3.5',

@@ -89,7 +89,8 @@ class DeerEnv(FoodEnvBase):
         self.resource_prob_min = resource_prob_min or {}
 
         self.lifelong = time_horizon == 0
-
+        
+        self.hitting_time = 0
         # deer stuff
         self.deer = []
         self.deer_move_prob = deer_move_prob
@@ -467,6 +468,8 @@ class DeerEnv(FoodEnvBase):
 
         # funny ordering because otherwise we'd get the transpose due to how the grid indices work
         self.visit_count[self.agent_pos[1], self.agent_pos[0]] += 1
+        if self.hitting_time == 0 and reward > 0:
+            self.hitting_time = self.step_count
         return obs, reward, done, info
 
     def reset(self, seed=None, return_seed=False):
@@ -482,6 +485,7 @@ class DeerEnv(FoodEnvBase):
         num_objs = np.repeat(self.info_last['pickup_%s' % self.task[1]], 8)
         obs = np.concatenate((obs, extra_obs, num_objs))
 
+        self.hitting_time = 0
         self.pantry = []
         self.made_obj_type = None
         self.last_placed_on = None
