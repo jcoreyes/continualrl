@@ -68,6 +68,7 @@ class DeerEnv(FoodEnvBase):
             replenish_low_resources=None,
             # nonzero for reset case, 0 for reset free
             time_horizon=0,
+            reset_hitting=True,
             **kwargs
     ):
         assert task is not None, 'Must specify task of form "make berry", "navigate 3 5", "pickup axe", etc.'
@@ -90,6 +91,7 @@ class DeerEnv(FoodEnvBase):
 
         self.lifelong = time_horizon == 0
         
+        self.reset_hitting = reset_hitting
         self.hitting_time = 0
         # deer stuff
         self.deer = []
@@ -473,6 +475,7 @@ class DeerEnv(FoodEnvBase):
         return obs, reward, done, info
 
     def reset(self, seed=None, return_seed=False):
+        prev_step_count = self.step_count
         self.deer = []
         if self.fixed_reset:
             self.seed(self.seed_val)
@@ -485,7 +488,10 @@ class DeerEnv(FoodEnvBase):
         num_objs = np.repeat(self.info_last['pickup_%s' % self.task[1]], 8)
         obs = np.concatenate((obs, extra_obs, num_objs))
 
-        self.hitting_time = 0
+        if self.reset_hitting:
+            self.hitting_time = 0
+        else:
+            self.step_count = prev_step_count
         self.pantry = []
         self.made_obj_type = None
         self.last_placed_on = None

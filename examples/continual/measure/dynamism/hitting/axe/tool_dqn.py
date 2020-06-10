@@ -134,7 +134,8 @@ if __name__ == "__main__":
         replenish_empty_resources=['metal', 'wood'],
         fixed_expected_resources=True,
         end_on_task_completion=False,
-        time_horizon=0
+        time_horizon=0,
+        reset_hitting=False
     )
     env_search_space = copy.deepcopy(env_variant)
     env_search_space = {k: [v] for k, v in env_search_space.items()}
@@ -160,7 +161,7 @@ if __name__ == "__main__":
         # reset / reset free
         time_horizon=[
             # 0, 100, 200
-            0#, 200
+            200#, 200
         ]
     )
 
@@ -171,16 +172,16 @@ if __name__ == "__main__":
         replay_buffer_size=int(5E5),
         eps_decay_rate=1e-5,
         algorithm_kwargs=dict(
-            num_epochs=10,
+            num_epochs=51,
             num_eval_steps_per_epoch=6000,
-            num_trains_per_train_loop=500,
+            num_trains_per_train_loop=1,
             num_expl_steps_per_train_loop=500,
             min_num_steps_before_training=200,
             max_path_length=math.inf,
             batch_size=64,
-            validation_envs_pkl=join(get_repo_dir(), 'examples/continual/measure/dynamism/hitting/axe/validation_envs/dynamic_static_validation_envs_2020_05_21_18_22_34.pkl'),
+            validation_envs_pkl=join(get_repo_dir(), 'examples/continual/measure/dynamism/hitting/axe/validation_envs/dynamic_static_validation_envs_2020_06_01_03_22_29.pkl'),
             validation_rollout_length=1,
-            validation_period=5,
+            validation_period=10,
             # store visit count array for heat map
             viz_maps=True,
             viz_gap=100

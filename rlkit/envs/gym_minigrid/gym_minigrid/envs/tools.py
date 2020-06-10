@@ -65,6 +65,7 @@ class ToolsEnv(FoodEnvBase):
             replenish_low_resources=None,
             # nonzero for reset case, 0 for reset free
             time_horizon=0,
+            reset_hitting=True,
             **kwargs
     ):
         assert task is not None, 'Must specify task of form "make berry", "navigate 3 5", "pickup axe", etc.'
@@ -144,6 +145,7 @@ class ToolsEnv(FoodEnvBase):
         self.end_on_task_completion = end_on_task_completion
         self.end_on_task_completion = not self.lifelong
         
+        self.reset_hitting = reset_hitting
         self.hitting_time = 0
         # Exploration!
         assert not (cbe and rnd), "can't have both CBE and RND"
@@ -439,6 +441,7 @@ class ToolsEnv(FoodEnvBase):
         return obs, reward, done, info
 
     def reset(self, seed=None, return_seed=False):
+        prev_step_count = self.step_count
         if self.fixed_reset:
             self.seed(self.seed_val)
         else:
@@ -455,7 +458,11 @@ class ToolsEnv(FoodEnvBase):
         self.last_placed_on = None
         self.max_make_idx = -1
         self.last_idx = -1
-        self.hitting_time = 0
+        if self.reset_hitting:
+            self.hitting_time = 0
+        else:
+            # to be used for measuring hitting time in episodic setting
+            self.step_count = prev_step_count
         self.obs_count = {}
         self.info_last = {'pickup_%s' % k: 0 for k in self.object_to_idx.keys()
                           if k not in ['empty', 'wall', 'tree']}

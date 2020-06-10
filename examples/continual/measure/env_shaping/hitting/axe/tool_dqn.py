@@ -169,7 +169,7 @@ if __name__ == "__main__":
         # reset / reset free
         time_horizon=[
             # 0, 100, 200
-            0#, 200
+            200#, 200
         ]
     )
 
@@ -180,7 +180,7 @@ if __name__ == "__main__":
         replay_buffer_size=int(5E5),
         eps_decay_rate=1e-5,
         algorithm_kwargs=dict(
-            num_epochs=6,
+            num_epochs=10,
             num_eval_steps_per_epoch=6000,
             num_trains_per_train_loop=500,
             num_expl_steps_per_train_loop=500,

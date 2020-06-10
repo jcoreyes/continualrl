@@ -168,7 +168,7 @@ if __name__ == "__main__":
         ],
         # reset / reset free
         time_horizon=[
-            0#, 200
+            200#, 200
         ]
     )
 

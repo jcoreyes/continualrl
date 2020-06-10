@@ -6,8 +6,6 @@ from os.path import join
 
 import gym
 import copy
-
-from gym_minigrid.envs.deer import DeerEnv
 from gym_minigrid.envs.tools import ToolsEnv
 from rlkit.core.logging import get_repo_dir
 from rlkit.samplers.data_collector.path_collector import LifetimeMdpPathCollector, MdpPathCollectorConfig
@@ -39,10 +37,10 @@ def schedule(t):
 def experiment(variant):
     from rlkit.envs.gym_minigrid.gym_minigrid import envs
 
-    expl_env = DeerEnv(
+    expl_env = ToolsEnv(
         **variant['env_kwargs']
     )
-    eval_env = DeerEnv(
+    eval_env = ToolsEnv(
         **variant['env_kwargs']
     )
     obs_dim = expl_env.observation_space.low.size
@@ -77,7 +75,7 @@ def experiment(variant):
     )
     expl_path_collector = collector_class(
         expl_env,
-        expl_policy,
+        expl_policy
     )
     trainer = DoubleDQNTrainer(
         qf=qf,
@@ -110,8 +108,8 @@ if __name__ == "__main__":
     2. algo_variant, env_variant, env_search_space
     3. use_gpu 
     """
-    exp_prefix = 'tool-dqn-dynamism-deer-hitting'
-    n_seeds = 25
+    exp_prefix = 'tool-dqn-dynamism-axe-entropy'
+    n_seeds = 5 
     mode = 'local'
     use_gpu = False
 
@@ -121,66 +119,69 @@ if __name__ == "__main__":
         health_cap=1000,
         gen_resources=True,
         fully_observed=False,
-        task='make food',
+        task='make axe',
         make_rtype='sparse',
         fixed_reset=False,
         only_partial_obs=True,
         init_resources={
-            'deer': 1,
-            'axe': 1,
+            'metal': 1,
+            'wood': 1,
         },
-        replenish_low_resources={
-            'deer': 2,
-            'axe': 2
+        resource_prob={
+            'metal': 0.08,
+            'wood': 0.08,
         },
-        deer_move_prob=0.1,
+        replenish_empty_resources=['metal', 'wood'],
         fixed_expected_resources=True,
         end_on_task_completion=False,
-        time_horizon=0,
-        reset_hitting=False
+        time_horizon=0
     )
     env_search_space = copy.deepcopy(env_variant)
     env_search_space = {k: [v] for k, v in env_search_space.items()}
     env_search_space.update(
         # dynamicity
-        deer_move_prob=[
-            0, 0.1, 0.2, 0.4, 0.6
+        resource_prob=[
+            {'metal': 0, 'wood': 0},
+            #{'metal': 0.1, 'wood': 0.1},
+            #{'metal': 0.5, 'wood': 0.5}
         ],
         # resource conditions
         init_resources=[
-            #{'deer': 1, 'axe': 1},
-            {'deer': 2, 'axe': 2}
+            # {'metal': 1, 'wood': 1},
+            {'metal': 2, 'wood': 2},
         ],
         # reward shaping
         make_rtype=[
             'sparse'#, 'dense-fixed', 'waypoint', 'one-time',
+            # 'sparse', 'dense-fixed'
         ],
         # reset / reset free
         time_horizon=[
-            500#, 200
+            # 0, 100, 200
+            0, 200
         ]
     )
 
     algo_variant = dict(
         algorithm="DQN",
-        version="dynamism - deer - hitting",
+        version="dynamism - axe - entropy",
         layer_size=16,
         replay_buffer_size=int(5E5),
         eps_decay_rate=1e-5,
         algorithm_kwargs=dict(
-            num_epochs=10,
+            num_epochs=201,
             num_eval_steps_per_epoch=6000,
-            num_trains_per_train_loop=500,
+            num_trains_per_train_loop=1,
             num_expl_steps_per_train_loop=500,
             min_num_steps_before_training=200,
             max_path_length=math.inf,
             batch_size=64,
-            validation_envs_pkl=join(get_repo_dir(), 'examples/continual/measure/dynamism/hitting/deer/validation_envs/dynamic_static_validation_envs_2020_06_01_03_35_23.pkl'),
+            validation_envs_pkl=join(get_repo_dir(), 'examples/continual/measure/dynamism/entropy/axe/validation_envs/dynamic_static_validation_envs_2020_06_04_00_27_18.pkl'),
             validation_rollout_length=1,
             validation_period=5,
             # store visit count array for heat map
             viz_maps=True,
-            viz_gap=100
+            viz_gap=50
         ),
         trainer_kwargs=dict(
             discount=0.99,
@@ -233,7 +234,7 @@ if __name__ == "__main__":
                     num_exps_per_instance=1,
                     snapshot_mode='none',
                     snapshot_gap=10,
-                    instance_type='c5.large',
+                    # instance_type='c5.large',
                     python_cmd='python3.5',
                     spot_price=0.08
                 )
