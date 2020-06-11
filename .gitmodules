@@ -1,12 +1,6 @@
 [submodule "rlkit/envs/gym-minigrid"]
 	path = rlkit/envs/gym-minigrid
 	url = https://github.com/maximecb/gym-minigrid.git
-[submodule "rlkit/envs/gym-minecraft"]
-	path = rlkit/envs/gym-minecraft
-	url = https://github.com/tambetm/gym-minecraft.git
 [submodule "rlkit/envs/ml-agents"]
 	path = rlkit/envs/ml-agents
 	url = https://github.com/Unity-Technologies/ml-agents.git
-[submodule "rlkit/envs/gym-miniworld"]
-	path = rlkit/envs/gym-miniworld
-	url = https://github.com/maximecb/gym-miniworld.git
