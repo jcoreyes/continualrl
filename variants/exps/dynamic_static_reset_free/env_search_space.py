@@ -25,7 +25,7 @@ env_search_space.update(
 
 
 """
-9/4 03:00 suvansh: cache of version of env_variant above is meant to extend, in case it changes.
+9/4 03:00  : cache of version of env_variant above is meant to extend, in case it changes.
 env_variant = dict(
     grid_size=8,
     # start agent at random pos

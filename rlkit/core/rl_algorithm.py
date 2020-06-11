@@ -43,7 +43,7 @@ class BaseRLAlgorithm(object, metaclass=abc.ABCMeta):
             replay_buffer: ReplayBuffer,
             viz_maps=False,
             viz_gap=50,
-            # suvansh: validation tasks for continual proj
+            #  : validation tasks for continual proj
             validation_envs_pkl=None,
             validation_period=10,
             validation_rollout_length=100

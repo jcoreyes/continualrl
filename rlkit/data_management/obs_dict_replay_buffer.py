@@ -8,7 +8,6 @@ class ObsDictRelabelingBuffer(ReplayBuffer):
     """
     Replay buffer for environments whose observations are dictionaries, such as
         - OpenAI Gym GoalEnv environments. https://blog.openai.com/ingredients-for-robotics-research/
-        - multiworld MultitaskEnv. https://github.com/vitchyr/multiworld/
 
     Implementation details:
      - Only add_path is implemented.
@@ -218,12 +217,6 @@ class ObsDictRelabelingBuffer(ReplayBuffer):
         resampled_goals = new_next_obs_dict[self.desired_goal_key]
 
         new_actions = self._actions[indices]
-        """
-        For example, the environments in this repo have batch-wise
-        implementations of computing rewards:
-
-        https://github.com/vitchyr/multiworld
-        """
 
         if hasattr(self.env, 'compute_rewards'):
             new_rewards = self.env.compute_rewards(

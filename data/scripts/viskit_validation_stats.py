@@ -155,7 +155,7 @@ def compute_validation_stats(exps_dir, horizon):
             epoch_to_stats[epoch] = compute_stats(stats, horizon, task_obj)
         epoch_stats_np = np.zeros((len(stats_files), 1 + len(epoch_to_stats[0])))  # + 1 because want a column for the time index
         for idx, (epoch, stats) in enumerate(epoch_to_stats.items()):
-            # TODO suvansh hardcoded timesteps per epoch as 500 :(
+            # TODO   hardcoded timesteps per epoch as 500 :(
             row = [epoch * 500] + [stats[k] for k in sorted(stats.keys())]
             epoch_stats_np[idx] = np.array(row)
         columns = ['timestep'] + list(sorted(epoch_to_stats[0].keys()))

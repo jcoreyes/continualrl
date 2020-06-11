@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-# Taken from John's code
 
 """Pretty-print tabular data."""
 

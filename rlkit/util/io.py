@@ -80,8 +80,3 @@ def load_local_or_remote_file(filepath, file_type=None):
         object = pickle.load(open(local_path, "rb"))
     print("loaded", local_path)
     return object
-
-
-if __name__ == "__main__":
-    p = sync_down("ashvin/vae/new-point2d/run0/id1/params.pkl")
-    print("got", p)

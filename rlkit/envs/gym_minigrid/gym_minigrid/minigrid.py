@@ -659,7 +659,7 @@ class MiniGridEnv(gym.Env):
         forward = 2
 
         # Pick up an object
-        # suvansh NOTE: pickup here means "eat" food
+        #   NOTE: pickup here means "eat" food
         pickup = 3
         # Drop an object
         # drop = 4

@@ -560,7 +560,7 @@ class Axe(WorldObj):
 
     def render(self, r):
         # self._set_color(r)
-        # TODO suvansh render change
+        # TODO   render change
         r.setColor(255, 200, 0)
         r.drawPolygon([
             (CELL_PIXELS * 0.2, CELL_PIXELS * 0.2),
@@ -609,7 +609,7 @@ class Wood(WorldObj):
         #     (CELL_PIXELS * 0.8, CELL_PIXELS * 0.7),
         #     (CELL_PIXELS * 0.8, CELL_PIXELS * 0.3)
         # ])
-        # TODO suvansh render change
+        # TODO   render change
         r.setColor(0, 255, 0)
         r.drawPolygon([
             (0.5 * CELL_PIXELS, 0.2 * CELL_PIXELS),
@@ -2008,7 +2008,7 @@ class MiniGridAbsoluteEnv(gym.Env):
                         CELL_PIXELS,
                         CELL_PIXELS,
                         #255, 255, 255, 75
-                        # TODO suvansh render change
+                        # TODO   render change
                         0, 0, 0, 75
                     )
 

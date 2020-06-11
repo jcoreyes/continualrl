@@ -1,7 +1,7 @@
 """
 General purpose Python functions.
 
-TODO(vitchyr): I should probably move this to its own module
+TODO( ): I should probably move this to its own module
 """
 import math
 import sys
@@ -232,7 +232,7 @@ def recursive_items(dictionary):
             yield from recursive_items(value)
 
 
-# TODO(vitchyr): test methods/classes below
+# TODO( ): test methods/classes below
 
 
 """

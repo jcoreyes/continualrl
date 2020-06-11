@@ -47,7 +47,7 @@ class MdpPathCollector(PathCollector):
                 render=self._render and len(paths) == 0
             )
             path_len = len(path['actions'])
-            # suvansh: we don't want to skip incomplete paths, and in fact don't have a meaningful max path length
+            #  : we don't want to skip incomplete paths, and in fact don't have a meaningful max path length
             # if (
             #         path_len != max_path_length
             #         and not path['terminals'][-1]
@@ -159,7 +159,7 @@ class LifetimeMdpPathCollector(PathCollector):
         path, self.curr_env, self.last_obs = rollout(
             self.curr_env,
             self._policy,
-            # suvansh: this is not a typo
+            #  : this is not a typo
             max_path_length=num_steps,
             render=self._render,
             return_env_obs=True,

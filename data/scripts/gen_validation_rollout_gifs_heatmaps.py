@@ -23,8 +23,7 @@ from rlkit.samplers.rollout_functions import rollout
 
 def get_val_envs(val_envs_path):
     print('OVERRIDING VAL ENVS')
-    val_envs_path = '/home/suvansh/levine/continualrl/examples/continual/dynamic_static/deer/validation_envs/dynamic_static_validation_envs_2019_09_29_14_58_50.pkl'
-    val_envs_path = '/home/suvansh/levine/continualrl/examples/continual/dynamic_static/axe/validation_envs/dynamic_static_validation_envs_2019_09_29_13_59_09.pkl'
+    val_envs_path = 'VAL_ENVS_PATH'
     with open(val_envs_path, 'rb') as f:
         envs = pickle.load(f)['envs']
     return envs

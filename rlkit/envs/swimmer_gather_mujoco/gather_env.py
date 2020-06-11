@@ -155,7 +155,7 @@ class GatherEnv(ProxyEnv, Serializable):
                        'radians')
     def __init__(
             self,
-            # Suvansh added
+            #   added
             radius=100, radius_decay=0, radius_mode='ball', ball_radius=0.5,
             action_noise_std=0.1,
             action_noise_discount=0.98,  # effective dynamism time-horizon of (1-discount)^{-1} timesteps
@@ -174,7 +174,7 @@ class GatherEnv(ProxyEnv, Serializable):
             *args, **kwargs
     ):
         Serializable.quick_init(self, locals())
-        # Suvansh added
+        #   added
         self.t = 0
         self.radius = radius
         self.radius_decay = radius_decay

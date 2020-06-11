@@ -200,7 +200,6 @@ class DeterministicHyperparameterSweeper(Sweeper):
         ]
 
 
-# TODO(vpong): Test this
 class DeterministicSweeperCombiner(object):
     """
     A simple wrapper to combiner multiple DeterministicHyperParameterSweeper's
